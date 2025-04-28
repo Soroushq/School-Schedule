@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@100..900&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -8,8 +9,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Vazirmatn', sans-serif;
+  --font-mono: 'Vazirmatn', monospace;
+  --font-display: 'Lalezar', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +24,182 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Vazirmatn', sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  direction: rtl;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Lalezar', sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.schedule-table th,
+.schedule-table td {
+  text-align: right;
+  color: #000000;
+}
+
+.schedule-cell-active {
+  background-color: #e5f2ff;
+  transition: all 0.2s ease;
+  color: #000000;
+}
+
+.schedule-cell-active:hover {
+  background-color: #d0e7ff;
+  color: #000000;
+}
+
+.schedule-form-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  color: #000000;
+}
+
+.schedule-cell {
+  background-color: #ffffff;
+  color: #000000;
+  min-height: 120px;
+  cursor: move;
+  transition: all 0.2s ease;
+}
+
+.schedule-cell:hover {
+  background-color: #f0f0f0;
+  color: #000000;
+}
+
+.schedule-cell.dragging {
+  opacity: 0.5;
+  background-color: #e5f2ff;
+}
+
+.schedule-cell.drop-target {
+  background-color: #d0e7ff;
+}
+
+.schedule-header {
+  background-color: #f8f9fa;
+  color: #000000;
+  font-weight: bold;
+}
+
+.schedule-time {
+  background-color: #f8f9fa;
+  color: #000000;
+  font-weight: bold;
+}
+
+@media print {
+  .no-print {
+    display: none;
+  }
+  
+  .print-only {
+    display: block;
+  }
+  
+  .schedule-table {
+    width: 100%;
+    page-break-inside: avoid;
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    color: #000000;
+    background-color: #ffffff;
+  }
+}
+
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  color: #000000;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  color: #000000;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #000000;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #000000;
+}
+
+.modal-body {
+  color: #000000;
+}
+
+.modal-footer {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.schedule-cell-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.schedule-cell-delete {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ff0000;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.schedule-cell-content:hover .schedule-cell-delete {
+  opacity: 1;
+}
+
+.schedule-cell-delete:hover {
+  background-color: rgba(255, 0, 0, 0.2);
 }
