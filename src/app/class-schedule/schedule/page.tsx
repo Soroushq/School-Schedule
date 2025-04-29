@@ -34,6 +34,7 @@ const SchedulePage = () => {
   const [field, setField] = useState('');
   const [selectedCell, setSelectedCell] = useState<{day: string, time: string} | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [timeSelectionModalOpen, setTimeSelectionModalOpen] = useState(false);
   const [personnelCode, setPersonnelCode] = useState('');
   const [employmentStatus, setEmploymentStatus] = useState('');
   const [mainPosition, setMainPosition] = useState('');
@@ -46,6 +47,14 @@ const SchedulePage = () => {
   
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = Array.from({ length: 14 }, (_, i) => `تک ساعت ${toPersianNumber(i + 1)}م`);
+
+  const grades = ['دهم', 'یازدهم', 'دوازدهم'];
+  
+  const classOptions = {
+    'دهم': ['الف', 'ب', 'ج', 'د'],
+    'یازدهم': ['الف', 'ب', 'ج', 'د'],
+    'دوازدهم': ['الف', 'ب', 'ج', 'د']
+  };
 
   const hourTypes = [
     'موظف اول',
@@ -136,8 +145,13 @@ const SchedulePage = () => {
     }
   };
 
-  const handleCellClick = (day: string, time: string) => {
+  const handleAddNewSchedule = () => {
+    setTimeSelectionModalOpen(true);
+  };
+
+  const handleTimeSelection = (day: string, time: string) => {
     setSelectedCell({ day, time });
+    setTimeSelectionModalOpen(false);
     setModalOpen(true);
   };
 
@@ -212,6 +226,48 @@ const SchedulePage = () => {
     setSchedule(schedule.filter(item => item.id !== id));
   };
 
+  const groupScheduleItems = () => {
+    // ایجاد یک آرایه جدید برای نگهداری آیتم‌های گروه‌بندی شده
+    const groupedItems: Schedule[] = [];
+    const tempItems = [...schedule];
+
+    // مرتب‌سازی آیتم‌ها بر اساس روز و ساعت شروع
+    tempItems.sort((a, b) => {
+      if (a.day !== b.day) {
+        return days.indexOf(a.day) - days.indexOf(b.day);
+      }
+      return hours.indexOf(a.timeStart) - hours.indexOf(b.timeStart);
+    });
+
+    // گروه‌بندی آیتم‌های پشت سر هم
+    let currentGroup: Schedule | null = null;
+
+    tempItems.forEach((item) => {
+      if (!currentGroup) {
+        currentGroup = { ...item };
+        groupedItems.push(currentGroup);
+        return;
+      }
+
+      // بررسی اگر آیتم فعلی ادامه گروه قبلی است
+      const isSameDay = currentGroup.day === item.day;
+      const isSamePersonnel = currentGroup.personnelCode === item.personnelCode;
+      const isSameTeachingGroup = currentGroup.teachingGroup === item.teachingGroup;
+      const isConsecutiveHour = hours.indexOf(item.timeStart) === hours.indexOf(currentGroup.timeEnd);
+
+      if (isSameDay && isSamePersonnel && isSameTeachingGroup && isConsecutiveHour) {
+        // آیتم فعلی ادامه آیتم قبلی است، پس آن را به گروه اضافه می‌کنیم
+        currentGroup.timeEnd = item.timeEnd;
+      } else {
+        // آیتم جدید است، یک گروه جدید شروع می‌کنیم
+        currentGroup = { ...item };
+        groupedItems.push(currentGroup);
+      }
+    });
+
+    return groupedItems;
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -248,7 +304,7 @@ const SchedulePage = () => {
                           <td 
                             key={`${day}-${hour}`} 
                             className="border border-gray-300 p-1 h-24 align-top schedule-cell min-w-[120px]"
-                            onClick={() => handleCellClick(day, hour)}
+                            onClick={() => handleTimeSelection(day, hour)}
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, day, hour)}
                           >
@@ -294,13 +350,13 @@ const SchedulePage = () => {
           {/* فرم و لیست */}
           <div className="w-full mt-4">
             <div className="border border-gray-300 rounded p-4">
-              <h2 className="text-xl font-bold mb-4 text-right">مدیریت برنامه</h2>
+              <h2 className="text-xl font-bold mb-4 text-right text-lime-600">مدیریت برنامه</h2>
               
               <div className="mb-4">
-                <h3 className="text-lg font-bold mb-2 text-right">برنامه‌های اخیر</h3>
+                <h3 className="text-lg font-bold mb-2 text-right text-cyan-600">برنامه‌های اخیر</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto">
-                  {schedule.map(item => (
-                    <div key={item.id} className="p-2 bg-gray-100 rounded text-right text-black relative">
+                  {groupScheduleItems().map(item => (
+                    <div key={item.id} className="p-2 bg-cyan-100 rounded-lg text-right text-black relative">
                       <button
                         className="absolute top-2 left-2 text-red-500 hover:text-red-700"
                         onClick={(e) => {
@@ -312,7 +368,12 @@ const SchedulePage = () => {
                         <FaTimes size={14} />
                       </button>
                       <div className="font-bold text-black">کد پرسنلی: {item.personnelCode}</div>
-                      <div className="text-sm text-black">{item.day} - {item.timeStart} تا {item.timeEnd}</div>
+                      <div className="text-sm text-black">
+                        {item.day} - {item.timeStart}
+                        {item.timeStart !== item.timeEnd && hours.indexOf(item.timeEnd) > hours.indexOf(item.timeStart) && 
+                          ` تا ${item.timeEnd}`
+                        }
+                      </div>
                       <div className="text-sm text-black">پست: {item.mainPosition}</div>
                       <div className="text-sm text-black">نوع ساعت: {item.hourType}</div>
                       <div className="text-sm text-black">گروه تدریس: {item.teachingGroup}</div>
@@ -330,133 +391,181 @@ const SchedulePage = () => {
               <div className="mt-4">
                 <SubmitButton 
                   label="افزودن برنامه جدید" 
-                  onClick={() => {
-                    setSelectedCell(null);
-                    setModalOpen(true);
-                  }}
-                  className="mx-auto"
+                  onClick={handleAddNewSchedule}
+                  className="mx-auto text-lime-600 border border-lime-600 pr-2 hover:text-lime-700 hover:scale-110 transition-all duration-250"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* مودال افزودن برنامه */}
+        {/* مودال انتخاب زمان */}
         <Modal
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            resetForm();
-          }}
-          title="افزودن برنامه جدید"
-          width="500px"
+          isOpen={timeSelectionModalOpen}
+          onClose={() => setTimeSelectionModalOpen(false)}
+          title="انتخاب زمان برنامه"
+          width="80%"
+          className="text-black"
         >
           <div className="space-y-4 text-right">
-            {selectedCell && (
-              <div className="bg-blue-50 p-2 rounded">
-                <p>زمان انتخاب شده: {selectedCell.day} ساعت {selectedCell.time}</p>
-              </div>
-            )}
-            
-            <Input
-              label="کد پرسنلی"
-              value={personnelCode}
-              onChange={(e) => setPersonnelCode(e.target.value)}
-              placeholder="کد پرسنلی را وارد کنید"
-              className="w-full"
-            />
-
-            <Dropdown
-              label="وضعیت اشتغال"
-              options={employmentStatuses}
-              onSelect={setEmploymentStatus}
-              value={employmentStatus}
-              showPlaceholder={true}
-            />
-
-            <Dropdown
-              label="پست اصلی"
-              options={mainPositions}
-              onSelect={setMainPosition}
-              value={mainPosition}
-              showPlaceholder={true}
-            />
-
-            <Dropdown
-              label="نوع ساعت"
-              options={hourTypes}
-              onSelect={setHourType}
-              value={hourType}
-              showPlaceholder={true}
-            />
-
-            <Dropdown
-              label="گروه تدریس"
-              options={teachingGroups}
-              onSelect={setTeachingGroup}
-              value={teachingGroup}
-              showPlaceholder={true}
-            />
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">توضیحات</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="توضیحات اضافی را وارد کنید"
-              />
-            </div>
-            
-            <div className="flex justify-end pt-4">
-              <SubmitButton 
-                label="ثبت برنامه" 
-                onClick={handleSubmit} 
-                className="ml-2"
-              />
-              <SubmitButton 
-                label="انصراف" 
-                onClick={() => {
-                  setModalOpen(false);
-                  resetForm();
-                }} 
-                className="bg-red-100 text-red-600"
-              />
+            <p className="mb-4 text-center">لطفاً روز و ساعت مورد نظر را انتخاب کنید</p>
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2 text-black text-right w-20">روز / ساعت</th>
+                    {hours.map(hour => (
+                      <th key={hour} className="border border-gray-300 p-2 text-cyan-900 text-center">{hour}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {days.map(day => (
+                    <tr key={day}>
+                      <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold">{day}</td>
+                      {hours.map(hour => (
+                        <td 
+                          key={`${day}-${hour}`} 
+                          className="border border-gray-300 p-1 h-12 align-middle text-center cursor-pointer hover:bg-lime-100"
+                          onClick={() => handleTimeSelection(day, hour)}
+                        >
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FaPlus className="text-lime-600" />
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </Modal>
+
+        {/* مودال افزودن برنامه */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out">
+            <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-yellow-500 via-orange-500 to-purple-500 backdrop-blur-[2px] animate-gradient"></div>
+            <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative text-black">
+              <div className="flex justify-between items-center mb-6">
+                <button 
+                  onClick={() => {
+                    setModalOpen(false);
+                    resetForm();
+                  }}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <FaTimes size={24} />
+                </button>
+                <h2 className="text-xl font-bold text-black">افزودن برنامه جدید</h2>
+              </div>
+              <div className="space-y-4 text-right">
+                {selectedCell && (
+                  <div className="bg-blue-50 p-2 rounded">
+                    <p>زمان انتخاب شده: {selectedCell.day} ساعت {selectedCell.time}</p>
+                  </div>
+                )}
+                    
+                <Input
+                  label="کد پرسنلی"
+                  value={personnelCode}
+                  onChange={(e) => setPersonnelCode(e.target.value)}
+                  placeholder="کد پرسنلی را وارد کنید"
+                  className="w-full text-black"
+                  type="number"
+                />
+
+                <Dropdown
+                  label="وضعیت اشتغال"
+                  options={employmentStatuses}
+                  onSelect={setEmploymentStatus}
+                  value={employmentStatus}
+                  showPlaceholder={true}
+                />
+
+                <Dropdown
+                  label="پست اصلی"
+                  options={mainPositions}
+                  onSelect={setMainPosition}
+                  value={mainPosition}
+                  showPlaceholder={true}
+                />
+
+                <Dropdown
+                  label="نوع ساعت"
+                  options={hourTypes}
+                  onSelect={setHourType}
+                  value={hourType}
+                  showPlaceholder={true}
+                />
+
+                <Dropdown
+                  label="گروه تدریس"
+                  options={teachingGroups}
+                  onSelect={setTeachingGroup}
+                  value={teachingGroup}
+                  showPlaceholder={true}
+                />
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">توضیحات</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                    rows={3}
+                    placeholder="توضیحات اضافی را وارد کنید"
+                  />
+                </div>
+                
+                <div className="flex justify-end pt-4">
+                  <SubmitButton 
+                    label="ثبت برنامه" 
+                    onClick={handleSubmit} 
+                    className="ml-2 bg-lime-400 hover:bg-green-500"
+                  />
+                  <SubmitButton 
+                    label="انصراف" 
+                    onClick={() => {
+                      setModalOpen(false);
+                      resetForm();
+                    }} 
+                    className="bg-red-100 text-red-600"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* مودال انتخاب کلاس */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-15 backdrop-blur-[1px] flex items-center justify-center transition-all duration-500 ease-in-out">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out animate-gradientBG">
+          <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-yellow-500 via-orange-500 to-purple-500 backdrop-blur-[2px] animate-gradient"></div>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-black text-center">انتخاب کلاس</h2>
             </div>
             <div className="space-y-6 text-right">
-              <div className="w-full">
-                <label className="block text-sm font-medium text-black mb-1">پایه</label>
-                <input
-                  type="text"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  placeholder="پایه را وارد کنید"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                />
-              </div>
+              <Dropdown
+                label="پایه"
+                options={grades}
+                onSelect={(value) => {
+                  setGrade(value);
+                  setClassNumber('');
+                }}
+                value={grade}
+                showPlaceholder={true}
+              />
 
-              <div className="w-full">
-                <label className="block text-sm font-medium text-black mb-1">شماره/ نام کلاس</label>
-                <input
-                  type="text"
-                  value={classNumber}
-                  onChange={(e) => setClassNumber(e.target.value)}
-                  placeholder="شماره کلاس را وارد کنید"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                />
-              </div>
+              <Dropdown
+                label="شماره/ نام کلاس"
+                options={grade ? classOptions[grade as keyof typeof classOptions] : []}
+                onSelect={setClassNumber}
+                value={classNumber}
+                showPlaceholder={true}
+              />
 
               <Dropdown
                 label="رشته تحصیلی"
@@ -469,11 +578,10 @@ const SchedulePage = () => {
               <div className="flex justify-between pt-6">
                 <Link 
                   href="/welcome" 
-                  className=" py-1 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200 align-middle transition-colors h-8 w-1/4 text-center"
+                  className="py-1 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200 align-middle transition-colors h-8 w-1/4 text-center"
                 >
                   انصراف
                 </Link>
-                
                 <SubmitButton 
                   label="تایید" 
                   onClick={handleClassSubmit} 
@@ -485,6 +593,24 @@ const SchedulePage = () => {
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        .modal-with-gradient::after {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(45deg, rgba(156, 39, 176, 0.3), rgba(33, 150, 243, 0.3), rgba(76, 105, 80, 0.3));
+          background-size: 300% 300%;
+          animation: gradientAnimation 5s ease infinite;
+          z-index: -1;
+          pointer-events: none;
+          opacity: 0.9;
+          backdrop-filter: blur(2px);
+        }
+      `}</style>
     </div>
   );
 };

@@ -8,11 +8,11 @@ interface DropdownProps {
     onSelect: (option: string) => void;
     value?: string;
     className?: string;
-    width?: string; // Custom width
-    height?: string; // Custom height
-    showPlaceholder?: boolean; // Show/hide "انتخاب کنید"
-    formatValue?: (value: string) => string; // تبدیل مقدار قبل از ارسال به onSelect
-    formatDisplay?: (value: string) => string; // تبدیل مقدار برای نمایش
+    width?: string;
+    height?: string;
+    showPlaceholder?: boolean;
+    formatValue?: (value: string) => string;
+    formatDisplay?: (value: string) => string;
 }
 
 const Dropdown: React.FC<DropdownProps> = ({
@@ -29,15 +29,22 @@ const Dropdown: React.FC<DropdownProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedOption, setSelectedOption] = useState<string | null>(value || null);
+    const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     const toggleDropdown = () => {
         setIsOpen((prev) => !prev);
+        if (!isOpen && searchInputRef.current) {
+            setTimeout(() => {
+                searchInputRef.current?.focus();
+            }, 100);
+        }
     };
 
     const handleSelect = (option: string) => {
         setSelectedOption(option);
-        // اگر تابع formatValue وجود داشته باشد، از آن استفاده می‌کنیم
+        setSearchTerm("");
         if (formatValue) {
             onSelect(formatValue(option));
         } else {
@@ -46,7 +53,6 @@ const Dropdown: React.FC<DropdownProps> = ({
         setIsOpen(false);
     };
 
-    // نمایش مقدار انتخاب شده با استفاده از formatDisplay اگر وجود داشته باشد
     const displayValue = (option: string): string => {
         if (formatDisplay && option) {
             return formatDisplay(option);
@@ -54,11 +60,15 @@ const Dropdown: React.FC<DropdownProps> = ({
         return option;
     };
 
-    // Close dropdown when clicking outside
+    const filteredOptions = options.filter(option =>
+        option.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
+                setSearchTerm("");
             }
         };
 
@@ -91,16 +101,33 @@ const Dropdown: React.FC<DropdownProps> = ({
 
             {isOpen && (
                 <div className="absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                    <div className="py-1 text-right">
-                        {options.map((option, index) => (
-                            <button
-                                key={index}
-                                className="text-gray-700 block w-full text-right px-4 py-2 text-sm hover:bg-gray-100"
-                                onClick={() => handleSelect(option)}
-                            >
-                                {displayValue(option)}
-                            </button>
-                        ))}
+                    <div className="p-2">
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="جستجو..."
+                            className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                        <div className="py-1 text-right">
+                            {filteredOptions.map((option, index) => (
+                                <button
+                                    key={index}
+                                    className="text-gray-700 block w-full text-right px-4 py-2 text-sm hover:bg-gray-100"
+                                    onClick={() => handleSelect(option)}
+                                >
+                                    {displayValue(option)}
+                                </button>
+                            ))}
+                            {filteredOptions.length === 0 && (
+                                <div className="text-gray-500 text-center py-2 text-sm">
+                                    نتیجه‌ای یافت نشد
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
