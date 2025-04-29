@@ -25,7 +25,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     <button
       onClick={onClick || handleSubmit}
       disabled={disabled}
-      className={`flex row-auto bg-Bgreenl max-w-28  rounded-md py-2 px-1 w-40 h-fit text-Bgreen font-bold text-xs text-nowrap ${className}`}
+      className={`${className} flex row-auto max-w-28  rounded-md py-2 px-1 w-40 h-fit text-Bgreen font-bold text-xs text-nowrap `}
     >
       {icon && <span className="text-sm px-2">{icon}</span>}  {/* Render icon if provided */}
       {label}

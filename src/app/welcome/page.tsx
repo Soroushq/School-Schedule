@@ -1,26 +1,34 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import styles from './page.module.css';
+import { useRouter } from 'next/navigation';
+import styles from './welcome.module.css';
 
-export default function Home() {
+export default function WelcomePage() {
+  const router = useRouter();
+
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>به سیستم برنامه‌ریزی خوش آمدید</h1>
       <p className={styles.subtitle}>لطفا نوع برنامه‌ریزی مورد نظر خود را انتخاب کنید:</p>
       
       <div className={styles.options}>
-        <Link href="/class-schedule" className={styles.option}>
+        <div 
+          className={styles.option}
+          onClick={() => router.push('/class-schedule')}
+        >
           <h2>برنامه‌ریزی بر اساس کلاس</h2>
           <p>برنامه‌ریزی بر اساس کلاس‌ها و دروس</p>
-        </Link>
+        </div>
         
-        <Link href="/personnel-schedule" className={styles.option}>
+        <div 
+          className={styles.option}
+          onClick={() => router.push('/personnel-schedule')}
+        >
           <h2>برنامه‌ریزی بر اساس پرسنل</h2>
           <p>برنامه‌ریزی بر اساس معلمان و کارکنان</p>
-        </Link>
+        </div>
       </div>
     </div>
   );
-}
+} 

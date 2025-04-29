@@ -1,0 +1,279 @@
+.container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.header {
+  background-color: #ffffff;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.backButton {
+  color: #4a90e2;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.backButton:hover {
+  color: #357abd;
+}
+
+.main {
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.formGroup select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #333;
+  background-color: #fff;
+  transition: border-color 0.2s;
+}
+
+.formGroup select:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.formGroup select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background-color: #357abd;
+}
+
+.submitButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.scheduleContainer {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.scheduleTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.scheduleTable th,
+.scheduleTable td {
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  text-align: center;
+}
+
+.scheduleTable th {
+  background-color: #f7fafc;
+  font-weight: 600;
+}
+
+.scheduleTable td {
+  min-height: 60px;
+}
+
+.scheduleCell {
+  position: relative;
+  min-height: 60px;
+}
+
+.addLessonButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  color: #4a5568;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.addLessonButton:hover {
+  background-color: #f7fafc;
+  color: #2d3748;
+}
+
+.lessonForm {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.lessonForm input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+}
+
+.lessonForm button {
+  margin-right: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.lessonForm .saveButton {
+  background-color: #48bb78;
+  color: white;
+}
+
+.lessonForm .cancelButton {
+  background-color: #e53e3e;
+  color: white;
+}
+
+.lessonItem {
+  background-color: #ebf8ff;
+  padding: 8px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  position: relative;
+}
+
+.lessonItem button {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: none;
+  border: none;
+  color: #e53e3e;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-backdrop {
+  animation: fadeIn 0.3s ease-out forwards;
+  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-enter {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+.modal-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.modal-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.modal-exit-active {
+  opacity: 0;
+  transform: translateY(100%);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.backdrop-enter {
+  opacity: 0;
+}
+
+.backdrop-enter-active {
+  opacity: 1;
+  transition: opacity 300ms;
+}
+
+.backdrop-exit {
+  opacity: 1;
+}
+
+.backdrop-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+} 
