@@ -1,0 +1,147 @@
+.container {
+  width: 100%;
+  direction: rtl;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding: 1rem;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #e6f7ff;
+  color: #0055a4;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.backButton:hover {
+  background-color: #cceeff;
+}
+
+.main {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.scheduleTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.scheduleTable th, 
+.scheduleTable td {
+  border: 1px solid #d1d5db;
+  padding: 0.75rem;
+  text-align: center;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.scheduleTable th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.scheduleCell {
+  min-height: 6rem;
+  position: relative;
+}
+
+.actionButton {
+  padding: 0.5rem 1rem;
+  background-color: #0055a4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.actionButton:hover {
+  background-color: #003d7a;
+}
+
+.actionButton:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.scheduleItem {
+  background-color: #e0f2fe;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-left: 4px solid #0055a4;
+  color: #1f2937;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.deleteButton {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: none;
+  border: none;
+  color: #b91c1c;
+  cursor: pointer;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  overflow-y: auto;
+  padding: 1rem;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.modalContent {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.scrollableContent {
+  max-height: calc(90vh - 10rem);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-right: -0.5rem;
+  font-family: 'Vazirmatn', sans-serif;
+} 

@@ -1,0 +1,52 @@
+.scheduleTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+}
+
+.scheduleTable th, 
+.scheduleTable td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.scheduleTable th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+.scheduleCell {
+  min-height: 6rem;
+  position: relative;
+}
+
+.timeSelectionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.timeButton {
+  padding: 0.5rem;
+  background-color: #f0f9ff;
+  border: 1px solid #e0f2fe;
+  border-radius: 4px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.timeButton:hover {
+  background-color: #e0f2fe;
+}
+
+.dayColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dayTitle {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+} 
