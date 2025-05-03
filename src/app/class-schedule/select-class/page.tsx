@@ -5,12 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './select-class.module.css';
 
-interface ClassInfo {
-  grade: string;
-  classNumber: string;
-  field: string;
-}
-
 const grades = ['دهم', 'یازدهم', 'دوازدهم'];
 
 const classNumbers = {
@@ -47,11 +41,6 @@ export default function SelectClass() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedGrade && selectedClassNumber && selectedField) {
-      const classInfo: ClassInfo = {
-        grade: selectedGrade,
-        classNumber: selectedClassNumber,
-        field: selectedField
-      };
       // TODO: Save to database
       router.push(`/class-schedule/schedule?grade=${selectedGrade}&class=${selectedClassNumber}&field=${selectedField}`);
     }
