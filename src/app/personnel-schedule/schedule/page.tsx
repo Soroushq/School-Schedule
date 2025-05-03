@@ -3,9 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FaPlus, FaTimes, FaSearch, FaSave, FaFileExport, FaUserPlus, FaExclamationTriangle, FaHistory } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSearch, FaSave, FaFileExport, FaExclamationTriangle, FaHistory } from "react-icons/fa";
 import styles from '../personnel-schedule.module.css';
-import { findPersonnelByCode, Personnel } from '../../../data/personnel';
 import * as XLSX from 'xlsx';
 
 interface Schedule {
@@ -30,6 +29,14 @@ interface SavedSchedule {
   timestamp: number;
 }
 
+interface Personnel {
+  id: string;
+  personnelCode: string;
+  fullName: string;
+  mainPosition: string;
+  employmentStatus: string;
+}
+
 const toPersianNumber = (num: number | string): string => {
   const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   return String(num).replace(/[0-9]/g, (w) => persianNumbers[+w]);
@@ -41,7 +48,7 @@ const PersonnelSchedule = () => {
   const fullNameParam = searchParams?.get('name') || '';
   const mainPositionParam = searchParams?.get('position') || '';
   
-  const [showPersonnelModal, setShowPersonnelModal] = useState(true);
+  const [showPersonnelModal, setShowPersonnelModal] = useState(false);
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
   const [personnelCode, setPersonnelCode] = useState('');
   const [searchError, setSearchError] = useState('');
@@ -180,8 +187,10 @@ const PersonnelSchedule = () => {
         mainPosition: mainPositionParam,
         employmentStatus: 'شاغل'
       });
+      setSchedule([]);
       setShowPersonnelModal(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personnelCodeParam, fullNameParam, mainPositionParam]);
 
   useEffect(() => {
@@ -199,21 +208,144 @@ const PersonnelSchedule = () => {
       return;
     }
 
-    const foundPersonnel = findPersonnelByCode(personnelCode);
-    if (foundPersonnel) {
-      setSelectedPersonnel(foundPersonnel);
-      setSearchError('');
-    } else {
-      setSelectedPersonnel(null);
-      setSearchError('پرسنلی با این کد یافت نشد');
+    if (personnelCode.length !== 8) {
+      setSearchError('کد پرسنلی باید دقیقاً ۸ کاراکتر باشد');
+      return;
+    }
+
+    if (!/^\d+$/.test(personnelCode)) {
+      setSearchError('کد پرسنلی باید فقط شامل اعداد باشد');
+      return;
+    }
+
+    setSearchError('');
+    
+    try {
+      let foundPersonnel = false;
+      let foundPersonnelData: SavedSchedule | null = null;
+      
+      const directStorageKey = `personnel_schedule_${personnelCode}`;
+      const directData = localStorage.getItem(directStorageKey);
+      
+      if (directData) {
+        try {
+          foundPersonnelData = JSON.parse(directData);
+          foundPersonnel = true;
+        } catch (e) {
+          console.error('خطا در تجزیه داده‌های ذخیره شده:', e);
+        }
+      }
+      
+      if (!foundPersonnel) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          
+          if (key && key.startsWith('personnel_schedule_')) {
+            const data = localStorage.getItem(key);
+            
+            if (data) {
+              try {
+                const parsedData: SavedSchedule = JSON.parse(data);
+                if (parsedData.personnel && parsedData.personnel.personnelCode === personnelCode) {
+                  foundPersonnelData = parsedData;
+                  foundPersonnel = true;
+                  break;
+                }
+              } catch (e) {
+                console.error('خطا در تجزیه داده‌های ذخیره شده:', e);
+              }
+            }
+          }
+        }
+      }
+      
+      if (foundPersonnel && foundPersonnelData) {
+        setSelectedPersonnel(foundPersonnelData.personnel);
+        setSchedule(foundPersonnelData.schedules || []);
+        setShowPersonnelModal(false);
+      } else {
+        const newPersonnel: Personnel = {
+          id: Date.now().toString(),
+          personnelCode: personnelCode,
+          fullName: '',
+          mainPosition: '',
+          employmentStatus: 'شاغل'
+        };
+        setSelectedPersonnel(newPersonnel);
+        setSchedule([]);
+        setShowAddPersonnelModal(true);
+      }
+    } catch (error) {
+      console.error('خطا در بررسی کد پرسنلی:', error);
+      const newPersonnel: Personnel = {
+        id: Date.now().toString(),
+        personnelCode: personnelCode,
+        fullName: '',
+        mainPosition: '',
+        employmentStatus: 'شاغل'
+      };
+      setSelectedPersonnel(newPersonnel);
+      setSchedule([]);
+      setShowAddPersonnelModal(true);
     }
   };
 
   const handlePersonnelSubmit = () => {
-    if (selectedPersonnel) {
-      setShowPersonnelModal(false);
-    } else {
-      setSearchError('لطفاً ابتدا یک پرسنل را انتخاب کنید');
+    if (!personnelCode.trim()) {
+      setSearchError('لطفاً ابتدا کد پرسنلی را وارد کنید');
+      return;
+    }
+    
+    try {
+      let isUsedByOtherPerson = false;
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        
+        if (key && key.startsWith('personnel_schedule_')) {
+          const savedData = localStorage.getItem(key);
+          
+          if (savedData) {
+            try {
+              const parsedData: SavedSchedule = JSON.parse(savedData);
+              if (parsedData.personnel && parsedData.personnel.personnelCode === personnelCode) {
+                isUsedByOtherPerson = true;
+                setSelectedPersonnel(parsedData.personnel);
+                setSchedule(parsedData.schedules || []);
+                setShowPersonnelModal(false);
+                return;
+              }
+            } catch (e) {
+              console.error('خطا در تجزیه داده‌های ذخیره شده:', e);
+            }
+          }
+        }
+      }
+      
+      if (!isUsedByOtherPerson) {
+        const newPersonnel: Personnel = {
+          id: Date.now().toString(),
+          personnelCode: personnelCode,
+          fullName: '',
+          mainPosition: '',
+          employmentStatus: 'شاغل'
+        };
+        setSelectedPersonnel(newPersonnel);
+        setSchedule([]);
+        setShowAddPersonnelModal(true);
+      }
+    } catch (error) {
+      console.error('خطا در بررسی تکراری بودن کد پرسنلی:', error);
+      const newPersonnel: Personnel = {
+        id: Date.now().toString(),
+        personnelCode: personnelCode,
+        fullName: '',
+        mainPosition: '',
+        employmentStatus: 'شاغل'
+      };
+      setSelectedPersonnel(newPersonnel);
+      setSchedule([]);
+      setShowAddPersonnelModal(true);
     }
   };
 
@@ -608,17 +740,40 @@ const PersonnelSchedule = () => {
   };
 
   const handleAddPersonnel = () => {
-    if (!newPersonnel.personnelCode.trim() || !newPersonnel.fullName.trim() || !newPersonnel.mainPosition.trim()) {
+    if (!newPersonnel.fullName.trim() || !newPersonnel.mainPosition.trim()) {
       setAddPersonnelError('لطفاً تمام فیلدهای الزامی را پر کنید');
       return;
     }
     
+    const personnelCodeToUse = personnelCode || newPersonnel.personnelCode;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        
+        if (key && key !== `personnel_schedule_${personnelCodeToUse}` && key.startsWith('personnel_schedule_')) {
+          const savedData = localStorage.getItem(key);
+          
+          if (savedData) {
+            const parsedData: SavedSchedule = JSON.parse(savedData);
+            if (parsedData.personnel.personnelCode === personnelCodeToUse) {
+              setAddPersonnelError('این کد پرسنلی قبلاً برای کاربر دیگری ثبت شده است');
+              return;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('خطا در بررسی تکراری بودن کد پرسنلی:', error);
+    }
+    
     const newPersonnelWithId: Personnel = {
       ...newPersonnel,
+      personnelCode: personnelCodeToUse,
       id: Date.now().toString()
     };
     
     setSelectedPersonnel(newPersonnelWithId);
+    setSchedule([]);
     setShowAddPersonnelModal(false);
     setShowPersonnelModal(false);
     setNewPersonnel({
@@ -686,7 +841,6 @@ const PersonnelSchedule = () => {
   const handleChangePersonnel = (personnel: Personnel) => {
     setSelectedPersonnel(personnel);
     setSchedule([]);
-    loadScheduleFromLocalStorage(personnel.id);
   };
 
   return (
@@ -696,65 +850,59 @@ const PersonnelSchedule = () => {
           بازگشت
         </Link>
         <h1 className="text-cyan-800 font-bold">
-          برنامه پرسنل: {selectedPersonnel?.fullName || 'انتخاب نشده'}
+          برنامه پرسنل: {selectedPersonnel?.fullName || 'ثبت نشده'}
         </h1>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowPersonnelModal(true)}
-            className={styles.actionButton}
-          >
-            تغییر پرسنل
-          </button>
-          <button 
-            onClick={() => setShowAddPersonnelModal(true)}
-            className={styles.actionButton}
-            title="افزودن پرسنل جدید"
-          >
-            <FaUserPlus className="ml-1" />
-            افزودن پرسنل جدید
-          </button>
-          <button 
-            onClick={handleAddNewSchedule}
-            className={styles.actionButton}
-            disabled={!selectedPersonnel}
-          >
-            <FaPlus className="ml-1" />
-            افزودن برنامه
-          </button>
-          <button 
-            onClick={saveScheduleToLocalStorage}
-            className={styles.actionButton}
-            disabled={!selectedPersonnel || schedule.length === 0}
-            title="ذخیره برنامه"
-          >
-            <FaSave className="ml-1" />
-            ذخیره
-          </button>
-          <button 
-            onClick={() => loadScheduleFromLocalStorage()}
-            className={styles.actionButton}
-            disabled={!selectedPersonnel}
-            title="بارگیری برنامه"
-          >
-            <FaSave className="ml-1" />
-            بارگیری
-          </button>
-          <button 
-            onClick={handleShowCombinedSchedules}
-            className={styles.actionButton}
-            title="نمایش برنامه‌های ترکیبی"
-          >
-            نمایش برنامه ترکیبی
-          </button>
-          <button 
-            onClick={exportToExcel}
-            className={styles.actionButton}
-            disabled={savedSchedules.length === 0}
-            title="صدور به اکسل"
-          >
-            <FaFileExport className="ml-1" />
-            صدور به اکسل
-          </button>
+          {selectedPersonnel && (
+            <>
+              <button 
+                onClick={() => setShowPersonnelModal(true)}
+                className={styles.actionButton}
+              >
+                تغییر پرسنل
+              </button>
+              <button 
+                onClick={handleAddNewSchedule}
+                className={styles.actionButton}
+              >
+                <FaPlus className="ml-1" />
+                افزودن برنامه
+              </button>
+              <button 
+                onClick={saveScheduleToLocalStorage}
+                className={styles.actionButton}
+                disabled={schedule.length === 0}
+                title="ذخیره برنامه"
+              >
+                <FaSave className="ml-1" />
+                ذخیره
+              </button>
+              <button 
+                onClick={() => loadScheduleFromLocalStorage()}
+                className={styles.actionButton}
+                title="بارگیری برنامه"
+              >
+                <FaSave className="ml-1" />
+                بارگیری
+              </button>
+              <button 
+                onClick={handleShowCombinedSchedules}
+                className={styles.actionButton}
+                title="نمایش برنامه‌های ترکیبی"
+              >
+                نمایش برنامه ترکیبی
+              </button>
+              <button 
+                onClick={exportToExcel}
+                className={styles.actionButton}
+                disabled={savedSchedules.length === 0}
+                title="صدور به اکسل"
+              >
+                <FaFileExport className="ml-1" />
+                صدور به اکسل
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -783,8 +931,8 @@ const PersonnelSchedule = () => {
         {selectedPersonnel ? (
           <div>
             <div className="mb-6 p-4 bg-cyan-50 rounded-lg">
-              <h2 className="text-xl font-bold mb-2 text-gray-800">اطلاعات پرسنل</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <h2 className="text-xl font-bold mb-2 text-right text-gray-800">اطلاعات پرسنل</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <p className="font-semibold text-gray-800">کد پرسنلی:</p>
                   <p className="text-gray-900">{selectedPersonnel.personnelCode}</p>
@@ -794,12 +942,8 @@ const PersonnelSchedule = () => {
                   <p className="text-gray-900">{selectedPersonnel.fullName}</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">سمت اصلی:</p>
+                  <p className="font-semibold text-gray-800">سمت شغلی:</p>
                   <p className="text-gray-900">{selectedPersonnel.mainPosition}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">وضعیت اشتغال:</p>
-                  <p className="text-gray-900">{selectedPersonnel.employmentStatus}</p>
                 </div>
               </div>
             </div>
@@ -978,14 +1122,22 @@ const PersonnelSchedule = () => {
             </div>
           </div>
         ) : (
-          <div className="text-center p-8">
-            <p className="mb-4 text-gray-800">لطفاً ابتدا پرسنل را انتخاب کنید</p>
-            <button
-              onClick={() => setShowPersonnelModal(true)}
-              className={styles.actionButton}
-            >
-              انتخاب پرسنل
-            </button>
+          <div className="text-center p-8 my-10">
+            <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+              <h2 className="text-2xl font-bold text-cyan-800 mb-6">به سیستم مدیریت برنامه پرسنل خوش آمدید</h2>
+              <p className="mb-6 text-gray-700 leading-relaxed">
+                با استفاده از این سیستم می‌توانید برنامه هفتگی خود را تنظیم، مدیریت و ذخیره کنید.
+                برای شروع، لطفاً وارد سیستم شوید.
+              </p>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowPersonnelModal(true)}
+                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md font-bold transition-colors"
+                >
+                  ورود به سیستم
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -995,7 +1147,8 @@ const PersonnelSchedule = () => {
           <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-gray-700 via-gray-800 to-gray-900 backdrop-blur-[2px]"></div>
           <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 text-center">انتخاب پرسنل</h2>
+              <h2 className="text-xl font-bold text-gray-900 text-center">ورود به سیستم</h2>
+              <p className="text-gray-600 text-center mt-2">لطفاً کد پرسنلی خود را وارد کنید</p>
             </div>
             <div className={styles.scrollableContent}>
               <div className="space-y-6 text-right">
@@ -1010,7 +1163,7 @@ const PersonnelSchedule = () => {
                         setPersonnelCode(e.target.value);
                         setSearchError('');
                       }}
-                      placeholder="کد پرسنلی را وارد کنید"
+                      placeholder="کد پرسنلی خود را وارد کنید (۸ رقم)"
                       className="w-full p-2 border border-gray-300 rounded-r text-gray-900"
                     />
                     <button 
@@ -1025,14 +1178,9 @@ const PersonnelSchedule = () => {
                   )}
                 </div>
 
-                {selectedPersonnel && (
-                  <div className="p-4 border border-blue-200 bg-blue-50 rounded-md">
-                    <h3 className="font-bold text-gray-900 mb-2">اطلاعات پرسنل:</h3>
-                    <p className="text-gray-800"><span className="font-semibold">نام و نام خانوادگی:</span> {selectedPersonnel.fullName}</p>
-                    <p className="text-gray-800"><span className="font-semibold">سمت اصلی:</span> {selectedPersonnel.mainPosition}</p>
-                    <p className="text-gray-800"><span className="font-semibold">وضعیت اشتغال:</span> {selectedPersonnel.employmentStatus}</p>
-                  </div>
-                )}
+                <p className="text-sm text-gray-600">
+                  کد پرسنلی باید ۸ رقم عددی باشد. اگر کد پرسنلی ندارید، می‌توانید از گزینه «ادامه» استفاده کنید.
+                </p>
               </div>
             </div>
 
@@ -1045,10 +1193,9 @@ const PersonnelSchedule = () => {
               </Link>
               <button 
                 onClick={handlePersonnelSubmit} 
-                className={`py-2 px-6 bg-lime-600 hover:bg-lime-700 text-white font-bold rounded transition-colors ${!selectedPersonnel ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={!selectedPersonnel}
+                className="py-2 px-6 bg-lime-600 hover:bg-lime-700 text-white font-bold rounded transition-colors"
               >
-                تایید
+                ادامه
               </button>
             </div>
           </div>
@@ -1225,7 +1372,8 @@ const PersonnelSchedule = () => {
           <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-gray-700 via-gray-800 to-gray-900 backdrop-blur-[2px]"></div>
           <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 text-center">افزودن پرسنل جدید</h2>
+              <h2 className="text-xl font-bold text-gray-900 text-center">تکمیل اطلاعات</h2>
+              <p className="text-center text-gray-600 mt-2">لطفاً اطلاعات خود را تکمیل کنید</p>
             </div>
             <div className={styles.scrollableContent}>
               <div className="space-y-6 text-right">
@@ -1238,11 +1386,11 @@ const PersonnelSchedule = () => {
                   <input
                     id="newPersonnelCode"
                     type="text"
-                    value={newPersonnel.personnelCode}
-                    onChange={(e) => setNewPersonnel({...newPersonnel, personnelCode: e.target.value})}
-                    placeholder="کد پرسنلی را وارد کنید"
-                    className="w-full p-2 border border-gray-300 rounded text-gray-900"
+                    value={newPersonnel.personnelCode || personnelCode}
+                    disabled
+                    className="w-full p-2 border border-gray-300 rounded text-gray-500 bg-gray-100"
                   />
+                  <p className="text-xs text-gray-500">کد پرسنلی قابل تغییر نیست</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -1252,13 +1400,13 @@ const PersonnelSchedule = () => {
                     type="text"
                     value={newPersonnel.fullName}
                     onChange={(e) => setNewPersonnel({...newPersonnel, fullName: e.target.value})}
-                    placeholder="نام و نام خانوادگی را وارد کنید"
+                    placeholder="نام و نام خانوادگی خود را وارد کنید"
                     className="w-full p-2 border border-gray-300 rounded text-gray-900"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="newMainPosition" className="block text-gray-800 font-medium">سمت اصلی:</label>
+                  <label htmlFor="newMainPosition" className="block text-gray-800 font-medium">سمت شغلی:</label>
                   <select
                     id="newMainPosition"
                     value={newPersonnel.mainPosition}
@@ -1290,16 +1438,19 @@ const PersonnelSchedule = () => {
 
             <div className="flex justify-between mt-6">
               <button 
-                onClick={() => setShowAddPersonnelModal(false)}
+                onClick={() => {
+                  setShowAddPersonnelModal(false);
+                  setShowPersonnelModal(true);
+                }}
                 className="py-2 px-4 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200 transition-colors"
               >
-                انصراف
+                بازگشت
               </button>
               <button 
                 onClick={handleAddPersonnel}
                 className="py-2 px-6 bg-lime-600 hover:bg-lime-700 text-white font-bold rounded transition-colors"
               >
-                افزودن
+                ذخیره و ادامه
               </button>
             </div>
           </div>
