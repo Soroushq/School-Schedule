@@ -828,10 +828,8 @@ const PersonnelSchedule = () => {
     const cellHistory = getAllSavedSchedulesForCell(day, time);
     if (cellHistory.length > 0) {
       const button = e.currentTarget as HTMLElement;
-      const rect = button.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
       
-      // منو را به آیکون متصل می‌کنیم - ذخیره عنصر کلیک شده برای محاسبه موقعیت دقیق
+      // ذخیره عنصر کلیک شده برای محاسبه موقعیت دقیق
       setClickedHistoryButton(button);
       
       // ذخیره موقعیت روز و ساعت
@@ -865,18 +863,7 @@ const PersonnelSchedule = () => {
       position = 'left';
     } else {
       // در هر دو حالت فضای کافی نداریم، منو را به مرکز آیکون میبریم
-      left = rect.left + (rect.width / 2) - (menuWidth / 2);
-      
-      // مطمئن می‌شویم از سمت راست خارج نشود
-      if (left + menuWidth > viewportWidth) {
-        left = viewportWidth - menuWidth - 5;
-      }
-      
-      // مطمئن می‌شویم از سمت چپ خارج نشود
-      if (left < 5) {
-        left = 5;
-      }
-      
+      left = Math.max(5, Math.min(viewportWidth - menuWidth - 5, rect.left + (rect.width / 2) - (menuWidth / 2)));
       position = 'center';
     }
     
@@ -889,11 +876,11 @@ const PersonnelSchedule = () => {
       top = rect.top - menuHeight;
     } else {
       // در هر دو حالت فضای کافی نداریم، منو را در وسط صفحه قرار می‌دهیم
-      top = Math.max(5, viewportHeight / 2 - menuHeight / 2);
+      top = Math.max(5, Math.min(viewportHeight - menuHeight - 5, viewportHeight / 2 - menuHeight / 2));
     }
     
     return { left, top, position };
-  }, [clickedHistoryButton]);
+}, [clickedHistoryButton]);
 
   // تنظیم مجدد منو در هنگام resize شدن صفحه
   useEffect(() => {
@@ -916,11 +903,28 @@ const PersonnelSchedule = () => {
   // محاسبه موقعیت فعلی منو
   const menuPosition = useMemo(() => {
     return calculateMenuPosition();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculateMenuPosition, menuPositionUpdateCounter]);
 
   const handleChangePersonnel = (personnel: Personnel) => {
     setSelectedPersonnel(personnel);
-    setSchedule([]);
+    
+    // بارگذاری برنامه‌های پرسنل از localStorage
+    try {
+      const storageKey = `personnel_schedule_${personnel.id}`;
+      const savedData = localStorage.getItem(storageKey);
+      
+      if (savedData) {
+        const parsedData: SavedSchedule = JSON.parse(savedData);
+        setSchedule(parsedData.schedules || []);
+        setShowCombinedScheduleModal(false);
+      } else {
+        setSchedule([]);
+      }
+    } catch (error) {
+      console.error('خطا در بارگذاری برنامه پرسنل:', error);
+      setSchedule([]);
+    }
   };
 
   const getScheduleByDay = () => {
@@ -993,7 +997,7 @@ const PersonnelSchedule = () => {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Link href="/personnel-schedule" className={styles.backButton}>
+        <Link href="/" className={styles.backButton}>
           بازگشت
         </Link>
         <h1 className="text-cyan-700">
@@ -1027,7 +1031,7 @@ const PersonnelSchedule = () => {
                 {searchError && <p className="text-red-500 mt-2 text-sm">{searchError}</p>}
               </div>
               
-              <div className={styles.actionButtonsContainer}>
+              <div className={`${styles.actionButtonsContainer} flex-wrap mb-4`}>
                 <button
                   onClick={() => setShowAddPersonnelModal(true)}
                   className={styles.actionButton}
@@ -1040,7 +1044,41 @@ const PersonnelSchedule = () => {
                   className={styles.actionButton}
                 >
                   <FaHistory className="ml-1 inline-block" />
-                  <span className="inline-block">برنامه‌های ذخیره شده</span>
+                  <span className="inline-block">برنامه‌های اخیر</span>
+                </button>
+              </div>
+
+              {/* دکمه‌های عملیات سیستمی */}
+              <div className="flex flex-wrap gap-2 mt-4 border-t pt-4 border-gray-200">
+                <p className="w-full text-sm text-gray-600 mb-2">عملیات سیستمی:</p>
+                <button
+                  onClick={() => {
+                    if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام تاریخچه برنامه‌ها را حذف کنید؟')) {
+                      // حذف تمام تاریخچه از localStorage
+                      for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && key.startsWith('personnel_schedule_')) {
+                          localStorage.removeItem(key);
+                        }
+                      }
+                      loadAllSavedSchedules();
+                      alert('تمام تاریخچه برنامه‌ها با موفقیت حذف شد.');
+                    }
+                  }}
+                  className="py-1.5 px-3 bg-red-600 text-white text-xs md:text-sm font-medium rounded hover:bg-red-700 transition-colors"
+                >
+                  <FaTimes className="ml-1 inline-block" />
+                  <span className="inline-block">حذف تاریخچه</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('آیا مطمئن هستید که می‌خواهید از برنامه خارج شوید؟')) {
+                      window.location.href = '/';
+                    }
+                  }}
+                  className="py-1.5 px-3 bg-gray-600 text-white text-xs md:text-sm font-medium rounded hover:bg-gray-700 transition-colors"
+                >
+                  <span className="inline-block">خروج</span>
                 </button>
               </div>
             </div>
@@ -1066,7 +1104,7 @@ const PersonnelSchedule = () => {
                 </div>
               </div>
 
-              <div className={styles.actionButtonsContainer}>
+              <div className={`${styles.actionButtonsContainer} flex-wrap mb-4`}>
                 <button
                   onClick={() => setTimeSelectionModalOpen(true)}
                   className={styles.actionButton}
@@ -1081,6 +1119,13 @@ const PersonnelSchedule = () => {
                 >
                   <FaSave className="ml-1 inline-block" />
                   <span className="inline-block">ذخیره برنامه</span>
+                </button>
+                <button
+                  onClick={handleShowCombinedSchedules}
+                  className={styles.actionButton}
+                >
+                  <FaHistory className="ml-1 inline-block" />
+                  <span className="inline-block">برنامه‌های اخیر</span>
                 </button>
                 <button
                   onClick={exportToExcel}
@@ -1819,7 +1864,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             width: '250px',
             maxWidth: '90vw',
             maxHeight: '80vh',
-            overflow: 'auto'
+            overflow: 'hidden'
           }}
         >
           {/* اضافه کردن فلش برای نشان دادن ارتباط با آیکون */}
@@ -1836,7 +1881,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               zIndex: 1
             }}
           ></div>
-          <div className="relative z-10">
+          <div className="relative z-10 max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-2 sticky top-0 bg-white pb-2 border-b">
               <h3 className="font-bold text-black text-sm md:text-base">تاریخچه برنامه‌ها</h3>
               <button 
@@ -1852,7 +1897,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               <span className="font-medium mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
             </div>
             
-            <div className="divide-y divide-gray-200 max-h-[200px] overflow-y-auto">
+            <div className="divide-y divide-gray-200 overflow-y-auto flex-grow">
               {getAllSavedSchedulesForCell(selectedCellForHistory.day, selectedCellForHistory.time).slice(0, 3).map((item, index) => (
                 <div key={index} className="py-2 text-black hover:bg-gray-50 px-1 rounded">
                   <p className="font-bold text-black text-xs md:text-sm">{item.personnel?.fullName || 'نامشخص'}</p>
@@ -1894,15 +1939,15 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               </button>
             </div>
             
-            <div className="text-sm md:text-base text-gray-900 mb-3">
+            <div className="text-sm md:text-base text-gray-900 mb-3 bg-gray-50 p-2 rounded">
               <span className="font-bold">روز: </span>{selectedCellForHistory.day}، 
               <span className="font-bold mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
             </div>
             
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto bg-gray-50 rounded p-2">
               <div className="divide-y divide-gray-200">
                 {getAllSavedSchedulesForCell(selectedCellForHistory.day, selectedCellForHistory.time).map((item, index) => (
-                  <div key={index} className="py-3 text-gray-900">
+                  <div key={index} className="py-3 text-gray-900 bg-white mb-2 p-3 rounded shadow-sm">
                     <p className="font-bold text-black text-sm md:text-base">{item.personnel?.fullName || 'نامشخص'}</p>
                     <p className="text-sm md:text-base text-gray-900">{item.grade} {item.classNumber} - {item.field}</p>
                     <p className="text-sm text-gray-800">{item.mainPosition} - {item.hourType}</p>
@@ -1913,10 +1958,10 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               </div>
             </div>
             
-            <div className="mt-4">
+            <div className="mt-4 flex justify-end">
               <button 
                 onClick={() => setShowCellHistoryModalOpen(false)}
-                className="py-2 px-4 bg-gray-200 text-gray-800 font-bold rounded hover:bg-gray-300 transition-colors"
+                className="py-2 px-4 bg-gray-200 text-gray-800 font-medium rounded hover:bg-gray-300 transition-colors"
               >
                 بستن
               </button>
