@@ -1014,10 +1014,10 @@ const PersonnelSchedule = () => {
                 <div className={styles.searchContainer}>
                   <input
                     type="text"
-                    className={styles.formInput}
                     value={personnelCode}
                     onChange={(e) => setPersonnelCode(e.target.value)}
                     placeholder="کد پرسنلی را وارد کنید"
+                    className="w-full p-2 border border-gray-300 rounded text-black"
                   />
                   <button
                     onClick={handleSearchPersonnel}
@@ -1050,7 +1050,7 @@ const PersonnelSchedule = () => {
 
               {/* دکمه‌های عملیات سیستمی */}
               <div className="flex flex-wrap gap-2 mt-4 border-t pt-4 border-gray-200">
-                <p className="w-full text-sm text-gray-600 mb-2">عملیات سیستمی:</p>
+                <p className="w-full text-sm text-black mb-2">عملیات سیستمی:</p>
                 <button
                   onClick={() => {
                     if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام تاریخچه برنامه‌ها را حذف کنید؟')) {
@@ -1089,7 +1089,7 @@ const PersonnelSchedule = () => {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
                 <div>
                   <h2 className="text-base md:text-lg lg:text-xl font-bold text-gray-900">برنامه پرسنلی: {selectedPersonnel.fullName}</h2>
-                  <p className="text-xs md:text-sm text-gray-700 mt-1">کد پرسنلی: {selectedPersonnel.personnelCode} | سمت: {selectedPersonnel.mainPosition}</p>
+                  <p className="text-xs md:text-sm text-black mt-1">کد پرسنلی: {selectedPersonnel.personnelCode} | سمت: {selectedPersonnel.mainPosition}</p>
                 </div>
                 <div className="mt-3 md:mt-0">
                   <button
@@ -1376,7 +1376,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 </div>
               ) : (
                 <div className="bg-white rounded-md p-3 text-center shadow-sm">
-                  <p className="text-gray-500">هنوز برنامه‌ای ثبت نشده است</p>
+                  <p className="text-black">هنوز برنامه‌ای ثبت نشده است</p>
                 </div>
               )}
             </div>
@@ -1393,13 +1393,13 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             </div>
             <h2 className="text-xl font-bold text-center mb-4">هشدار تداخل برنامه</h2>
             <div className="max-h-96 overflow-y-auto">
-              <p className="text-gray-700 mb-4">برنامه‌های زیر با برنامه‌های پرسنل دیگر تداخل دارند:</p>
+              <p className="text-black mb-4">برنامه‌های زیر با برنامه‌های پرسنل دیگر تداخل دارند:</p>
               <ul className="space-y-3">
                 {conflicts.map((conflict, index) => (
                   <li key={index} className="border border-red-200 rounded-md p-3 bg-red-50">
-                    <p className="font-bold text-gray-900">{conflict.day} - {hours[timeSlots.indexOf(conflict.time)]}</p>
-                    <p className="text-gray-800">کلاس: {conflict.grade} {conflict.classNumber} - {conflict.field}</p>
-                    <p className="text-gray-800">پرسنل های دارای تداخل:</p>
+                    <p className="font-bold text-black">{conflict.day} - {hours[timeSlots.indexOf(conflict.time)]}</p>
+                    <p className="text-black">کلاس: {conflict.grade} {conflict.classNumber} - {conflict.field}</p>
+                    <p className="text-black">پرسنل های دارای تداخل:</p>
                     <ul className="list-disc mr-6 mt-1">
                       {conflict.personnelNames.map((name, idx) => (
                         <li key={idx} className="text-red-700">{name}</li>
@@ -1432,9 +1432,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 value={grade} 
                 onChange={(e) => setGrade(e.target.value)}
               >
-                <option value="">انتخاب کنید</option>
+                <option value="" className="text-black">انتخاب کنید</option>
                 {grades.map(g => (
-                  <option key={g} value={g}>{g}</option>
+                  <option key={g} value={g} className="text-black">{g}</option>
                 ))}
               </select>
             </div>
@@ -1447,9 +1447,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 onChange={(e) => setClassNumber(e.target.value)} 
                 disabled={!grade}
               >
-                <option value="">انتخاب کنید</option>
+                <option value="" className="text-black">انتخاب کنید</option>
                 {grade && classOptions[grade as keyof typeof classOptions]?.map(c => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c} className="text-black">{c}</option>
                 ))}
               </select>
             </div>
@@ -1461,9 +1461,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 value={field} 
                 onChange={(e) => setField(e.target.value)}
               >
-                <option value="">انتخاب کنید</option>
+                <option value="" className="text-black">انتخاب کنید</option>
                 {fields.map(f => (
-                  <option key={f} value={f}>{f}</option>
+                  <option key={f} value={f} className="text-black">{f}</option>
                 ))}
               </select>
             </div>
@@ -1475,9 +1475,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 value={mainPosition} 
                 onChange={(e) => setMainPosition(e.target.value)}
               >
-                <option value="">انتخاب کنید</option>
+                <option value="" className="text-black">انتخاب کنید</option>
                 {mainPositions.map(p => (
-                  <option key={p} value={p}>{p}</option>
+                  <option key={p} value={p} className="text-black">{p}</option>
                 ))}
               </select>
             </div>
@@ -1489,9 +1489,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 value={hourType} 
                 onChange={(e) => setHourType(e.target.value)}
               >
-                <option value="">انتخاب کنید</option>
+                <option value="" className="text-black">انتخاب کنید</option>
                 {hourTypes.map(h => (
-                  <option key={h} value={h}>{h}</option>
+                  <option key={h} value={h} className="text-black">{h}</option>
                 ))}
               </select>
             </div>
@@ -1503,9 +1503,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 value={teachingGroup} 
                 onChange={(e) => setTeachingGroup(e.target.value)}
               >
-                <option value="">انتخاب کنید</option>
+                <option value="" className="text-black">انتخاب کنید</option>
                 {teachingGroups.map(t => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t} className="text-black">{t}</option>
                 ))}
               </select>
             </div>
@@ -1513,10 +1513,10 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             <div className={styles.formGroup}>
               <label className={styles.formLabel + " text-black"}>توضیحات:</label>
               <textarea 
-                className={styles.formInput}
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
+                className="w-full p-2 border border-gray-300 rounded text-black"
               ></textarea>
             </div>
 
@@ -1548,7 +1548,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             <h2 className="text-lg md:text-xl font-bold mb-4 text-center">انتخاب زمان برنامه</h2>
             <div className={styles.scrollableContent}>
               <div className="mb-4">
-                <h3 className="text-base md:text-lg font-semibold mb-2">روزهای هفته</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-2 text-black">روزهای هفته</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
                   {days.map(day => (
                     <button
@@ -1563,7 +1563,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               </div>
 
               <div className="mb-4">
-                <h3 className="text-base md:text-lg font-semibold mb-2">ساعت‌ها</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-2 text-black">ساعت‌ها</h3>
                 <div className={styles.timeSelectionGrid}>
                   {timeSlots.map((time, index) => (
                     <button
@@ -1573,7 +1573,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                     >
                       {hours[index]}
                       <br />
-                      <span className="text-xs md:text-sm text-gray-500 mt-1">{time}</span>
+                      <span className="text-xs md:text-sm text-black mt-1">{time}</span>
                     </button>
                   ))}
                 </div>
@@ -1611,7 +1611,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900 text-center">تکمیل اطلاعات</h2>
-              <p className="text-center text-gray-600 mt-2">لطفاً اطلاعات خود را تکمیل کنید</p>
+              <p className="text-center text-black mt-2">لطفاً اطلاعات خود را تکمیل کنید</p>
             </div>
             <div className={styles.scrollableContent}>
               <div className="space-y-6 text-right">
@@ -1626,9 +1626,9 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                     type="text"
                     value={newPersonnel.personnelCode || personnelCode}
                     disabled
-                    className="w-full p-2 border border-gray-300 rounded text-gray-500 bg-gray-100"
+                    className="w-full p-2 border border-gray-300 rounded text-black bg-gray-100"
                   />
-                  <p className="text-xs text-gray-500">کد پرسنلی قابل تغییر نیست</p>
+                  <p className="text-xs text-black">کد پرسنلی قابل تغییر نیست</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -1639,7 +1639,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                     value={newPersonnel.fullName}
                     onChange={(e) => setNewPersonnel({...newPersonnel, fullName: e.target.value})}
                     placeholder="نام و نام خانوادگی خود را وارد کنید"
-                    className="w-full p-2 border border-gray-300 rounded text-gray-900"
+                    className="w-full p-2 border border-gray-300 rounded text-black"
                   />
                 </div>
                 
@@ -1649,11 +1649,11 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                     id="newMainPosition"
                     value={newPersonnel.mainPosition}
                     onChange={(e) => setNewPersonnel({...newPersonnel, mainPosition: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded text-gray-900"
+                    className="w-full p-2 border border-gray-300 rounded text-black"
                   >
-                    <option value="">انتخاب کنید</option>
+                    <option value="" className="text-black">انتخاب کنید</option>
                     {mainPositions.map(pos => (
-                      <option key={pos} value={pos}>{pos}</option>
+                      <option key={pos} value={pos} className="text-black">{pos}</option>
                     ))}
                   </select>
                 </div>
@@ -1664,11 +1664,11 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                     id="newEmploymentStatus"
                     value={newPersonnel.employmentStatus}
                     onChange={(e) => setNewPersonnel({...newPersonnel, employmentStatus: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded text-gray-900"
+                    className="w-full p-2 border border-gray-300 rounded text-black"
                   >
-                    <option value="شاغل">شاغل</option>
-                    <option value="بازنشسته">بازنشسته</option>
-                    <option value="خرید خدمات">خرید خدمات</option>
+                    <option value="شاغل" className="text-black">شاغل</option>
+                    <option value="بازنشسته" className="text-black">بازنشسته</option>
+                    <option value="خرید خدمات" className="text-black">خرید خدمات</option>
                   </select>
                 </div>
               </div>
@@ -1701,7 +1701,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-7xl max-h-[90vh] transform transition-all duration-500 ease-in-out shadow-xl relative">
             <div className="mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-bold text-gray-900 text-center">پیش‌نمایش برنامه کلی پرسنل</h2>
-              <p className="text-center text-gray-600 mt-1 md:mt-2 text-xs md:text-sm">لطفاً پیش از دانلود فایل اکسل، برنامه کلی را تأیید کنید</p>
+              <p className="text-center text-black mt-1 md:mt-2 text-xs md:text-sm">لطفاً پیش از دانلود فایل اکسل، برنامه کلی را تأیید کنید</p>
             </div>
             <div className={styles.scrollableContent} style={{ maxHeight: '70vh' }}>
               {savedSchedules.length > 0 ? (
@@ -1743,7 +1743,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                               <td key={`${day}-${time}`} className={styles.scheduleCell}>
                                 {cellContents.length > 0 ? cellContents : (
                                   <div className="w-full h-full min-h-[3rem] md:min-h-[4rem] lg:min-h-[6rem] flex items-center justify-center">
-                                    <span className="text-gray-300">-</span>
+                                    <span className="text-black">-</span>
                                   </div>
                                 )}
                               </td>
@@ -1756,7 +1756,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 </div>
               ) : (
                 <div className="text-center p-4 md:p-8">
-                  <p className="text-gray-800">هیچ برنامه‌ای برای نمایش وجود ندارد</p>
+                  <p className="text-black">هیچ برنامه‌ای برای نمایش وجود ندارد</p>
                 </div>
               )}
             </div>
@@ -1795,7 +1795,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                       <div>
                         <p className="font-bold text-gray-900">{savedSchedule.personnel.fullName}</p>
                         <p className="text-sm font-medium text-gray-700">{savedSchedule.personnel.mainPosition}</p>
-                        <p className="text-xs font-medium text-gray-600">آخرین بروزرسانی: {new Date(savedSchedule.timestamp).toLocaleDateString('fa-IR')}</p>
+                        <p className="text-xs font-medium text-black">آخرین بروزرسانی: {new Date(savedSchedule.timestamp).toLocaleDateString('fa-IR')}</p>
                       </div>
                       <div className="flex space-x-2 space-x-reverse">
                         <button 
@@ -1824,7 +1824,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-center font-medium text-gray-700">هیچ برنامه‌ای ذخیره نشده است</p>
+                <p className="text-center font-medium text-black">هیچ برنامه‌ای ذخیره نشده است</p>
               )}
             </div>
             
@@ -1893,8 +1893,8 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             </div>
             
             <div className="text-xs md:text-sm text-black mb-2 pb-2">
-              <span className="font-medium">روز: </span>{selectedCellForHistory.day}، 
-              <span className="font-medium mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
+              <span className="font-medium text-black">روز: </span>{selectedCellForHistory.day}، 
+              <span className="font-medium text-black mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
             </div>
             
             <div className="divide-y divide-gray-200 overflow-y-auto flex-grow">
@@ -1939,20 +1939,20 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               </button>
             </div>
             
-            <div className="text-sm md:text-base text-gray-900 mb-3 bg-gray-50 p-2 rounded">
-              <span className="font-bold">روز: </span>{selectedCellForHistory.day}، 
-              <span className="font-bold mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
+            <div className="text-sm md:text-base text-black mb-3 bg-gray-50 p-2 rounded">
+              <span className="font-bold text-black">روز: </span>{selectedCellForHistory.day}، 
+              <span className="font-bold text-black mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
             </div>
             
             <div className="max-h-[60vh] overflow-y-auto bg-gray-50 rounded p-2">
               <div className="divide-y divide-gray-200">
                 {getAllSavedSchedulesForCell(selectedCellForHistory.day, selectedCellForHistory.time).map((item, index) => (
-                  <div key={index} className="py-3 text-gray-900 bg-white mb-2 p-3 rounded shadow-sm">
+                  <div key={index} className="py-3 text-black bg-white mb-2 p-3 rounded shadow-sm">
                     <p className="font-bold text-black text-sm md:text-base">{item.personnel?.fullName || 'نامشخص'}</p>
-                    <p className="text-sm md:text-base text-gray-900">{item.grade} {item.classNumber} - {item.field}</p>
-                    <p className="text-sm text-gray-800">{item.mainPosition} - {item.hourType}</p>
-                    {item.description && <p className="text-sm text-gray-800 mt-1">{item.description}</p>}
-                    <p className="text-xs text-gray-600 mt-2">تاریخ نامشخص</p>
+                    <p className="text-sm md:text-base text-black">{item.grade} {item.classNumber} - {item.field}</p>
+                    <p className="text-sm text-black">{item.mainPosition} - {item.hourType}</p>
+                    {item.description && <p className="text-sm text-black mt-1">{item.description}</p>}
+                    <p className="text-xs text-black mt-2">تاریخ نامشخص</p>
                   </div>
                 ))}
               </div>
