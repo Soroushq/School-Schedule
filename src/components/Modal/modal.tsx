@@ -85,7 +85,7 @@ const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        className={`bg-white rounded-lg shadow-xl overflow-hidden flex flex-col relative ${className}`}
+        className={`bg-white rounded-lg shadow-xl overflow-hidden flex flex-col relative font-farhang ${className}`}
         style={{
           width,
           height,
@@ -101,7 +101,7 @@ const Modal: React.FC<ModalProps> = ({
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between p-4 border-b">
             {title && (
-              <h3 className={`text-lg font-semibold ${titleClassName}`}>{title}</h3>
+              <h3 className={`text-lg font-semibold font-farhang ${titleClassName}`}>{title}</h3>
             )}
             {showCloseButton && (
               <button
