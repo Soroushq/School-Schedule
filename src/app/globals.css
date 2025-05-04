@@ -1,6 +1,78 @@
 @import url('https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@100..900&display=swap');
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-DemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang2';
+  src: url('/fonts/farhang/Farhang2-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -9,9 +81,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Vazirmatn', sans-serif;
-  --font-mono: 'Vazirmatn', monospace;
-  --font-display: 'Lalezar', sans-serif;
+  --font-sans: 'Farhang2', 'Vazirmatn', sans-serif;
+  --font-mono: 'Farhang2', 'Vazirmatn', monospace;
+  --font-display: 'Farhang2', 'Lalezar', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,7 +96,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Vazirmatn', sans-serif;
+  font-family: 'Farhang2', 'Vazirmatn', sans-serif;
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
@@ -32,8 +104,8 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Lalezar', sans-serif;
-  font-weight: 400;
+  font-family: 'Farhang2', 'Lalezar', sans-serif;
+  font-weight: 700;
   font-style: normal;
 }
 
@@ -202,4 +274,106 @@ h1, h2, h3, h4, h5, h6 {
 
 .schedule-cell-delete:hover {
   background-color: rgba(255, 0, 0, 0.2);
+}
+
+/* استایل‌های سفارشی برای ریسپانسیو کردن صفحات */
+/* برای دستگاه‌های موبایل */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  h3 {
+    font-size: 1.1rem !important;
+  }
+  
+  button, a {
+    font-size: 0.9rem;
+  }
+  
+  /* بهینه‌سازی فاصله‌ها */
+  .container {
+    padding: 0.5rem !important;
+  }
+  
+  /* بهبود اسکرول افقی برای جداول */
+  .overflow-x-auto, .tableWrapper {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.2) transparent;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar, .tableWrapper::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb, .tableWrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+  }
+  
+  /* بهینه‌سازی فرم‌ها */
+  input, select, textarea {
+    font-size: 16px !important; /* جلوگیری از زوم اتوماتیک در موبایل */
+  }
+  
+  /* بهبود فاصله‌های داخلی */
+  .p-4 {
+    padding: 0.75rem !important;
+  }
+  
+  .m-4 {
+    margin: 0.75rem !important;
+  }
+}
+
+/* برای دستگاه‌های خیلی کوچک */
+@media (max-width: 480px) {
+  body {
+    font-size: 12px;
+  }
+  
+  .container {
+    padding: 0.25rem !important;
+  }
+  
+  /* کاهش پدینگ و حاشیه‌ها */
+  .p-4 {
+    padding: 0.5rem !important;
+  }
+  
+  .m-4 {
+    margin: 0.5rem !important;
+  }
+  
+  /* بهینه‌سازی جداول */
+  .scheduleTable {
+    min-width: 450px !important;
+  }
+  
+  /* بهبود استایل دکمه‌ها */
+  button {
+    font-size: 0.85rem !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+  
+  /* بهینه‌سازی مدال‌ها */
+  .modalContent {
+    padding: 0.75rem !important;
+    border-radius: 6px !important;
+  }
+  
+  /* تنظیم اندازه آیکون‌ها */
+  svg {
+    transform: scale(0.9);
+  }
 }
