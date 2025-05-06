@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FaPlus, FaTimes, FaSearch, FaSave, FaFileExport, FaExclamationTriangle, FaHistory } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSearch, FaSave, FaFileExport, FaExclamationTriangle, FaHistory, FaCalendarAlt, FaSchool, FaEye } from "react-icons/fa";
 import styles from '../personnel-schedule.module.css';
 import * as XLSX from 'xlsx';
 
@@ -21,10 +21,22 @@ interface Schedule {
   timeEnd: string;
   personnelId?: string;
   timestamp?: number;
+  // اضافه کردن فیلد برای ارتباط با برنامه کلاسی
+  classScheduleId?: string;
 }
 
 interface SavedSchedule {
   personnel: Personnel;
+  schedules: Schedule[];
+  timestamp: number;
+}
+
+// اضافه کردن رابط برای ذخیره برنامه کلاس
+interface ClassSchedule {
+  id: string;
+  grade: string;
+  classNumber: string;
+  field: string;
   schedules: Schedule[];
   timestamp: number;
 }
@@ -92,6 +104,8 @@ const PersonnelSchedule = () => {
   const [showCellHistoryModalOpen, setShowCellHistoryModalOpen] = useState(false);
   const [clickedHistoryButton, setClickedHistoryButton] = useState<HTMLElement | null>(null);
   const [menuPositionUpdateCounter, setMenuPositionUpdateCounter] = useState(0);
+  // اضافه کردن state برای ذخیره برنامه‌های کلاسی
+  const [savedClassSchedules, setSavedClassSchedules] = useState<ClassSchedule[]>([]);
   
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = ['تک ساعت اول', 'تک ساعت دوم', 'تک ساعت سوم', 'تک ساعت چهارم', 'تک ساعت پنجم', 'تک ساعت ششم', 'تک ساعت هفتم', 'تک ساعت هشتم', 'تک ساعت نهم', 'تک ساعت دهم', 'تک ساعت یازدهم', 'تک ساعت دوازدهم', 'تک ساعت سیزدهم', 'تک ساعت چهاردهم'];
@@ -203,6 +217,7 @@ const PersonnelSchedule = () => {
 
   useEffect(() => {
     loadAllSavedSchedules();
+    loadAllSavedClassSchedules();
   }, []);
 
   const handleSearchPersonnel = () => {
@@ -368,8 +383,10 @@ const PersonnelSchedule = () => {
       const timeEndHour = parseInt(timeStart.split(':')[0]) + 1;
       const timeEnd = `${toPersianNumber(timeEndHour)}:۰۰`;
       
+      const newScheduleId = Date.now().toString();
+      
       const newScheduleItem: Schedule = {
-        id: Date.now().toString(),
+        id: newScheduleId,
         grade,
         classNumber,
         field,
@@ -380,10 +397,16 @@ const PersonnelSchedule = () => {
         day: selectedCell.day,
         timeStart,
         timeEnd,
-        personnelId: selectedPersonnel.id
+        personnelId: selectedPersonnel.id,
+        timestamp: Date.now()
       };
       
+      // افزودن برنامه به state برنامه پرسنلی
       setSchedule([...schedule, newScheduleItem]);
+      
+      // به‌روزرسانی یا ایجاد برنامه کلاسی
+      updateClassSchedule(newScheduleItem);
+      
       setModalOpen(false);
       resetForm();
     }
@@ -434,7 +457,16 @@ const PersonnelSchedule = () => {
   };
 
   const handleDeleteSchedule = (id: string) => {
-    setSchedule(schedule.filter(item => item.id !== id));
+    // یافتن برنامه مورد نظر برای حذف
+    const scheduleToDelete = schedule.find(item => item.id === id);
+    
+    if (scheduleToDelete) {
+      // حذف از برنامه پرسنلی
+      setSchedule(schedule.filter(item => item.id !== id));
+      
+      // حذف از برنامه کلاسی
+      removeFromClassSchedule(scheduleToDelete);
+    }
   };
 
   const calculateTotalHours = () => {
@@ -591,6 +623,9 @@ const PersonnelSchedule = () => {
     try {
       const storageKey = `personnel_schedule_${selectedPersonnel.id}`;
       localStorage.setItem(storageKey, JSON.stringify(savedSchedule));
+      
+      // به‌روزرسانی برنامه‌های کلاسی مرتبط
+      updateAllClassSchedules(savedSchedule.schedules);
       
       loadAllSavedSchedules();
       
@@ -994,6 +1029,232 @@ const PersonnelSchedule = () => {
     };
   }, [showCellHistoryMenu]);
 
+  // تابع برای به‌روزرسانی برنامه کلاسی
+  const updateClassSchedule = (newSchedule: Schedule) => {
+    try {
+      // کلید برنامه کلاسی را با استفاده از پایه، شماره کلاس و رشته ایجاد می‌کنیم
+      const classKey = `${newSchedule.grade}-${newSchedule.classNumber}-${newSchedule.field}`;
+      const storageKey = `class_schedule_${classKey}`;
+      
+      // بررسی می‌کنیم آیا قبلاً برنامه‌ای برای این کلاس ذخیره شده است یا نه
+      let classSchedule: ClassSchedule | null = null;
+      const savedData = localStorage.getItem(storageKey);
+      
+      if (savedData) {
+        // اگر برنامه‌ای موجود بود، آن را بارگیری می‌کنیم
+        classSchedule = JSON.parse(savedData);
+      } else {
+        // اگر برنامه‌ای موجود نبود، یک برنامه جدید ایجاد می‌کنیم
+        classSchedule = {
+          id: Date.now().toString(),
+          grade: newSchedule.grade,
+          classNumber: newSchedule.classNumber,
+          field: newSchedule.field,
+          schedules: [],
+          timestamp: Date.now()
+        };
+      }
+      
+      if (classSchedule) {
+        // بررسی می‌کنیم آیا این برنامه قبلاً اضافه شده است یا نه
+        const existingScheduleIndex = classSchedule.schedules.findIndex(
+          s => s.day === newSchedule.day && s.timeStart === newSchedule.timeStart
+        );
+        
+        // آماده کردن برنامه برای اضافه شدن به برنامه کلاسی
+        const classScheduleItem = {
+          id: newSchedule.id,
+          personnelCode: selectedPersonnel?.personnelCode || '',
+          employmentStatus: selectedPersonnel?.employmentStatus || '',
+          mainPosition: newSchedule.mainPosition,
+          hourType: newSchedule.hourType,
+          teachingGroup: newSchedule.teachingGroup,
+          description: newSchedule.description,
+          day: newSchedule.day,
+          timeStart: newSchedule.timeStart,
+          timeEnd: newSchedule.timeEnd,
+          grade: newSchedule.grade,
+          classNumber: newSchedule.classNumber,
+          field: newSchedule.field,
+          timestamp: Date.now()
+        };
+        
+        if (existingScheduleIndex !== -1) {
+          // اگر برنامه موجود بود، آن را به‌روزرسانی می‌کنیم
+          classSchedule.schedules[existingScheduleIndex] = classScheduleItem;
+        } else {
+          // اگر برنامه موجود نبود، آن را اضافه می‌کنیم
+          classSchedule.schedules.push(classScheduleItem);
+        }
+        
+        // برنامه به‌روزرسانی شده را ذخیره می‌کنیم
+        classSchedule.timestamp = Date.now();
+        localStorage.setItem(storageKey, JSON.stringify(classSchedule));
+      }
+      
+      // برنامه‌های کلاسی را مجدداً بارگیری می‌کنیم
+      loadAllSavedClassSchedules();
+      
+    } catch (error) {
+      console.error('خطا در به‌روزرسانی برنامه کلاسی:', error);
+    }
+  };
+
+  // تابع برای حذف برنامه از برنامه کلاسی
+  const removeFromClassSchedule = (scheduleToRemove: Schedule) => {
+    try {
+      if (!scheduleToRemove.grade || !scheduleToRemove.classNumber || !scheduleToRemove.field) {
+        console.warn('اطلاعات کلاس برای حذف ناقص است');
+        return;
+      }
+      
+      // کلید برنامه کلاسی را با استفاده از پایه، شماره کلاس و رشته ایجاد می‌کنیم
+      const classKey = `${scheduleToRemove.grade}-${scheduleToRemove.classNumber}-${scheduleToRemove.field}`;
+      const storageKey = `class_schedule_${classKey}`;
+      
+      // بررسی می‌کنیم آیا برنامه‌ای برای این کلاس ذخیره شده است یا نه
+      const savedData = localStorage.getItem(storageKey);
+      
+      if (savedData) {
+        // اگر برنامه‌ای موجود بود، آن را بارگیری می‌کنیم
+        const classSchedule: ClassSchedule = JSON.parse(savedData);
+        
+        // برنامه مورد نظر را حذف می‌کنیم
+        classSchedule.schedules = classSchedule.schedules.filter(
+          s => !(s.day === scheduleToRemove.day && s.timeStart === scheduleToRemove.timeStart)
+        );
+        
+        // برنامه به‌روزرسانی شده را ذخیره می‌کنیم
+        classSchedule.timestamp = Date.now();
+        localStorage.setItem(storageKey, JSON.stringify(classSchedule));
+        
+        // برنامه‌های کلاسی را مجدداً بارگیری می‌کنیم
+        loadAllSavedClassSchedules();
+      }
+    } catch (error) {
+      console.error('خطا در حذف برنامه از برنامه کلاسی:', error);
+    }
+  };
+
+  // تابع برای به‌روزرسانی همه برنامه‌های کلاسی
+  const updateAllClassSchedules = (schedules: Schedule[]) => {
+    try {
+      // برنامه‌ها را بر اساس کلاس گروه‌بندی می‌کنیم
+      const schedulesByClass: Record<string, Schedule[]> = {};
+      
+      schedules.forEach(schedule => {
+        if (!schedule.grade || !schedule.classNumber || !schedule.field) {
+          console.warn('اطلاعات کلاس ناقص است:', schedule);
+          return;
+        }
+        
+        const classKey = `${schedule.grade}-${schedule.classNumber}-${schedule.field}`;
+        if (!schedulesByClass[classKey]) {
+          schedulesByClass[classKey] = [];
+        }
+        schedulesByClass[classKey].push(schedule);
+      });
+      
+      // هر گروه را به‌روزرسانی می‌کنیم
+      Object.entries(schedulesByClass).forEach(([classKey, classSchedules]) => {
+        const storageKey = `class_schedule_${classKey}`;
+        
+        // بررسی می‌کنیم آیا برنامه‌ای برای این کلاس ذخیره شده است یا نه
+        let classSchedule: ClassSchedule;
+        const savedData = localStorage.getItem(storageKey);
+        
+        if (savedData) {
+          // اگر برنامه‌ای موجود بود، آن را بارگیری می‌کنیم
+          classSchedule = JSON.parse(savedData);
+        } else {
+          // اگر برنامه‌ای موجود نبود، یک برنامه جدید ایجاد می‌کنیم
+          const [grade, classNumber, field] = classKey.split('-');
+          classSchedule = {
+            id: Date.now().toString(),
+            grade,
+            classNumber,
+            field,
+            schedules: [],
+            timestamp: Date.now()
+          };
+        }
+        
+        // برنامه‌های کلاسی را با برنامه‌های پرسنلی مطابقت می‌دهیم
+        classSchedules.forEach(schedule => {
+          const existingScheduleIndex = classSchedule.schedules.findIndex(
+            s => s.day === schedule.day && s.timeStart === schedule.timeStart
+          );
+          
+          // آماده کردن برنامه برای اضافه شدن به برنامه کلاسی
+          const classScheduleItem = {
+            id: schedule.id,
+            personnelCode: selectedPersonnel?.personnelCode || '',
+            employmentStatus: selectedPersonnel?.employmentStatus || '',
+            mainPosition: schedule.mainPosition,
+            hourType: schedule.hourType,
+            teachingGroup: schedule.teachingGroup,
+            description: schedule.description,
+            day: schedule.day,
+            timeStart: schedule.timeStart,
+            timeEnd: schedule.timeEnd,
+            grade: schedule.grade,
+            classNumber: schedule.classNumber,
+            field: schedule.field,
+            timestamp: Date.now()
+          };
+          
+          if (existingScheduleIndex !== -1) {
+            // اگر برنامه موجود بود، آن را به‌روزرسانی می‌کنیم
+            classSchedule.schedules[existingScheduleIndex] = classScheduleItem;
+          } else {
+            // اگر برنامه موجود نبود، آن را اضافه می‌کنیم
+            classSchedule.schedules.push(classScheduleItem);
+          }
+        });
+        
+        // برنامه به‌روزرسانی شده را ذخیره می‌کنیم
+        classSchedule.timestamp = Date.now();
+        localStorage.setItem(storageKey, JSON.stringify(classSchedule));
+      });
+      
+      // برنامه‌های کلاسی را مجدداً بارگیری می‌کنیم
+      loadAllSavedClassSchedules();
+      
+    } catch (error) {
+      console.error('خطا در به‌روزرسانی برنامه‌های کلاسی:', error);
+    }
+  };
+
+  // تابع برای انتقال به برنامه کلاسی
+  const navigateToClassSchedule = (grade: string, classNumber: string, field: string) => {
+    // استفاده از search params برای انتقال به صفحه برنامه کلاسی
+    const url = `/class-schedule/schedule?grade=${encodeURIComponent(grade)}&class=${encodeURIComponent(classNumber)}&field=${encodeURIComponent(field)}`;
+    window.open(url, '_blank');
+  };
+
+  const loadAllSavedClassSchedules = () => {
+    try {
+      const allClassSchedules: ClassSchedule[] = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        
+        if (key && key.startsWith('class_schedule_')) {
+          const savedData = localStorage.getItem(key);
+          
+          if (savedData) {
+            const parsedData: ClassSchedule = JSON.parse(savedData);
+            allClassSchedules.push(parsedData);
+          }
+        }
+      }
+      
+      setSavedClassSchedules(allClassSchedules);
+    } catch (error) {
+      console.error('خطا در بارگیری برنامه‌های کلاسی:', error);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1135,6 +1396,15 @@ const PersonnelSchedule = () => {
                   <FaFileExport className="ml-1 inline-block" />
                   <span className="inline-block">خروجی اکسل</span>
                 </button>
+                {savedClassSchedules.length > 0 && (
+                  <button
+                    onClick={() => window.open('/class-schedule', '_blank')}
+                    className={`${styles.actionButton} bg-cyan-600 text-white hover:bg-cyan-700 flex items-center`}
+                  >
+                    <FaCalendarAlt className="ml-1 inline-block" />
+                    <span className="inline-block">مشاهده برنامه‌های کلاسی</span>
+                  </button>
+                )}
               </div>
 
               {schedule.length > 0 && (
@@ -1198,8 +1468,16 @@ const PersonnelSchedule = () => {
                                   draggable
                                   onDragStart={(e) => handleDragStart(e, item, day, time)}
                                 >
-                                  <p className="font-bold text-gray-900 text-xs md:text-sm">{item.grade} {item.classNumber}</p>
-                                  <p className="text-gray-800 text-xs md:text-sm">{item.field}</p>
+                                  <p 
+                                    className="font-bold text-gray-900 text-xs md:text-sm cursor-pointer hover:text-cyan-700 hover:underline flex items-center"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigateToClassSchedule(item.grade, item.classNumber, item.field);
+                                    }}
+                                  >
+                                    <FaSchool className="ml-1 text-xs" />
+                                    {item.grade} {item.classNumber} {item.field}
+                                  </p>
                                   <p className="text-gray-800 text-xs md:text-sm">{item.mainPosition}</p>
                                   <p className="text-gray-800 text-xs md:text-sm">{item.hourType}</p>
                                   <button 
@@ -1270,11 +1548,22 @@ const PersonnelSchedule = () => {
                       {new Set(schedule.map(item => `${item.grade}-${item.classNumber}-${item.field}`)).size}
                     </p>
                   </div>
-                  <div className="bg-white p-2 md:p-3 rounded-md shadow-sm">
-                    <p className="text-gray-900 text-xs md:text-sm">وضعیت ذخیره‌سازی</p>
-                    <p className="text-gray-900 font-bold text-sm md:text-base">
-                      {savedSchedules.some(s => s.personnel.id === selectedPersonnel?.id) ? 
-                        'ذخیره شده' : 'ذخیره نشده'}
+                  <div 
+                    className="bg-white p-2 md:p-3 rounded-md shadow-sm cursor-pointer hover:bg-blue-50"
+                    onClick={() => {
+                      if (savedClassSchedules.length > 0) {
+                        // نمایش لیست کلاس‌های مرتبط در یک مودال
+                        // برای سادگی، از تابع navigate استفاده می‌کنیم تا به صفحه لیست کلاس‌ها منتقل شویم
+                        window.open('/class-schedule', '_blank');
+                      }
+                    }}
+                  >
+                    <p className="text-gray-900 text-xs md:text-sm">کلاس‌های با برنامه</p>
+                    <p className="text-gray-900 font-bold text-lg md:text-xl flex items-center">
+                      {savedClassSchedules.length}
+                      <span className="text-xs mr-2 text-cyan-700">
+                        (مشاهده همه)
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -1319,8 +1608,16 @@ const PersonnelSchedule = () => {
                       
                       return (
                         <div key={index} className="border-b border-gray-100 p-2 md:p-3">
-                          <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">
+                          <h5 
+                            className="text-gray-900 font-bold text-sm md:text-base mb-1 cursor-pointer hover:text-cyan-700 flex items-center"
+                            onClick={() => navigateToClassSchedule(grade, classNumber, field)}
+                          >
+                            <FaSchool className="ml-1" />
                             {grade} {classNumber} {field}
+                            <span className="text-xs text-cyan-600 mr-2 flex items-center">
+                              <FaEye className="ml-1" />
+                              (مشاهده برنامه کلاسی)
+                            </span>
                           </h5>
                           <div className="pl-3 text-xs md:text-sm">
                             {Object.entries(scheduleByDay).map(([day, daySchedules], idx) => {
