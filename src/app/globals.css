@@ -283,6 +283,22 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 14px;
   }
   
+  /* اصلاح مشکل بک‌گراند گرادیان در موبایل */
+  .bg-gradient-to-br.opacity-55.from-yellow-500.via-orange-500.to-purple-500 {
+    opacity: 0.4 !important;
+    z-index: 10 !important;
+  }
+  
+  /* اصلاح لایه گرادیان در مودال‌ها */
+  .fixed.inset-0.z-50.flex.items-center.justify-center .absolute.inset-0.bg-gradient-to-br {
+    opacity: 0.3 !important;
+  }
+  
+  /* اطمینان از نمایش درست محتوای مودال */
+  .fixed.inset-0.z-50.flex.items-center.justify-center .bg-white {
+    z-index: 20 !important;
+  }
+  
   h1 {
     font-size: 1.5rem !important;
   }
@@ -333,6 +349,39 @@ h1, h2, h3, h4, h5, h6 {
   .m-4 {
     margin: 0.75rem !important;
   }
+  
+  /* استایل‌های سفارشی برای مدیریت اسکرول افقی در جداول و محتوای واکنش‌گرا */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+  
+  /* بهبود نمایش مودال‌ها در حالت موبایل */
+  .fixed.inset-0.z-50 {
+    z-index: 1000 !important;
+  }
+  
+  /* تنظیم حاشیه برای محتوای جداول در موبایل */
+  table {
+    margin: 0;
+    border-spacing: 0;
+  }
+  
+  /* بهبود نمایش عناصر چسبنده در جداول */
+  .sticky.right-0 {
+    right: 0;
+    position: sticky;
+    z-index: 10;
+  }
 }
 
 /* برای دستگاه‌های خیلی کوچک */
@@ -376,4 +425,26 @@ h1, h2, h3, h4, h5, h6 {
   svg {
     transform: scale(0.9);
   }
+}
+
+/* انیمیشن گرادیان */
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientAnimation 5s ease infinite;
+}
+
+.animate-gradientBG {
+  position: relative;
 }

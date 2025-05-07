@@ -5,9 +5,18 @@ export const metadata: Metadata = {
   title: "برنامه هفتگی مدرسه",
   description: "برنامه زمانی هفتگی مدرسه",
   icons: {
-    icon: '/photos/favicon.png',
-    apple: '/photos/favicon.png',
-    shortcut: '/photos/favicon.png'
+    icon: [
+      { url: '/photos/icon-black.png', media: '(prefers-color-scheme: light)' },
+      { url: '/photos/icon-white.png', media: '(prefers-color-scheme: dark)' }
+    ],
+    apple: [
+      { url: '/photos/icon-black.png', media: '(prefers-color-scheme: light)' },
+      { url: '/photos/icon-white.png', media: '(prefers-color-scheme: dark)' }
+    ],
+    shortcut: [
+      { url: '/photos/icon-black.png', media: '(prefers-color-scheme: light)' },
+      { url: '/photos/icon-white.png', media: '(prefers-color-scheme: dark)' }
+    ]
   },
 };
 

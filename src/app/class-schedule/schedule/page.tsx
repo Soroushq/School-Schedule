@@ -435,10 +435,10 @@ const SchedulePageContent = () => {
       // بروزرسانی برنامه پرسنلی مرتبط
       updatePersonnelSchedule(newScheduleItem, personnelName);
       
-      // ذخیره خودکار تغییرات
-      setTimeout(() => {
-        saveClassScheduleToStorage();
-      }, 500);
+      // حذف ذخیره خودکار تغییرات
+      // setTimeout(() => {
+      //   saveClassScheduleToStorage();
+      // }, 500);
       
       setModalOpen(false);
       resetForm();
@@ -976,7 +976,7 @@ const SchedulePageContent = () => {
     
     return (
       <div 
-        className={`w-full h-full p-1 text-black ${bgColorClass} rounded text-right schedule-cell-content relative`}
+        className={`w-full h-full p-1 text-black ${bgColorClass} rounded text-right relative`}
         draggable
         onDragStart={(e) => handleDragStart(e, cellSchedule, day, hour)}
       >
@@ -985,28 +985,22 @@ const SchedulePageContent = () => {
           onClick={(e) => {
             e.stopPropagation();
             if (window.confirm(`آیا از حذف این برنامه اطمینان دارید؟`)) {
-              const result = handleDeleteSchedule(cellSchedule.id);
-              if (result) {
-                alert('برنامه با موفقیت حذف شد');
-                // بجای فراخوانی مستقیم، اینجا از state فعلی استفاده می‌کنیم
-                // loadClassScheduleFromStorage();
-              } else {
-                alert('خطا در حذف برنامه');
-              }
+              handleDeleteSchedule(cellSchedule.id);
+              // حذف الرت های تایید و خطا و متغیر نتیجه
             }
           }}
           title="حذف"
         >
-          <FaTimes size={14} />
+          <FaTimes size={12} className="sm:text-[14px]" />
         </button>
         
         {/* نمایش اطلاعات سلول */}
         <div className="flex justify-between items-start">
-          <div className="font-bold text-black mb-1">{cellSchedule.mainPosition}</div>
+          <div className="font-bold text-black mb-1 text-[10px] sm:text-xs">{cellSchedule.mainPosition}</div>
         </div>
         
         <div 
-          className="text-xs text-indigo-700 cursor-pointer hover:text-indigo-900 hover:underline flex items-center"
+          className="text-[10px] sm:text-xs text-indigo-700 cursor-pointer hover:text-indigo-900 hover:underline flex items-center truncate"
           onClick={(e) => {
             e.stopPropagation();
             // یافتن اطلاعات کامل پرسنل
@@ -1027,21 +1021,21 @@ const SchedulePageContent = () => {
         </div>
         
         {/* نمایش گروه تدریس با برجستگی بیشتر */}
-        <div className="text-xs text-blue-700 mt-1 font-bold border-t border-gray-200 pt-1">
+        <div className="text-[10px] sm:text-xs text-blue-700 mt-1 font-bold border-t border-gray-200 pt-1 truncate">
           {cellSchedule.teachingGroup || 'بدون گروه تدریس'}
         </div>
         
-        <div className="text-xs text-black">نوع ساعت: {cellSchedule.hourType || '-'}</div>
+        <div className="text-[10px] sm:text-xs text-black truncate">نوع: {cellSchedule.hourType || '-'}</div>
         {cellSchedule.description && (
-          <div className="text-xs text-black mt-1 overflow-hidden text-ellipsis whitespace-nowrap" title={cellSchedule.description}>
+          <div className="text-[10px] sm:text-xs text-black mt-1 truncate" title={cellSchedule.description}>
             توضیحات: {cellSchedule.description}
           </div>
         )}
         
         {/* نشانگر منبع برنامه */}
-        <div className="absolute bottom-1 right-1 text-xs">
+        <div className="absolute bottom-1 right-1 hidden sm:block">
           {!schedule.some(s => s.day === day && s.timeStart === hour && s.id === cellSchedule.id) && (
-            <span className="text-purple-500 font-medium border border-purple-300 rounded-md px-1 bg-purple-50">
+            <span className="text-[10px] text-purple-500 font-medium border border-purple-300 rounded-md px-1 bg-purple-50">
               از برنامه پرسنلی
             </span>
           )}
@@ -1108,27 +1102,27 @@ const SchedulePageContent = () => {
         <div className="w-full p-4 flex flex-col gap-6">
           {/* افزودن دکمه ذخیره برنامه */}
           {!showClassModal && (
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
+            <div className="flex flex-wrap justify-center gap-2 mb-4 responsive-buttons">
               <button
                 onClick={saveClassScheduleToStorage}
-                className="bg-lime-600 text-white px-4 py-2 rounded hover:bg-lime-700 transition-colors mx-2 flex items-center"
+                className="bg-lime-600 text-white px-4 py-2 rounded hover:bg-lime-700 transition-colors mx-2 flex items-center justify-center"
               >
                 <FaSave className="ml-2" />
-                ذخیره برنامه کلاس
+                <span className="button-text">ذخیره برنامه کلاس</span>
               </button>
               <button
                 onClick={() => window.location.href = '/personnel-schedule/schedule'}
-                className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700 transition-colors mx-2 flex items-center"
+                className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700 transition-colors mx-2 flex items-center justify-center"
               >
                 <FaUserAlt className="ml-2" />
-                مشاهده برنامه‌های پرسنلی
+                <span className="button-text">مشاهده برنامه‌های پرسنلی</span>
               </button>
               <button
                 onClick={handleAddNewSchedule}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors mx-2 flex items-center"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors mx-2 flex items-center justify-center"
               >
                 <FaPlus className="ml-2" />
-                افزودن برنامه جدید
+                <span className="button-text">افزودن برنامه جدید</span>
               </button>
               {schedule.length > 0 && (
                 <button
@@ -1149,10 +1143,10 @@ const SchedulePageContent = () => {
                     downloadAnchorNode.click();
                     downloadAnchorNode.remove();
                   }}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors mx-2 flex items-center"
+                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors mx-2 flex items-center justify-center"
                 >
                   <FaDownload className="ml-2" />
-                  خروجی فایل
+                  <span className="button-text">خروجی فایل</span>
                 </button>
               )}
             </div>
@@ -1161,20 +1155,20 @@ const SchedulePageContent = () => {
           {/* جدول زمانی هفتگی */}
           <div className="w-full">
             <h2 className="text-xl font-bold mb-4 text-cyan-900 text-center">جدول زمانی هفتگی</h2>
-            <div className="w-full overflow-x-auto">
+            <div className="w-full overflow-x-auto pb-4 schedule-table-container">
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2 text-black text-right w-24">روز / ساعت</th>
+                    <th className="border border-gray-300 p-2 text-black text-right w-24 sticky-col">روز / ساعت</th>
                     {hours.map(hour => (
-                      <th key={hour} className="border border-gray-300 p-2 text-cyan-900 text-center min-w-[120px]">{hour}</th>
+                      <th key={hour} className="border border-gray-300 p-2 text-cyan-900 text-center min-w-[120px] schedule-header-cell">{hour}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {days.map(day => (
                     <tr key={day}>
-                      <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold">{day}</td>
+                      <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold sticky-col">{day}</td>
                       {hours.map(hour => (
                         <td 
                           key={`${day}-${hour}`} 
@@ -1363,77 +1357,39 @@ ${dayStat.personnel.map(personnelCode => {
           isOpen={timeSelectionModalOpen}
           onClose={() => setTimeSelectionModalOpen(false)}
           title="انتخاب زمان برنامه"
-          width="80%"
+          width="95%"
+          maxWidth="900px"
           className="text-black"
         >
           <div className="space-y-4 text-right">
-            <p className="mb-4 text-center">لطفاً روز و ساعت مورد نظر را انتخاب کنید</p>
-            <div className="w-full overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
+            <p className="mb-4 text-center text-sm sm:text-base">لطفاً روز و ساعت مورد نظر را انتخاب کنید</p>
+            <div className="w-full overflow-x-auto pb-4">
+              <table className="w-full border-collapse border border-gray-300 text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2 text-black text-right w-20">روز / ساعت</th>
+                    <th className="border border-gray-300 p-1 sm:p-2 text-black text-right sticky right-0 bg-gray-100 z-10">روز / ساعت</th>
                     {hours.map(hour => (
-                      <th key={hour} className="border border-gray-300 p-2 text-cyan-900 text-center">{hour}</th>
+                      <th key={hour} className="border border-gray-300 p-1 sm:p-2 text-black text-center min-w-[70px] sm:min-w-[100px]">{hour}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {days.map(day => (
                     <tr key={day}>
-                      <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold">{day}</td>
-                      {hours.map(hour => {
-                        const existingSchedule = getScheduleForCell(day, hour);
-                        
-                        return (
-                          <td 
-                            key={`${day}-${hour}`} 
-                            className={`border border-gray-300 p-1 h-12 align-middle text-center ${existingSchedule ? 'bg-gray-100' : 'cursor-pointer hover:bg-lime-100'}`}
-                            onClick={() => {
-                              if (existingSchedule) {
-                                // اگر برنامه‌ای در این زمان وجود دارد، اطلاعات آن را نمایش دهیم
-                                const personnelInfo = savedPersonnelSchedules.find(
-                                  p => p.personnel.personnelCode === existingSchedule.personnelCode
-                                );
-                                
-                                const personnelName = personnelInfo?.personnel.fullName || `کد: ${existingSchedule.personnelCode}`;
-                                
-                                if (window.confirm(`این زمان قبلاً به ${personnelName} با درس ${existingSchedule.teachingGroup || 'نامشخص'} اختصاص داده شده است. آیا می‌خواهید آن را ویرایش کنید؟`)) {
-                                  setSelectedCell({ day, time: hour });
-                                  setTimeSelectionModalOpen(false);
-                                  
-                                  // پر کردن فرم با مقادیر فعلی برای ویرایش
-                                  setPersonnelCode(existingSchedule.personnelCode);
-                                  setEmploymentStatus(existingSchedule.employmentStatus);
-                                  setMainPosition(existingSchedule.mainPosition);
-                                  setHourType(existingSchedule.hourType);
-                                  setTeachingGroup(existingSchedule.teachingGroup);
-                                  setDescription(existingSchedule.description);
-                                  
-                                  // حذف برنامه قبلی
-                                  handleDeleteSchedule(existingSchedule.id);
-                                  
-                                  setModalOpen(true);
-                                }
-                              } else {
-                                // اگر برنامه‌ای وجود نداشت، مستقیماً به مرحله بعد برویم
-                                handleTimeSelection(day, hour);
-                              }
-                            }}
-                          >
-                            <div className="w-full h-full flex items-center justify-center">
-                              {existingSchedule ? (
-                                <div className="text-xs text-gray-500 w-full">
-                                  <div className="font-bold">{existingSchedule.fullName || existingSchedule.personnelCode}</div>
-                                  <div>{existingSchedule.teachingGroup || 'بدون درس'}</div>
-                                </div>
-                              ) : (
-                                <FaPlus className="text-lime-600" />
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
+                      <td className="border border-gray-300 p-1 sm:p-2 text-black text-right font-bold sticky right-0 bg-gray-50 z-10">{day}</td>
+                      {hours.map(hour => (
+                        <td
+                          key={`${day}-${hour}`}
+                          className="border border-gray-300 p-1 sm:p-2 text-center cursor-pointer hover:bg-blue-50"
+                          onClick={() => handleTimeSelection(day, hour)}
+                        >
+                          <button className="w-full h-full flex items-center justify-center text-[10px] sm:text-sm">
+                            <span className="p-1 rounded-full bg-blue-200 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                              {getScheduleForCell(day, hour) ? '✓' : '+'}
+                            </span>
+                          </button>
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
@@ -1444,10 +1400,11 @@ ${dayStat.personnel.map(personnelCode => {
 
         {/* مودال افزودن برنامه */}
         {modalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out">
-            <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-yellow-500 via-orange-500 to-purple-500 backdrop-blur-[2px] animate-gradient"></div>
-            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all duration-500 ease-in-out shadow-xl relative text-black">
-              <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-2 border-b">
+          <div className="fixed inset-0 z-[30] flex items-center justify-center">
+            <div className="absolute bg-opacity-50 inset-0 bg-linear-to-tr from-cyan-500 via-emerald-700 to-indigo-950"></div>
+            <div className="bg-white rounded-lg p-6 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform shadow-xl relative text-black z-[60]">
+              <div className="flex justify-between items-center mb-4 md:mb-6 sticky top-0 bg-white z-10 py-2 border-b">
+              <h2 className="text-lg md:text-xl font-bold text-black">افزودن برنامه جدید</h2>
                 <button 
                   onClick={() => {
                     setModalOpen(false);
@@ -1455,11 +1412,11 @@ ${dayStat.personnel.map(personnelCode => {
                   }}
                   className="text-red-500 hover:text-red-700"
                 >
-                  <FaTimes size={24} />
+                  <FaTimes size={20} />
                 </button>
-                <h2 className="text-xl font-bold text-black">افزودن برنامه جدید</h2>
+                
               </div>
-              <div className="space-y-4 text-right">
+              <div className="space-y-3 md:space-y-4 text-right">
                 {selectedCell && (
                   <div className="bg-blue-50 p-2 rounded">
                     <p>زمان انتخاب شده: {selectedCell.day} ساعت {selectedCell.time}</p>
@@ -1477,12 +1434,12 @@ ${dayStat.personnel.map(personnelCode => {
                         setPersonnelSearchQuery(e.target.value);
                         searchPersonnel(e.target.value);
                       }}
-                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black text-sm"
                       placeholder="نام یا کد پرسنلی را جستجو کنید"
                     />
                     <button
                       onClick={() => setShowPersonnelSearch(!showPersonnelSearch)}
-                      className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      className="p-2 bg-cyan-600 text-white rounded hover:bg-blue-400 flex-shrink-0"
                       title="جستجوی پرسنل"
                     >
                       <FaSearch />
@@ -1490,16 +1447,16 @@ ${dayStat.personnel.map(personnelCode => {
                   </div>
                   
                   {showPersonnelSearch && searchResults.length > 0 && (
-                    <div className="mt-2 bg-white border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                    <div className="mt-2 bg-white border border-gray-200 rounded-md max-h-36 md:max-h-48 overflow-y-auto">
                       {searchResults.map(personnel => (
                         <div
                           key={personnel.id}
-                          className="p-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer"
+                          className="p-2 md:p-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer"
                           onClick={() => selectPersonnelFromSearch(personnel)}
                         >
-                          <div className="font-medium text-gray-900">{personnel.fullName}</div>
-                          <div className="text-sm text-gray-600">کد پرسنلی: {personnel.personnelCode}</div>
-                          <div className="text-sm text-gray-600">سمت: {personnel.mainPosition}</div>
+                          <div className="font-medium text-gray-900 text-sm">{personnel.fullName}</div>
+                          <div className="text-xs text-gray-600">کد پرسنلی: {personnel.personnelCode}</div>
+                          <div className="text-xs text-gray-600">سمت: {personnel.mainPosition}</div>
                         </div>
                       ))}
                     </div>
@@ -1511,7 +1468,7 @@ ${dayStat.personnel.map(personnelCode => {
                   value={personnelCode}
                   onChange={(e) => setPersonnelCode(e.target.value)}
                   placeholder="کد پرسنلی را وارد کنید"
-                  className="w-full text-black"
+                  className="w-full text-black text-sm"
                   type="text"
                 />
 
@@ -1520,7 +1477,7 @@ ${dayStat.personnel.map(personnelCode => {
                   value={personnelName}
                   onChange={(e) => setPersonnelName(e.target.value)}
                   placeholder="نام و نام خانوادگی پرسنل را وارد کنید"
-                  className="w-full text-black"
+                  className="w-full text-black text-sm"
                   type="text"
                 />
 
@@ -1561,17 +1518,17 @@ ${dayStat.personnel.map(personnelCode => {
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                    rows={3}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black text-sm"
+                    rows={2}
                     placeholder="توضیحات اضافی را وارد کنید"
                   />
                 </div>
                 
-                <div className="flex justify-end sticky bottom-0 bg-white pb-2 border-t mt-6 pt-6">
+                <div className="flex justify-start sticky bottom-0 bg-white py-2 border-t mt-4 pt-4">
                   <SubmitButton 
                     label="ثبت برنامه" 
                     onClick={handleSubmit} 
-                    className="ml-2 bg-lime-400 hover:bg-green-500"
+                    className="ml-2 bg-lime-400 hover:bg-lime-500 text-center hover:scale-110 ease-in-out duration-200 text-sm"
                   />
                   <SubmitButton 
                     label="انصراف" 
@@ -1579,7 +1536,7 @@ ${dayStat.personnel.map(personnelCode => {
                       setModalOpen(false);
                       resetForm();
                     }} 
-                    className="bg-red-100 text-red-600"
+                    className="bg-red-100 text-red-600 text-center hover:scale-110 ease-in-out duration-200"
                   />
                 </div>
               </div>
@@ -1590,13 +1547,13 @@ ${dayStat.personnel.map(personnelCode => {
 
       {/* مودال انتخاب کلاس */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out animate-gradientBG">
-          <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-yellow-500 via-orange-500 to-purple-500 backdrop-blur-[2px] animate-gradient"></div>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-black text-center">انتخاب کلاس</h2>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-linear-to-tl from-cyan-500 via-emerald-700 to-indigo-950"></div>
+          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md transform shadow-xl relative z-[70]">
+            <div className="mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-bold text-black text-center">انتخاب کلاس</h2>
             </div>
-            <div className="space-y-6 text-right">
+            <div className="space-y-4 md:space-y-6 text-right">
               <Dropdown
                 label="پایه"
                 options={grades}
@@ -1624,17 +1581,17 @@ ${dayStat.personnel.map(personnelCode => {
                 showPlaceholder={true}
               />
 
-              <div className="flex justify-between pt-6">
+              <div className="flex justify-between pt-4 md:pt-6">
                 <Link 
                   href="/welcome" 
-                  className="py-1 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200 align-middle transition-colors h-8 w-1/4 text-center"
+                  className="py-1 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200 align-middle transition-colors h-8 w-1/4 text-center flex items-center justify-center text-sm md:text-base"
                 >
                   انصراف
                 </Link>
                 <SubmitButton 
                   label="تایید" 
                   onClick={handleClassSubmit} 
-                  className="w-2/3 mr-2 bg-lime-600 hover:bg-lime-700 pr-10"
+                  className="w-2/3 mr-2 bg-lime-600 hover:bg-lime-700 pr-10 text-sm md:text-base"
                   disabled={!grade || !classNumber || !field}
                 />
               </div>
@@ -1658,6 +1615,81 @@ ${dayStat.personnel.map(personnelCode => {
           pointer-events: none;
           opacity: 0.9;
           backdrop-filter: blur(2px);
+        }
+      `}</style>
+      <style jsx global>{`
+        @media screen and (max-width: 768px) {
+          .button-text {
+            font-size: 0.8rem;
+          }
+          
+          .responsive-buttons {
+            gap: 0.5rem;
+          }
+          
+          .responsive-buttons button {
+            margin: 0.25rem;
+            padding: 0.5rem 0.75rem;
+          }
+          
+          .schedule-header-cell {
+            font-size: 0.7rem;
+            padding: 0.25rem !important;
+            min-width: 80px !important;
+          }
+          
+          .sticky-col {
+            position: sticky;
+            right: 0;
+            z-index: 2;
+            background-color: #f8f9fa;
+          }
+          
+          .schedule-table-container {
+            margin-right: -0.5rem;
+            margin-left: -0.5rem;
+            padding-right: 0.5rem;
+            padding-left: 0.5rem;
+            width: calc(100% + 1rem);
+          }
+          
+          .mobile-friendly-table {
+            font-size: 0.7rem;
+          }
+          
+          .mobile-time-cell {
+            min-width: 60px !important;
+            padding: 0.25rem !important;
+          }
+          
+          .sticky-header {
+            position: sticky;
+            right: 0;
+            z-index: 2;
+            background-color: #f8f9fa;
+          }
+          
+          .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+          }
+          
+          /* تنظیم استایل Dropdown در مودال‌ها */
+          .dropdown-container select {
+            font-size: 0.8rem !important;
+            padding: 0.5rem !important;
+          }
+          
+          .dropdown-container label {
+            font-size: 0.8rem !important;
+          }
+          
+          /* تنظیم فاصله بین موارد در مودال */
+          .space-y-3 > * + * {
+            margin-top: 0.5rem !important;
+          }
         }
       `}</style>
     </div>
