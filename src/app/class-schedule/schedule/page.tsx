@@ -25,6 +25,9 @@ interface Schedule {
   classNumber?: string;
   field?: string;
   timestamp?: number;
+  // فیلد برای ارتباط با برنامه پرسنلی
+  personnelScheduleId?: string;
+  source?: 'class' | 'personnel';
 }
 
 interface Personnel {
@@ -69,6 +72,7 @@ interface ClassStatistics {
 
 interface ScheduleWithFullName extends Schedule {
   fullName?: string;
+  source?: 'class' | 'personnel';
 }
 
 const toPersianNumber = (num: number | string): string => {
@@ -119,6 +123,8 @@ const SchedulePageContent = () => {
     personnelStats: {},
     subjectStats: {}
   });
+  // اضافه کردن استیت برای نگهداری برنامه‌های پرسنلی مرتبط با هر سلول
+  const [cellPersonnelSchedules, setCellPersonnelSchedules] = useState<{[key: string]: ScheduleWithFullName[]}>({});
   
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = Array.from({ length: 14 }, (_, i) => `تک ساعت ${toPersianNumber(i + 1)}م`);
@@ -239,6 +245,9 @@ const SchedulePageContent = () => {
       
       setSavedPersonnelSchedules(personnelSchedules);
       
+      // به‌روزرسانی اطلاعات سلول‌های مشترک
+      updateCellPersonnelSchedules(personnelSchedules);
+      
       if (callback) {
         callback();
       }
@@ -247,6 +256,48 @@ const SchedulePageContent = () => {
       console.error('خطا در بارگذاری برنامه‌های پرسنلی:', error);
     }
   };
+  
+  // تابع جدید برای به‌روزرسانی اطلاعات پرسنلی هر سلول
+  const updateCellPersonnelSchedules = useCallback((personnelSchedules: SavedPersonnelSchedule[]) => {
+    const cellSchedules: {[key: string]: ScheduleWithFullName[]} = {};
+    
+    // بررسی برنامه‌های پرسنلی و پیدا کردن برنامه‌های مربوط به کلاس فعلی
+    personnelSchedules.forEach(personnelSchedule => {
+      personnelSchedule.schedules.forEach(schedule => {
+        if (
+          schedule.grade === grade && 
+          schedule.classNumber === classNumber && 
+          schedule.field === field
+        ) {
+          const cellKey = `${schedule.day}-${schedule.timeStart}`;
+          
+          const scheduleWithFullName: ScheduleWithFullName = {
+            ...schedule,
+            fullName: personnelSchedule.personnel.fullName,
+            source: 'personnel' as const
+          };
+          
+          if (!cellSchedules[cellKey]) {
+            cellSchedules[cellKey] = [];
+          }
+          
+          // افزودن به لیست، اگر قبلاً اضافه نشده باشد
+          const alreadyExists = cellSchedules[cellKey].some(
+            s => s.id === schedule.id || 
+            (s.personnelCode === schedule.personnelCode && 
+             s.day === schedule.day && 
+             s.timeStart === schedule.timeStart)
+          );
+          
+          if (!alreadyExists) {
+            cellSchedules[cellKey].push(scheduleWithFullName);
+          }
+        }
+      });
+    });
+    
+    setCellPersonnelSchedules(cellSchedules);
+  }, [grade, classNumber, field]);
 
   // تابع بارگیری برنامه‌های کلاسی ذخیره شده با useCallback
   const loadClassScheduleFromStorage = useCallback(() => {
@@ -258,7 +309,15 @@ const SchedulePageContent = () => {
     if (savedScheduleJSON) {
       try {
         const savedData = JSON.parse(savedScheduleJSON);
-        setSchedule(savedData.schedules || []);
+        const schedules = savedData.schedules || [];
+        
+        // اضافه کردن source به هر برنامه
+        const schedulesWithSource = schedules.map((s: Schedule) => ({
+          ...s,
+          source: 'class'
+        }));
+        
+        setSchedule(schedulesWithSource);
         setLastSaved(savedData.timestamp || Date.now());
       } catch (error) {
         console.error("خطا در بارگیری برنامه کلاسی:", error);
@@ -280,7 +339,10 @@ const SchedulePageContent = () => {
             ...s,
             personnelCode: personnelSchedule.personnel.personnelCode,
             employmentStatus: personnelSchedule.personnel.employmentStatus || s.employmentStatus,
-            mainPosition: s.mainPosition || personnelSchedule.personnel.mainPosition
+            mainPosition: s.mainPosition || personnelSchedule.personnel.mainPosition,
+            // اضافه کردن ارتباط با برنامه پرسنلی
+            personnelScheduleId: personnelSchedule.personnel.id,
+            source: 'personnel' as const
           }));
           
           schedulesFromPersonnel.push(...schedulesWithPersonnelInfo);
@@ -290,7 +352,11 @@ const SchedulePageContent = () => {
       // تنظیم برنامه‌های یافت شده از برنامه‌های پرسنلی
       setSchedule(schedulesFromPersonnel);
     }
-  }, [grade, classNumber, field, savedPersonnelSchedules]);
+    
+    // به‌روزرسانی اطلاعات سلول‌های مشترک
+    updateCellPersonnelSchedules(savedPersonnelSchedules);
+    
+  }, [grade, classNumber, field, savedPersonnelSchedules, updateCellPersonnelSchedules]);
 
   useEffect(() => {
     if (gradeParam && classParam && fieldParam) {
@@ -325,7 +391,7 @@ const SchedulePageContent = () => {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grade, classNumber, field]);
+  }, []);
 
   const handleClassSubmit = () => {
     if (grade && classNumber && field) {
@@ -426,14 +492,35 @@ const SchedulePageContent = () => {
         timeEnd,
         grade,
         classNumber,
-        field
+        field,
+        timestamp: Date.now()
       };
       
       // اضافه کردن به برنامه‌های کلاسی
-      setSchedule([...schedule, newScheduleItem]);
+      setSchedule(prevSchedule => [...prevSchedule, newScheduleItem]);
       
       // بروزرسانی برنامه پرسنلی مرتبط
       updatePersonnelSchedule(newScheduleItem, personnelName);
+      
+      // به‌روزرسانی اطلاعات سلول‌های مشترک
+      setCellPersonnelSchedules(prevState => {
+        const cellKey = `${selectedCell.day}-${timeStart}`;
+        const updatedSchedules = [...(prevState[cellKey] || [])];
+        
+        // اضافه کردن برنامه جدید به لیست با مشخص کردن منبع
+        const scheduleWithInfo: ScheduleWithFullName = {
+          ...newScheduleItem,
+          fullName: personnelName,
+          source: 'class'
+        };
+        
+        updatedSchedules.push(scheduleWithInfo);
+        
+        return {
+          ...prevState,
+          [cellKey]: updatedSchedules
+        };
+      });
       
       // حذف ذخیره خودکار تغییرات
       // setTimeout(() => {
@@ -475,11 +562,12 @@ const SchedulePageContent = () => {
           ...classSchedule,
           fullName: personnelInfo.personnel.fullName,
           employmentStatus: personnelInfo.personnel.employmentStatus || classSchedule.employmentStatus,
-          mainPosition: classSchedule.mainPosition || personnelInfo.personnel.mainPosition
+          mainPosition: classSchedule.mainPosition || personnelInfo.personnel.mainPosition,
+          source: 'class'
         };
       }
       
-      return classSchedule as ScheduleWithFullName;
+      return { ...classSchedule, source: 'class' };
     }
     
     // اگر برنامه‌ای در برنامه‌های کلاسی یافت نشد، در برنامه‌های پرسنلی جستجو می‌کنیم
@@ -499,7 +587,8 @@ const SchedulePageContent = () => {
           personnelCode: personnelSchedule.personnel.personnelCode,
           employmentStatus: personnelSchedule.personnel.employmentStatus || matchingSchedule.employmentStatus,
           mainPosition: matchingSchedule.mainPosition || personnelSchedule.personnel.mainPosition,
-          fullName: personnelSchedule.personnel.fullName
+          fullName: personnelSchedule.personnel.fullName,
+          source: 'personnel'
         };
         return scheduleWithPersonnelInfo;
       }
@@ -747,6 +836,37 @@ const SchedulePageContent = () => {
         // برنامه پرسنلی را ذخیره می‌کنیم
         personnelData.timestamp = Date.now();
         localStorage.setItem(storageKey, JSON.stringify(personnelData));
+        
+        // به‌روزرسانی state برنامه‌های پرسنلی
+        setSavedPersonnelSchedules(prevSchedules => {
+          const updatedSchedules = [...prevSchedules];
+          const personnelIndex = updatedSchedules.findIndex(p => p.personnel.id === personnelId);
+          
+          if (personnelIndex !== -1) {
+            updatedSchedules[personnelIndex] = personnelData;
+          }
+          
+          return updatedSchedules;
+        });
+        
+        // به‌روزرسانی اطلاعات سلول‌های مشترک
+        setCellPersonnelSchedules(prevState => {
+          const cellKey = `${scheduleItem.day}-${scheduleItem.timeStart}`;
+          
+          if (!prevState[cellKey]) return prevState;
+          
+          const updatedCellSchedules = prevState[cellKey].filter(s => 
+            s.id !== scheduleItem.id && 
+            !(s.personnelCode === scheduleItem.personnelCode && 
+              s.day === scheduleItem.day && 
+              s.timeStart === scheduleItem.timeStart)
+          );
+          
+          return {
+            ...prevState,
+            [cellKey]: updatedCellSchedules
+          };
+        });
       } else {
         // اگر پرسنل یافت نشد، یک پیام خطا در کنسول نمایش می‌دهیم
         console.warn(`پرسنلی با کد ${scheduleItem.personnelCode} یافت نشد`);
@@ -788,7 +908,8 @@ const SchedulePageContent = () => {
         updatePersonnelSchedule(item);
       });
       
-      alert('برنامه کلاسی با موفقیت ذخیره شد');
+      // نمایش نوتیفیکیشن موفقیت‌آمیز با استایل جدید
+      showSuccessNotification('برنامه کلاسی با موفقیت ذخیره شد');
       
     } catch (error) {
       console.error('خطا در ذخیره برنامه کلاسی:', error);
@@ -796,10 +917,102 @@ const SchedulePageContent = () => {
     }
   };
   
+  // تابع جدید برای نمایش نوتیفیکیشن موفقیت‌آمیز
+  const showSuccessNotification = (message: string) => {
+    // ایجاد یک المنت برای نوتیفیکیشن
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 md:top-8 md:right-8 bg-green-100 border-l-4 border-green-500 py-2 px-3 md:py-4 md:px-6 rounded shadow-md z-50 flex items-center fade-in slide-in-top`;
+    
+    // تنظیم استایل‌های انیمیشن
+    notification.style.animation = 'fadeIn 0.3s ease-out forwards, slideInFromTop 0.5s ease-out forwards';
+    
+    // اضافه کردن آیکون موفقیت
+    notification.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span class="text-green-800 font-medium">${message}</span>
+    `;
+    
+    // اضافه کردن به DOM
+    document.body.appendChild(notification);
+    
+    // حذف بعد از 3 ثانیه
+    setTimeout(() => {
+      notification.style.animation = 'fadeOut 0.3s ease-out forwards, slideOutToTop 0.5s ease-out forwards';
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 500);
+    }, 3000);
+  };
+  
   // تابع برای مشاهده برنامه پرسنلی
   const navigateToPersonnelSchedule = (personnelCode: string, fullName: string, mainPosition: string) => {
     const url = `/personnel-schedule/schedule?code=${encodeURIComponent(personnelCode)}&name=${encodeURIComponent(fullName)}&position=${encodeURIComponent(mainPosition)}`;
-    window.open(url, '_blank');
+    
+    // انیمیشن مختصر برای نمایش انتقال
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center';
+    overlay.style.animation = 'fadeIn 0.3s ease-out forwards';
+    
+    const content = document.createElement('div');
+    content.className = 'bg-white p-8 rounded-lg shadow-lg text-center';
+    content.style.animation = 'scaleIn 0.3s ease-out forwards';
+    content.innerHTML = `
+      <div class="flex flex-col items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-cyan-500 mb-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <h2 class="text-xl text-cyan-700 mb-2">در حال انتقال به صفحه پرسنلی</h2>
+        <p class="text-gray-600 mb-4">لطفاً منتظر بمانید...</p>
+        <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div class="h-full bg-cyan-500 rounded-full animate-progress"></div>
+        </div>
+      </div>
+    `;
+    
+    // اضافه کردن استایل‌های انیمیشن
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleIn {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      @keyframes scaleOut {
+        from { transform: scale(1); opacity: 1; }
+        to { transform: scale(1.2); opacity: 0; }
+      }
+      @keyframes animate-progress {
+        0% { width: 0%; }
+        100% { width: 100%; }
+      }
+      .animate-progress {
+        animation: animate-progress 1s linear forwards;
+      }
+    `;
+    
+    document.head.appendChild(style);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+    
+    // باز کردن صفحه پرسنلی در تب جدید
+    setTimeout(() => {
+      overlay.style.animation = 'fadeOut 0.3s ease-out forwards';
+      content.style.animation = 'scaleOut 0.3s ease-out forwards';
+      
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+        window.open(url, '_blank');
+      }, 300);
+    }, 1200);
   };
 
   const calculateClassStatistics = () => {
@@ -944,17 +1157,21 @@ const SchedulePageContent = () => {
     setSearchResults([]);
   };
 
-  const renderCellContent = (day: string, hour: string) => {
-    const cellSchedule = getScheduleForCell(day, hour);
+  const renderCellContent = (day: string, time: string) => {
+    const cellSchedule = getScheduleForCell(day, time);
+    const cellKey = `${day}-${time}`;
+    
+    // استفاده از اطلاعات سلول برای نمایش وضعیت (اختیاری)
+    const scheduleCount = cellPersonnelSchedules[cellKey]?.length || 0;
     
     if (!cellSchedule) {
       return (
         <button 
           className={styles.emptyCell}
-          onClick={() => handleTimeSelection(day, hour)}
-          title={`${day} ${hour}`}
+          onClick={() => handleTimeSelection(day, time)}
+          title={`${day} ${time}${scheduleCount > 0 ? ` - ${scheduleCount} برنامه پرسنلی` : ''}`}
         >
-          <span className="sr-only">انتخاب {day} {hour}</span>
+          <span className="sr-only">انتخاب {day} {time}</span>
           <div className="w-full h-full flex items-center justify-center">
             <FaPlus className="text-gray-300 hover:text-lime-600" />
           </div>
@@ -978,7 +1195,7 @@ const SchedulePageContent = () => {
       <div 
         className={`w-full h-full p-1 text-black ${bgColorClass} rounded text-right relative`}
         draggable
-        onDragStart={(e) => handleDragStart(e, cellSchedule, day, hour)}
+        onDragStart={(e) => handleDragStart(e, cellSchedule, day, time)}
       >
         <button
           className="absolute top-1 left-1 text-red-500 hover:text-red-700 z-10"
@@ -986,7 +1203,6 @@ const SchedulePageContent = () => {
             e.stopPropagation();
             if (window.confirm(`آیا از حذف این برنامه اطمینان دارید؟`)) {
               handleDeleteSchedule(cellSchedule.id);
-              // حذف الرت های تایید و خطا و متغیر نتیجه
             }
           }}
           title="حذف"
@@ -1034,7 +1250,7 @@ const SchedulePageContent = () => {
         
         {/* نشانگر منبع برنامه */}
         <div className="absolute bottom-1 right-1 hidden sm:block">
-          {!schedule.some(s => s.day === day && s.timeStart === hour && s.id === cellSchedule.id) && (
+          {cellSchedule.source === 'personnel' && (
             <span className="text-[10px] text-purple-500 font-medium border border-purple-300 rounded-md px-1 bg-purple-50">
               از برنامه پرسنلی
             </span>
@@ -1046,7 +1262,7 @@ const SchedulePageContent = () => {
           onClick={(e) => {
             e.stopPropagation();
             // پر کردن فرم با مقادیر فعلی برای ویرایش
-            setSelectedCell({ day, time: hour });
+            setSelectedCell({ day, time: time });
             setPersonnelCode(cellSchedule.personnelCode);
             setEmploymentStatus(cellSchedule.employmentStatus);
             setMainPosition(cellSchedule.mainPosition);
@@ -1092,36 +1308,36 @@ const SchedulePageContent = () => {
         <Link href="/class-schedule" className={styles.backButton}>
           بازگشت
         </Link>
-        <h1 className="text-cyan-700">
+        <h1 className="text-cyan-700 font-bold">
           برنامه‌ریزی کلاس {!showClassModal && `${grade}/${classNumber} ${field}`}
         </h1>
         {renderLastSaved()}
       </header>
 
       <main className={styles.main}>
-        <div className="w-full p-4 flex flex-col gap-6">
+        <div className="w-full p-2 sm:p-4 flex flex-col gap-4 sm:gap-6">
           {/* افزودن دکمه ذخیره برنامه */}
           {!showClassModal && (
-            <div className="flex flex-wrap justify-center gap-2 mb-4 responsive-buttons">
+            <div className="flex flex-wrap justify-center gap-2 mb-2 sm:mb-4 responsive-buttons">
               <button
                 onClick={saveClassScheduleToStorage}
-                className="bg-lime-600 text-white px-4 py-2 rounded hover:bg-lime-700 transition-colors mx-2 flex items-center justify-center"
+                className="bg-gradient-to-r from-lime-500 to-green-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-lime-600 hover:to-green-700 transition-all mx-1 sm:mx-2 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
               >
-                <FaSave className="ml-2" />
+                <FaSave className="ml-1 sm:ml-2" />
                 <span className="button-text">ذخیره برنامه کلاس</span>
               </button>
               <button
                 onClick={() => window.location.href = '/personnel-schedule/schedule'}
-                className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700 transition-colors mx-2 flex items-center justify-center"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-cyan-600 hover:to-blue-700 transition-all mx-1 sm:mx-2 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
               >
-                <FaUserAlt className="ml-2" />
+                <FaUserAlt className="ml-1 sm:ml-2" />
                 <span className="button-text">مشاهده برنامه‌های پرسنلی</span>
               </button>
               <button
                 onClick={handleAddNewSchedule}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors mx-2 flex items-center justify-center"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-blue-600 hover:to-indigo-700 transition-all mx-1 sm:mx-2 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
               >
-                <FaPlus className="ml-2" />
+                <FaPlus className="ml-1 sm:ml-2" />
                 <span className="button-text">افزودن برنامه جدید</span>
               </button>
               {schedule.length > 0 && (
@@ -1143,9 +1359,9 @@ const SchedulePageContent = () => {
                     downloadAnchorNode.click();
                     downloadAnchorNode.remove();
                   }}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors mx-2 flex items-center justify-center"
+                  className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-700 transition-all mx-1 sm:mx-2 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
                 >
-                  <FaDownload className="ml-2" />
+                  <FaDownload className="ml-1 sm:ml-2" />
                   <span className="button-text">خروجی فایل</span>
                 </button>
               )}
@@ -1153,26 +1369,26 @@ const SchedulePageContent = () => {
           )}
 
           {/* جدول زمانی هفتگی */}
-          <div className="w-full">
-            <h2 className="text-xl font-bold mb-4 text-cyan-900 text-center">جدول زمانی هفتگی</h2>
-            <div className="w-full overflow-x-auto pb-4 schedule-table-container">
+          <div className="w-full bg-white rounded-lg shadow-md p-2 sm:p-4">
+            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 text-cyan-900 text-center">جدول زمانی هفتگی</h2>
+            <div className="w-full overflow-x-auto pb-2 sm:pb-4 schedule-table-container">
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2 text-black text-right w-24 sticky-col">روز / ساعت</th>
+                  <tr className="bg-gradient-to-r from-cyan-50 to-blue-50">
+                    <th className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right w-16 sm:w-24 sticky-col">روز / ساعت</th>
                     {hours.map(hour => (
-                      <th key={hour} className="border border-gray-300 p-2 text-cyan-900 text-center min-w-[120px] schedule-header-cell">{hour}</th>
+                      <th key={hour} className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-center min-w-[100px] sm:min-w-[120px] schedule-header-cell">{hour}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {days.map(day => (
-                    <tr key={day}>
-                      <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold sticky-col">{day}</td>
+                  {days.map((day, index) => (
+                    <tr key={day} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                      <td className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right font-bold sticky-col">{day}</td>
                       {hours.map(hour => (
                         <td 
                           key={`${day}-${hour}`} 
-                          className={`border border-gray-300 p-1 h-24 align-top schedule-cell min-w-[120px]`}
+                          className={`border border-gray-300 p-1 h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, day, hour)}
                         >
@@ -1188,22 +1404,22 @@ const SchedulePageContent = () => {
 
           {/* آمار کلی برای کلاس */}
           {schedule.length > 0 && (
-            <div className="w-full mt-6 bg-blue-50 rounded-md p-3 border border-blue-200">
+            <div className="w-full mt-2 sm:mt-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200 shadow-md">
               <h3 className="text-base md:text-lg font-bold text-blue-800 mb-2">آمار کلی کلاس {grade} {classNumber} {field}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-white p-2 md:p-3 rounded-md shadow-sm">
-                  <p className="text-gray-900 text-xs md:text-sm">تعداد کل ساعت‌ها</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 mb-2 sm:mb-4">
+                <div className="bg-white p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow">
+                  <p className="text-gray-600 text-xs md:text-sm">تعداد کل ساعت‌ها</p>
                   <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats.totalHours}</p>
                 </div>
-                <div className="bg-white p-2 md:p-3 rounded-md shadow-sm">
-                  <p className="text-gray-900 text-xs md:text-sm">تعداد پرسنل منحصر به فرد</p>
+                <div className="bg-white p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow">
+                  <p className="text-gray-600 text-xs md:text-sm">تعداد پرسنل منحصر به فرد</p>
                   <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats.uniquePersonnel}</p>
                 </div>
                 <div 
-                  className="bg-white p-2 md:p-3 rounded-md shadow-sm cursor-pointer hover:bg-blue-50 transition-colors"
+                  className="bg-white p-2 md:p-3 rounded-md shadow-sm cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
                   onClick={() => saveClassScheduleToStorage()}
                 >
-                  <p className="text-gray-900 text-xs md:text-sm">وضعیت ذخیره‌سازی</p>
+                  <p className="text-gray-600 text-xs md:text-sm">وضعیت ذخیره‌سازی</p>
                   <p className="text-gray-900 font-bold text-sm md:text-base flex items-center">
                     {localStorage.getItem(`class_schedule_${grade}-${classNumber}-${field}`) ? 
                       <span className="flex items-center text-green-600">
@@ -1235,7 +1451,7 @@ const SchedulePageContent = () => {
                     if (!dayStat) return null;
                     
                     return (
-                      <div key={day} className="border-b border-gray-100 p-2 md:p-3">
+                      <div key={day} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
                         <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">{day}</h5>
                         <div className="pl-3 text-xs md:text-sm">
                           <div className="mb-1 text-gray-900">
@@ -1263,7 +1479,7 @@ const SchedulePageContent = () => {
                 <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات پرسنل</h4>
                 <div className="bg-white rounded-md shadow-sm overflow-hidden">
                   {Object.entries(classStats.personnelStats).map(([personnelCode, stat], index) => (
-                    <div key={index} className="border-b border-gray-100 p-2 md:p-3">
+                    <div key={index} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
                       <h5 
                         className="text-gray-900 font-bold text-sm md:text-base mb-1 cursor-pointer hover:text-cyan-700 flex items-center"
                         onClick={() => {
@@ -1302,7 +1518,7 @@ const SchedulePageContent = () => {
                 <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات گروه‌های تدریسی</h4>
                 <div className="bg-white rounded-md shadow-sm overflow-hidden">
                   {Object.entries(classStats.subjectStats).map(([subject, stat], index) => (
-                    <div key={index} className="border-b border-gray-100 p-2 md:p-3">
+                    <div key={index} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
                       <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">
                         {subject}
                       </h5>
@@ -1359,12 +1575,13 @@ ${dayStat.personnel.map(personnelCode => {
           title="انتخاب زمان برنامه"
           width="95%"
           maxWidth="900px"
-          className="text-black"
+          className="text-black backdrop-blur-lg"
+          overlayClassName="bg-gradient-to-br from-cyan-500/20 via-emerald-500/20 to-indigo-600/20 backdrop-blur-md"
         >
           <div className="space-y-4 text-right">
             <p className="mb-4 text-center text-sm sm:text-base">لطفاً روز و ساعت مورد نظر را انتخاب کنید</p>
-            <div className="w-full overflow-x-auto pb-4">
-              <table className="w-full border-collapse border border-gray-300 text-xs sm:text-sm">
+            <div className={`${styles.tableWrapper} pb-4`}>
+              <table className={`${styles.scheduleTable} text-xs sm:text-sm`}>
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border border-gray-300 p-1 sm:p-2 text-black text-right sticky right-0 bg-gray-100 z-10">روز / ساعت</th>
@@ -1380,11 +1597,11 @@ ${dayStat.personnel.map(personnelCode => {
                       {hours.map(hour => (
                         <td
                           key={`${day}-${hour}`}
-                          className="border border-gray-300 p-1 sm:p-2 text-center cursor-pointer hover:bg-blue-50"
+                          className="border border-gray-300 p-1 sm:p-2 text-center cursor-pointer hover:bg-blue-50 transition-colors"
                           onClick={() => handleTimeSelection(day, hour)}
                         >
                           <button className="w-full h-full flex items-center justify-center text-[10px] sm:text-sm">
-                            <span className="p-1 rounded-full bg-blue-200 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                            <span className="p-1 rounded-full bg-blue-200 hover:bg-blue-300 transition-colors w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
                               {getScheduleForCell(day, hour) ? '✓' : '+'}
                             </span>
                           </button>
@@ -1400,26 +1617,25 @@ ${dayStat.personnel.map(personnelCode => {
 
         {/* مودال افزودن برنامه */}
         {modalOpen && (
-          <div className="fixed inset-0 z-[30] flex items-center justify-center">
-            <div className="absolute bg-opacity-50 inset-0 bg-linear-to-tr from-cyan-500 via-emerald-700 to-indigo-950"></div>
-            <div className="bg-white rounded-lg p-6 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform shadow-xl relative text-black z-[60]">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-700/30 via-emerald-600/30 to-indigo-950/30 backdrop-blur-sm"></div>
+            <div className="bg-white rounded-lg p-6 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform shadow-xl relative text-black z-[70]">
               <div className="flex justify-between items-center mb-4 md:mb-6 sticky top-0 bg-white z-10 py-2 border-b">
-              <h2 className="text-lg md:text-xl font-bold text-black">افزودن برنامه جدید</h2>
+                <h2 className="text-lg md:text-xl font-bold text-black">افزودن برنامه جدید</h2>
                 <button 
                   onClick={() => {
                     setModalOpen(false);
                     resetForm();
                   }}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 hover:text-red-700 transition-colors"
                 >
                   <FaTimes size={20} />
                 </button>
-                
               </div>
               <div className="space-y-3 md:space-y-4 text-right">
                 {selectedCell && (
-                  <div className="bg-blue-50 p-2 rounded">
-                    <p>زمان انتخاب شده: {selectedCell.day} ساعت {selectedCell.time}</p>
+                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-2 rounded-lg border-r-4 border-cyan-500">
+                    <p className="text-cyan-900">زمان انتخاب شده: <span className="font-bold">{selectedCell.day}</span> ساعت <span className="font-bold">{selectedCell.time}</span></p>
                   </div>
                 )}
                     
@@ -1434,12 +1650,12 @@ ${dayStat.personnel.map(personnelCode => {
                         setPersonnelSearchQuery(e.target.value);
                         searchPersonnel(e.target.value);
                       }}
-                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black text-sm"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-black text-sm transition-all"
                       placeholder="نام یا کد پرسنلی را جستجو کنید"
                     />
                     <button
                       onClick={() => setShowPersonnelSearch(!showPersonnelSearch)}
-                      className="p-2 bg-cyan-600 text-white rounded hover:bg-blue-400 flex-shrink-0"
+                      className="p-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 flex-shrink-0 transition-colors"
                       title="جستجوی پرسنل"
                     >
                       <FaSearch />
@@ -1447,11 +1663,11 @@ ${dayStat.personnel.map(personnelCode => {
                   </div>
                   
                   {showPersonnelSearch && searchResults.length > 0 && (
-                    <div className="mt-2 bg-white border border-gray-200 rounded-md max-h-36 md:max-h-48 overflow-y-auto">
+                    <div className="mt-2 bg-white border border-gray-200 rounded-md max-h-36 md:max-h-48 overflow-y-auto shadow-md">
                       {searchResults.map(personnel => (
                         <div
                           key={personnel.id}
-                          className="p-2 md:p-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer"
+                          className="p-2 md:p-3 border-b border-gray-100 hover:bg-cyan-50 cursor-pointer transition-colors"
                           onClick={() => selectPersonnelFromSearch(personnel)}
                         >
                           <div className="font-medium text-gray-900 text-sm">{personnel.fullName}</div>
@@ -1468,7 +1684,7 @@ ${dayStat.personnel.map(personnelCode => {
                   value={personnelCode}
                   onChange={(e) => setPersonnelCode(e.target.value)}
                   placeholder="کد پرسنلی را وارد کنید"
-                  className="w-full text-black text-sm"
+                  className="w-full text-black text-sm focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                   type="text"
                 />
 
@@ -1548,7 +1764,7 @@ ${dayStat.personnel.map(personnelCode => {
       {/* مودال انتخاب کلاس */}
       {showClassModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="absolute inset-0 bg-linear-to-tl from-cyan-500 via-emerald-700 to-indigo-950"></div>
+          <div className="absolute inset-0 bg-gradient-to-tl from-cyan-700/30 via-emerald-600/30 to-indigo-950/30 backdrop-blur-sm"></div>
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md transform shadow-xl relative z-[70]">
             <div className="mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-bold text-black text-center">انتخاب کلاس</h2>
@@ -1584,14 +1800,14 @@ ${dayStat.personnel.map(personnelCode => {
               <div className="flex justify-between pt-4 md:pt-6">
                 <Link 
                   href="/welcome" 
-                  className="py-1 bg-red-100 text-red-700 font-bold rounded hover:bg-red-200 align-middle transition-colors h-8 w-1/4 text-center flex items-center justify-center text-sm md:text-base"
+                  className="py-1 bg-gradient-to-r from-red-100 to-red-200 text-red-700 font-bold rounded hover:from-red-200 hover:to-red-300 align-middle transition-colors h-8 w-1/4 text-center flex items-center justify-center text-sm md:text-base"
                 >
                   انصراف
                 </Link>
                 <SubmitButton 
                   label="تایید" 
                   onClick={handleClassSubmit} 
-                  className="w-2/3 mr-2 bg-lime-600 hover:bg-lime-700 pr-10 text-sm md:text-base"
+                  className="w-2/3 mr-2 bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700 pr-10 text-sm md:text-base transition-all"
                   disabled={!grade || !classNumber || !field}
                 />
               </div>

@@ -1,6 +1,14 @@
 .container {
   min-height: 100vh;
   background-color: #f5f5f5;
+  direction: rtl;
+  font-family: 'Farhang2', 'Vazirmatn', sans-serif;
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
 }
 
 .header {
@@ -10,17 +18,52 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  font-family: 'Farhang2', 'Vazirmatn', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.5rem;
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .header h1 {
+    font-size: 1.1rem;
+    margin: 0.5rem 0;
+  }
 }
 
 .backButton {
-  color: #4a90e2;
+  color: #0055a4;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #e6f7ff;
+  border-radius: 4px;
+  font-family: 'Farhang2', 'Vazirmatn', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .backButton {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+  }
 }
 
 .backButton:hover {
-  color: #357abd;
+  background-color: #cceeff;
+  color: #003d7a;
 }
 
 .main {
@@ -32,6 +75,20 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .main {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 0.5rem;
+    gap: 0.75rem;
+  }
+}
+
 .form {
   background-color: #ffffff;
   border-radius: 8px;
@@ -39,8 +96,20 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+@media (max-width: 768px) {
+  .form {
+    padding: 1rem;
+  }
+}
+
 .formGroup {
   margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .formGroup {
+    margin-bottom: 1rem;
+  }
 }
 
 .formGroup label {
@@ -61,9 +130,16 @@
   transition: border-color 0.2s;
 }
 
+@media (max-width: 768px) {
+  .formGroup select {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
 .formGroup select:focus {
   outline: none;
-  border-color: #4a90e2;
+  border-color: #0055a4;
 }
 
 .formGroup select:disabled {
@@ -74,7 +150,7 @@
 .submitButton {
   width: 100%;
   padding: 0.75rem;
-  background-color: #4a90e2;
+  background-color: #0055a4;
   color: white;
   border: none;
   border-radius: 4px;
@@ -84,8 +160,15 @@
   transition: background-color 0.2s;
 }
 
+@media (max-width: 768px) {
+  .submitButton {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
 .submitButton:hover {
-  background-color: #357abd;
+  background-color: #003d7a;
 }
 
 .submitButton:disabled {
@@ -100,31 +183,94 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+@media (max-width: 768px) {
+  .scheduleContainer {
+    padding: 10px;
+  }
+}
+
 .scheduleTable {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  min-width: 750px;
+}
+
+@media (max-width: 768px) {
+  .scheduleTable {
+    min-width: 500px;
+    font-size: 0.8rem;
+    margin-top: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .scheduleTable {
+    min-width: 450px;
+    font-size: 0.7rem;
+    margin-top: 1rem;
+  }
 }
 
 .scheduleTable th,
 .scheduleTable td {
-  border: 1px solid #e2e8f0;
-  padding: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
   text-align: center;
 }
 
-.scheduleTable th {
-  background-color: #f7fafc;
-  font-weight: 600;
+@media (max-width: 768px) {
+  .scheduleTable th,
+  .scheduleTable td {
+    padding: 0.35rem 0.15rem;
+    font-size: 0.75rem;
+  }
 }
 
-.scheduleTable td {
-  min-height: 60px;
+@media (max-width: 480px) {
+  .scheduleTable th,
+  .scheduleTable td {
+    padding: 0.25rem 0.1rem;
+    font-size: 0.65rem;
+  }
+}
+
+.scheduleTable th {
+  background-color: #f3f4f6;
+  font-weight: 600;
 }
 
 .scheduleCell {
   position: relative;
-  min-height: 60px;
+  min-height: 6rem;
+}
+
+@media (max-width: 768px) {
+  .scheduleCell {
+    min-height: 4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .scheduleCell {
+    min-height: 3.5rem;
+  }
+}
+
+.emptyCell {
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.emptyCell:hover {
+  background-color: #f0f9ff;
 }
 
 .addLessonButton {
@@ -139,6 +285,12 @@
   padding: 8px;
   border-radius: 4px;
   transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+  .addLessonButton {
+    padding: 4px;
+  }
 }
 
 .addLessonButton:hover {
@@ -159,6 +311,12 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+@media (max-width: 768px) {
+  .lessonForm {
+    padding: 6px;
+  }
+}
+
 .lessonForm input {
   width: 100%;
   padding: 8px;
@@ -167,12 +325,28 @@
   border-radius: 4px;
 }
 
+@media (max-width: 768px) {
+  .lessonForm input {
+    padding: 6px;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+  }
+}
+
 .lessonForm button {
   margin-right: 8px;
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .lessonForm button {
+    margin-right: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
 }
 
 .lessonForm .saveButton {
@@ -186,11 +360,20 @@
 }
 
 .lessonItem {
-  background-color: #ebf8ff;
+  background-color: #e0f2fe;
   padding: 8px;
   margin-bottom: 4px;
   border-radius: 4px;
   position: relative;
+  border-left: 4px solid #0055a4;
+}
+
+@media (max-width: 768px) {
+  .lessonItem {
+    padding: 4px;
+    margin-bottom: 2px;
+    font-size: 0.8rem;
+  }
 }
 
 .lessonItem button {
@@ -291,6 +474,145 @@
 }
 
 .animate-gradient {
-  background-size: 200% 200%;
   animation: gradientAnimation 5s ease infinite;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 500px;
+  padding: 1.5rem;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .modalContent {
+    width: 90%;
+    padding: 1rem;
+    max-height: 80vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalContent {
+    width: 95%;
+    padding: 0.75rem;
+    max-height: 75vh;
+  }
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  margin-right: -0.5rem;
+  margin-left: -0.5rem;
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
+  width: calc(100% + 1rem);
+}
+
+@media (max-width: 480px) {
+  .tableWrapper {
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+    width: calc(100% + 1.5rem);
+  }
+}
+
+.modalWithGradient {
+  background: linear-gradient(135deg, rgba(0, 85, 164, 0.1), rgba(0, 61, 122, 0.05));
+}
+
+.bg-linear-to-tl {
+  background: linear-gradient(to top left, var(--tw-gradient-stops));
+}
+
+.bg-linear-to-tr {
+  background: linear-gradient(to top right, var(--tw-gradient-stops));
+}
+
+@media screen and (max-width: 768px) {
+  .button-text {
+    font-size: 0.8rem;
+  }
+  
+  .responsive-buttons {
+    gap: 0.5rem;
+  }
+  
+  .responsive-buttons button {
+    margin: 0.25rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .schedule-header-cell {
+    font-size: 0.7rem;
+    padding: 0.25rem !important;
+    min-width: 80px !important;
+  }
+  
+  .sticky-col {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background-color: #f8f9fa;
+  }
+  
+  .schedule-table-container {
+    margin-right: -0.5rem;
+    margin-left: -0.5rem;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    width: calc(100% + 1rem);
+  }
+  
+  .mobile-friendly-table {
+    font-size: 0.7rem;
+  }
+  
+  .mobile-time-cell {
+    min-width: 60px !important;
+    padding: 0.25rem !important;
+  }
+  
+  .sticky-header {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background-color: #f8f9fa;
+  }
+  
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+  }
+  
+  .dropdown-container select {
+    font-size: 0.8rem !important;
+    padding: 0.5rem !important;
+  }
+  
+  .dropdown-container label {
+    font-size: 0.8rem !important;
+  }
+  
+  .space-y-3 > * + * {
+    margin-top: 0.5rem !important;
+  }
 } 
