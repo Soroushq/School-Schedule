@@ -67,6 +67,10 @@ interface ClassStatistics {
   };
 }
 
+interface ScheduleWithFullName extends Schedule {
+  fullName?: string;
+}
+
 const toPersianNumber = (num: number | string): string => {
   const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   return String(num).replace(/[0-9]/g, (w) => persianNumbers[+w]);
@@ -94,6 +98,7 @@ const SchedulePageContent = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [timeSelectionModalOpen, setTimeSelectionModalOpen] = useState(false);
   const [personnelCode, setPersonnelCode] = useState('');
+  const [personnelName, setPersonnelName] = useState('');
   const [personnelSearchQuery, setPersonnelSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Personnel[]>([]);
   const [showPersonnelSearch, setShowPersonnelSearch] = useState(false);
@@ -235,7 +240,11 @@ const SchedulePageContent = () => {
 
   useEffect(() => {
     // اضافه کردن لود کردن برنامه‌های پرسنلی مرتبط برای نمایش در هنگام لود اولیه صفحه
-    loadSavedPersonnelSchedules();
+    loadSavedPersonnelSchedules(() => {
+      if (grade && classNumber && field) {
+        loadClassScheduleFromStorage();
+      }
+    });
   }, []);
 
   const handleClassSubmit = () => {
@@ -251,31 +260,30 @@ const SchedulePageContent = () => {
 
   const handleTimeSelection = (day: string, time: string) => {
     // بررسی می‌کنیم آیا قبلاً برنامه‌ای در این زمان تعریف شده است یا خیر
-    const cellSchedules = getScheduleForCell(day, time);
-    const existingSchedule = cellSchedules.length > 0 ? cellSchedules[0] : null;
+    const cellSchedule = getScheduleForCell(day, time);
     
-    if (existingSchedule) {
+    if (cellSchedule) {
       // اگر برنامه‌ای وجود داشت، به کاربر پیام می‌دهیم
       const personnelInfo = savedPersonnelSchedules.find(
-        p => p.personnel.personnelCode === existingSchedule.personnelCode
+        p => p.personnel.personnelCode === cellSchedule.personnelCode
       );
       
-      const personnelName = personnelInfo?.personnel.fullName || `کد: ${existingSchedule.personnelCode}`;
+      const personnelName = personnelInfo?.personnel.fullName || `کد: ${cellSchedule.personnelCode}`;
       
-      if (window.confirm(`این زمان قبلاً به ${personnelName} با درس ${existingSchedule.teachingGroup || 'نامشخص'} اختصاص داده شده است. آیا می‌خواهید آن را ویرایش کنید؟`)) {
+      if (window.confirm(`این زمان قبلاً به ${personnelName} با درس ${cellSchedule.teachingGroup || 'نامشخص'} اختصاص داده شده است. آیا می‌خواهید آن را ویرایش کنید؟`)) {
         setSelectedCell({ day, time });
         setTimeSelectionModalOpen(false);
         
         // پر کردن فرم با مقادیر فعلی برای ویرایش
-        setPersonnelCode(existingSchedule.personnelCode);
-        setEmploymentStatus(existingSchedule.employmentStatus);
-        setMainPosition(existingSchedule.mainPosition);
-        setHourType(existingSchedule.hourType);
-        setTeachingGroup(existingSchedule.teachingGroup);
-        setDescription(existingSchedule.description);
+        setPersonnelCode(cellSchedule.personnelCode);
+        setEmploymentStatus(cellSchedule.employmentStatus);
+        setMainPosition(cellSchedule.mainPosition);
+        setHourType(cellSchedule.hourType);
+        setTeachingGroup(cellSchedule.teachingGroup);
+        setDescription(cellSchedule.description);
         
         // حذف برنامه قبلی
-        handleDeleteSchedule(existingSchedule.id);
+        handleDeleteSchedule(cellSchedule.id);
         
         setModalOpen(true);
       }
@@ -293,6 +301,38 @@ const SchedulePageContent = () => {
       const timeEndHour = parseInt(timeStart.split(':')[0]) + 1;
       const timeEnd = `${toPersianNumber(timeEndHour)}:۰۰`;
       
+      // بررسی وجود تداخل در برنامه‌های کلاسی
+      const existingSchedule = schedule.find(s => 
+        s.day === selectedCell.day && 
+        s.timeStart === selectedCell.time &&
+        s.grade === grade &&
+        s.classNumber === classNumber &&
+        s.field === field
+      );
+      
+      if (existingSchedule) {
+        if (!window.confirm(`برنامه دیگری در این زمان برای کلاس ${grade} ${classNumber} ${field} وجود دارد. آیا می‌خواهید آن را جایگزین کنید؟`)) {
+          return;
+        }
+        // حذف برنامه قبلی
+        handleDeleteSchedule(existingSchedule.id);
+      }
+      
+      // بررسی تداخل در برنامه‌های پرسنلی
+      const personnelWithSameTime = savedPersonnelSchedules.find(p => 
+        p.schedules.some(s => 
+          s.day === selectedCell.day && 
+          s.timeStart === selectedCell.time && 
+          s.personnelCode === personnelCode
+        )
+      );
+      
+      if (personnelWithSameTime && personnelWithSameTime.personnel.personnelCode === personnelCode) {
+        if (!window.confirm(`پرسنل ${personnelWithSameTime.personnel.fullName} در این زمان برنامه دیگری دارد. آیا می‌خواهید این برنامه را اضافه کنید؟`)) {
+          return;
+        }
+      }
+      
       const newScheduleItem: Schedule = {
         id: Date.now().toString(),
         personnelCode,
@@ -303,22 +343,34 @@ const SchedulePageContent = () => {
         description,
         day: selectedCell.day,
         timeStart,
-        timeEnd
+        timeEnd,
+        grade,
+        classNumber,
+        field
       };
       
+      // اضافه کردن به برنامه‌های کلاسی
       setSchedule([...schedule, newScheduleItem]);
       
       // بروزرسانی برنامه پرسنلی مرتبط
-      updatePersonnelSchedule(newScheduleItem);
+      updatePersonnelSchedule(newScheduleItem, personnelName);
+      
+      // ذخیره خودکار تغییرات
+      setTimeout(() => {
+        saveClassScheduleToStorage();
+      }, 500);
       
       setModalOpen(false);
       resetForm();
+    } else {
+      alert('لطفاً تمامی فیلدهای ضروری را پر کنید');
     }
   };
 
   const resetForm = () => {
     setSelectedCell(null);
     setPersonnelCode('');
+    setPersonnelName('');
     setEmploymentStatus('');
     setMainPosition('');
     setHourType('');
@@ -329,50 +381,52 @@ const SchedulePageContent = () => {
     setShowPersonnelSearch(false);
   };
 
-  const getScheduleForCell = (day: string, time: string) => {
-    // ابتدا برنامه‌های کلاسی را بررسی می‌کنیم
-    const classSchedules = schedule.filter(item => 
-      item.day === day && 
-      item.timeStart === time && 
-      !!item.personnelCode // اطمینان از معتبر بودن برنامه
-    );
-    
-    // اگر برنامه‌ای در داده‌های کلاس پیدا شد، آن را برمی‌گردانیم
-    if (classSchedules.length > 0) {
-      return classSchedules;
+  const getScheduleForCell = (day: string, time: string): ScheduleWithFullName | null => {
+    // ابتدا در برنامه‌های کلاسی جستجو می‌کنیم
+    const classSchedule = schedule.find(s => s.day === day && s.timeStart === time);
+    if (classSchedule) {
+      // اگر برنامه پیدا شد، اطلاعات پرسنل را به آن اضافه می‌کنیم
+      const personnelInfo = savedPersonnelSchedules.find(
+        p => p.personnel.personnelCode === classSchedule.personnelCode
+      );
+      
+      if (personnelInfo) {
+        return {
+          ...classSchedule,
+          fullName: personnelInfo.personnel.fullName,
+          employmentStatus: personnelInfo.personnel.employmentStatus || classSchedule.employmentStatus,
+          mainPosition: classSchedule.mainPosition || personnelInfo.personnel.mainPosition
+        };
+      }
+      
+      return classSchedule as ScheduleWithFullName;
     }
     
-    // در غیر این صورت، برنامه‌های پرسنلی مرتبط با این کلاس را بررسی می‌کنیم
-    const personnelSchedulesForCell: Schedule[] = [];
+    // اگر برنامه‌ای در برنامه‌های کلاسی یافت نشد، در برنامه‌های پرسنلی جستجو می‌کنیم
+    for (const personnelSchedule of savedPersonnelSchedules) {
+      const matchingSchedule = personnelSchedule.schedules.find(s => 
+        s.day === day && 
+        s.timeStart === time && 
+        s.grade === grade &&
+        s.classNumber === classNumber &&
+        s.field === field
+      );
+      
+      if (matchingSchedule) {
+        // برنامه پرسنلی پیدا شده را با اطلاعات پرسنل ترکیب می‌کنیم
+        const scheduleWithPersonnelInfo: ScheduleWithFullName = {
+          ...matchingSchedule,
+          personnelCode: personnelSchedule.personnel.personnelCode,
+          employmentStatus: personnelSchedule.personnel.employmentStatus || matchingSchedule.employmentStatus,
+          mainPosition: matchingSchedule.mainPosition || personnelSchedule.personnel.mainPosition,
+          fullName: personnelSchedule.personnel.fullName
+        };
+        return scheduleWithPersonnelInfo;
+      }
+    }
     
-    savedPersonnelSchedules.forEach(personnelData => {
-      // بررسی برنامه‌های همه پرسنل
-      personnelData.schedules.forEach(s => {
-        if (
-          s.day === day && 
-          s.timeStart === time && 
-          s.grade === grade && 
-          s.classNumber === classNumber && 
-          s.field === field
-        ) {
-          // ایجاد یک آبجکت برنامه که شامل اطلاعات پرسنل باشد
-          const personnelSchedule: Schedule = {
-            ...s,
-            id: s.id || `personnel_${personnelData.personnel.personnelCode}_${day}_${time}_${Date.now()}`,
-            personnelCode: personnelData.personnel.personnelCode,
-            employmentStatus: personnelData.personnel.employmentStatus || s.employmentStatus || '',
-            mainPosition: s.mainPosition || personnelData.personnel.mainPosition || '',
-            hourType: s.hourType || '',
-            teachingGroup: s.teachingGroup || '',
-            description: s.description || '',
-            timeEnd: s.timeEnd || time
-          };
-          personnelSchedulesForCell.push(personnelSchedule);
-        }
-      });
-    });
-    
-    return personnelSchedulesForCell;
+    // اگر هیچ برنامه‌ای یافت نشد، null برمی‌گردانیم
+    return null;
   };
 
   const handleDragStart = (e: React.DragEvent, schedule: Schedule, day: string, time: string) => {
@@ -388,6 +442,15 @@ const SchedulePageContent = () => {
 
   const handleDrop = (e: React.DragEvent, targetDay: string, targetTime: string) => {
     e.preventDefault();
+
+    // بررسی کنیم آیا خانه مقصد قبلاً پر است یا خیر
+    const targetCellSchedule = getScheduleForCell(targetDay, targetTime);
+    if (targetCellSchedule) {
+      // اگر خانه مقصد پر است، عملیات را متوقف می‌کنیم
+      alert('این خانه قبلاً پر شده است. لطفاً یک خانه خالی را انتخاب کنید.');
+      return;
+    }
+
     if (draggedItem && dragStartRef.current) {
       const updatedItem = {
         ...draggedItem,
@@ -404,50 +467,95 @@ const SchedulePageContent = () => {
   };
 
   const handleDeleteSchedule = (id: string) => {
-    // یافتن برنامه‌ای که باید حذف شود
-    const scheduleToDelete = schedule.find(item => item.id === id);
-    
-    if (scheduleToDelete) {
-      // حذف از state فعلی
-      setSchedule(schedule.filter(item => item.id !== id));
+    try {
+      // یافتن برنامه‌ای که باید حذف شود
+      const scheduleToDelete = schedule.find(item => item.id === id);
       
-      // حذف از برنامه پرسنلی مرتبط
-      removeFromPersonnelSchedule(scheduleToDelete);
-      
-      // ذخیره تغییرات در localStorage
-      saveClassScheduleToStorage();
-    } else {
-      // ممکن است این برنامه از صفحه پرسنلی اضافه شده باشد و در state اصلی نباشد
-      // در این حالت باید یک بررسی اضافی انجام دهیم
-      
-      savedPersonnelSchedules.forEach(personnelData => {
-        const personnelSchedule = personnelData.schedules.find(s => s.id === id);
-        if (personnelSchedule) {
-          // برنامه پرسنلی متناظر را پیدا کردیم، آن را حذف می‌کنیم
-          const scheduleItem: Schedule = {
-            id,
-            personnelCode: personnelData.personnel.personnelCode,
-            employmentStatus: personnelData.personnel.employmentStatus,
-            mainPosition: personnelSchedule.mainPosition || personnelData.personnel.mainPosition,
-            hourType: personnelSchedule.hourType || '',
-            teachingGroup: personnelSchedule.teachingGroup || '',
-            description: personnelSchedule.description || '',
-            day: personnelSchedule.day,
-            timeStart: personnelSchedule.timeStart,
-            timeEnd: personnelSchedule.timeEnd
-          };
-          
-          // حذف از برنامه پرسنلی
-          removeFromPersonnelSchedule(scheduleItem);
-          
-          // بارگذاری مجدد برنامه‌ها
-          loadClassScheduleFromStorage();
+      if (scheduleToDelete) {
+        // حذف از state فعلی
+        setSchedule(schedule.filter(item => item.id !== id));
+        
+        // حذف از برنامه پرسنلی مرتبط
+        removeFromPersonnelSchedule(scheduleToDelete);
+        
+        // ذخیره تغییرات در localStorage
+        const classKey = `${grade}-${classNumber}-${field}`;
+        const storageKey = `class_schedule_${classKey}`;
+        
+        // بروزرسانی localStorage
+        const savedData = localStorage.getItem(storageKey);
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData);
+            if (parsedData.schedules && Array.isArray(parsedData.schedules)) {
+              // فیلتر کردن برنامه حذف شده
+              parsedData.schedules = parsedData.schedules.filter((s: {id: string}) => s.id !== id);
+              parsedData.timestamp = Date.now();
+              
+              // ذخیره تغییرات
+              localStorage.setItem(storageKey, JSON.stringify(parsedData));
+            }
+          } catch (error) {
+            console.error('خطا در بروزرسانی localStorage:', error);
+          }
         }
-      });
+        
+        return true;
+      } else {
+        // ممکن است این برنامه از صفحه پرسنلی اضافه شده باشد و در state اصلی نباشد
+        
+        let foundSchedule = false;
+        
+        // جستجو در برنامه‌های پرسنلی
+        for (const personnelData of savedPersonnelSchedules) {
+          const scheduleIndex = personnelData.schedules.findIndex(s => 
+            s.id === id || 
+            (s.day === selectedCell?.day && 
+             s.timeStart === selectedCell?.time && 
+             s.grade === grade && 
+             s.classNumber === classNumber && 
+             s.field === field)
+          );
+          
+          if (scheduleIndex !== -1) {
+            // برنامه را از برنامه‌های پرسنلی حذف می‌کنیم
+            const removedSchedule = personnelData.schedules[scheduleIndex];
+            personnelData.schedules.splice(scheduleIndex, 1);
+            
+            // ذخیره تغییرات در localStorage
+            const storageKey = `personnel_schedule_${personnelData.personnel.id}`;
+            localStorage.setItem(storageKey, JSON.stringify(personnelData));
+            
+            // حذف این برنامه از state اصلی هم (اگر وجود داشته باشد)
+            setSchedule(prevSchedules => prevSchedules.filter((s: Schedule) => 
+              !(s.day === removedSchedule.day && 
+                s.timeStart === removedSchedule.timeStart &&
+                s.grade === grade &&
+                s.classNumber === classNumber &&
+                s.field === field)
+            ));
+            
+            // به‌روزرسانی برنامه‌های پرسنلی
+            loadSavedPersonnelSchedules();
+            
+            foundSchedule = true;
+            break;
+          }
+        }
+        
+        if (foundSchedule) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('خطا در حذف برنامه:', error);
+      return false;
     }
   };
 
-  const updatePersonnelSchedule = (scheduleItem: Schedule) => {
+  const updatePersonnelSchedule = (scheduleItem: Schedule, fullName: string = '') => {
     try {
       // بررسی اینکه آیا پرسنلی با این کد وجود دارد
       const personnelData = savedPersonnelSchedules.find(
@@ -459,28 +567,32 @@ const SchedulePageContent = () => {
         const personnelId = personnelData.personnel.id;
         const storageKey = `personnel_schedule_${personnelId}`;
         
+        // اضافه کردن اطلاعات کلاس به آیتم برنامه
+        const updatedScheduleItem: Schedule = {
+          ...scheduleItem,
+          grade: grade,
+          classNumber: classNumber,
+          field: field,
+          timestamp: Date.now()
+        };
+        
+        // اگر نام پرسنل تغییر کرده باشد، آن را به‌روزرسانی می‌کنیم
+        if (fullName && fullName !== personnelData.personnel.fullName) {
+          personnelData.personnel.fullName = fullName;
+        }
+        
         // بررسی می‌کنیم آیا برنامه قبلاً در همان روز و ساعت وجود دارد
         const existingScheduleIndex = personnelData.schedules.findIndex(
           s => s.day === scheduleItem.day && s.timeStart === scheduleItem.timeStart && 
           s.grade === grade && s.classNumber === classNumber && s.field === field
         );
         
-        const updatedSchedule = {
-          ...scheduleItem,
-          personnelId: personnelId,  // اضافه کردن شناسه پرسنل
-          grade: grade,
-          classNumber: classNumber,
-          field: field,
-          timestamp: Date.now(),
-          classScheduleId: `${grade}-${classNumber}-${field}` // اضافه کردن شناسه برنامه کلاسی
-        };
-        
         if (existingScheduleIndex !== -1) {
           // برنامه را به‌روزرسانی می‌کنیم
-          personnelData.schedules[existingScheduleIndex] = updatedSchedule;
+          personnelData.schedules[existingScheduleIndex] = updatedScheduleItem;
         } else {
           // برنامه جدید را اضافه می‌کنیم
-          personnelData.schedules.push(updatedSchedule);
+          personnelData.schedules.push(updatedScheduleItem);
         }
         
         // برنامه پرسنلی را ذخیره می‌کنیم
@@ -490,11 +602,38 @@ const SchedulePageContent = () => {
         // بارگذاری مجدد برنامه‌های پرسنلی
         loadSavedPersonnelSchedules();
         
-        // نمایش پیام موفقیت (اختیاری)
-        // console.log(`برنامه پرسنلی ${personnelData.personnel.fullName} به‌روزرسانی شد`);
+        console.log(`برنامه پرسنلی ${personnelData.personnel.fullName} به‌روزرسانی شد`);
       } else {
-        // اگر پرسنل یافت نشد، یک پیام خطا در کنسول نمایش می‌دهیم
-        console.warn(`پرسنلی با کد ${scheduleItem.personnelCode} یافت نشد`);
+        // اگر پرسنل یافت نشد، یک پرسنل جدید ایجاد می‌کنیم
+        console.warn(`پرسنلی با کد ${scheduleItem.personnelCode} یافت نشد، در حال ایجاد یک رکورد جدید...`);
+        
+        // ایجاد پرسنل جدید
+        const personnel: Personnel = {
+          id: Date.now().toString(),
+          personnelCode: scheduleItem.personnelCode,
+          fullName: fullName || "نامشخص",
+          mainPosition: scheduleItem.mainPosition,
+          employmentStatus: scheduleItem.employmentStatus
+        };
+        
+        const newPersonnelData: SavedPersonnelSchedule = {
+          personnel: personnel,
+          schedules: [{
+            ...scheduleItem,
+            grade: grade,
+            classNumber: classNumber,
+            field: field,
+            timestamp: Date.now()
+          }],
+          timestamp: Date.now()
+        };
+        
+        // ذخیره پرسنل جدید
+        const storageKey = `personnel_schedule_${personnel.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(newPersonnelData));
+        
+        // بارگذاری مجدد برنامه‌های پرسنلی
+        loadSavedPersonnelSchedules();
       }
     } catch (error) {
       console.error('خطا در به‌روزرسانی برنامه پرسنلی:', error);
@@ -514,10 +653,25 @@ const SchedulePageContent = () => {
         const storageKey = `personnel_schedule_${personnelId}`;
         
         // حذف برنامه از لیست - دقت بیشتر در تشخیص برنامه مورد نظر
-        personnelData.schedules = personnelData.schedules.filter(
-          s => !(s.day === scheduleItem.day && s.timeStart === scheduleItem.timeStart && 
-               s.grade === grade && s.classNumber === classNumber && s.field === field)
-        );
+        let removed = false;
+        
+        // ابتدا سعی می‌کنیم با شناسه (id) برنامه را پیدا کنیم
+        if (scheduleItem.id) {
+          const previousLength = personnelData.schedules.length;
+          personnelData.schedules = personnelData.schedules.filter(s => s.id !== scheduleItem.id);
+          removed = personnelData.schedules.length < previousLength;
+        }
+        
+        // اگر با شناسه پیدا نشد، با روز و ساعت و کلاس جستجو می‌کنیم
+        if (!removed) {
+          personnelData.schedules = personnelData.schedules.filter(
+            s => !(s.day === scheduleItem.day && 
+                 s.timeStart === scheduleItem.timeStart && 
+                 s.grade === grade && 
+                 s.classNumber === classNumber && 
+                 s.field === field)
+          );
+        }
         
         // برنامه پرسنلی را ذخیره می‌کنیم
         personnelData.timestamp = Date.now();
@@ -540,63 +694,93 @@ const SchedulePageContent = () => {
     try {
       const classKey = `${grade}-${classNumber}-${field}`;
       const storageKey = `class_schedule_${classKey}`;
-      let allSchedules: Schedule[] = [];
+      let allSchedules: ScheduleWithFullName[] = [];
       
-      // 1. Load from class schedule first
+      // 1. بارگذاری برنامه کلاسی
       const savedData = localStorage.getItem(storageKey);
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
           if (parsedData.schedules && Array.isArray(parsedData.schedules)) {
-            allSchedules = [...parsedData.schedules];
+            // اضافه کردن اطلاعات کلاس به هر برنامه
+            allSchedules = parsedData.schedules.map((s: Schedule) => ({
+              ...s,
+              grade: grade,
+              classNumber: classNumber,
+              field: field
+            }));
           }
         } catch (error) {
           console.error('خطا در تجزیه داده‌ها:', error);
         }
       }
       
-      // 2. بارگذاری اطلاعات پرسنلی
+      // 2. بارگذاری برنامه‌های پرسنلی مرتبط
       loadSavedPersonnelSchedules(() => {
-        // 3. Find any personnel schedules related to this class 
-        const personnelSchedulesForThisClass: Schedule[] = [];
+        const personnelSchedulesForClass: ScheduleWithFullName[] = [];
         
         savedPersonnelSchedules.forEach(personnelData => {
+          // پیدا کردن برنامه‌های مرتبط با این کلاس
           const relatedSchedules = personnelData.schedules.filter(s => 
             s.grade === grade && 
             s.classNumber === classNumber && 
             s.field === field
           );
           
-          // Add personnel info to these schedules
+          // برای هر برنامه پرسنلی، بررسی می‌کنیم که آیا قبلاً در برنامه کلاسی اضافه شده است
           relatedSchedules.forEach(s => {
-            // بررسی می‌کنیم آیا این برنامه قبلاً در لیست برنامه‌های کلاس اضافه شده است
-            const alreadyExists = allSchedules.some(existingSchedule => 
-              existingSchedule.day === s.day && 
-              existingSchedule.timeStart === s.timeStart &&
-              existingSchedule.personnelCode === personnelData.personnel.personnelCode
+            // بررسی اینکه آیا این برنامه قبلاً در برنامه کلاسی اضافه شده است
+            const existingScheduleIndex = allSchedules.findIndex(
+              existing => existing.day === s.day && existing.timeStart === s.timeStart
             );
             
-            // اگر برنامه قبلاً اضافه نشده، آن را به لیست اضافه می‌کنیم
-            if (!alreadyExists) {
-              const personnelSchedule: Schedule = {
+            if (existingScheduleIndex === -1) {
+              // اگر برنامه‌ای با این روز و ساعت در برنامه کلاسی نیست، آن را اضافه می‌کنیم
+              personnelSchedulesForClass.push({
                 ...s,
+                fullName: personnelData.personnel.fullName,
                 personnelCode: personnelData.personnel.personnelCode,
-                employmentStatus: personnelData.personnel.employmentStatus || s.employmentStatus || '',
-                mainPosition: s.mainPosition || personnelData.personnel.mainPosition,
-                hourType: s.hourType || '',
-                teachingGroup: s.teachingGroup || '',
-                description: s.description || '',
-                id: s.id || Date.now().toString()
-              };
-              personnelSchedulesForThisClass.push(personnelSchedule);
+                employmentStatus: personnelData.personnel.employmentStatus || s.employmentStatus,
+                mainPosition: s.mainPosition || personnelData.personnel.mainPosition
+              });
             }
           });
         });
         
-        // 4. Combine both sources
-        const combinedSchedules = [...allSchedules, ...personnelSchedulesForThisClass];
+        // ترکیب برنامه‌های کلاسی و پرسنلی
+        const combinedSchedules = [...allSchedules, ...personnelSchedulesForClass];
         
-        setSchedule(combinedSchedules);
+        // اطمینان از تکراری نبودن برنامه‌ها بر اساس روز و ساعت
+        const uniqueSchedules: ScheduleWithFullName[] = [];
+        const timeSlots = new Set<string>();
+        
+        // مرتب‌سازی برنامه‌ها بر اساس زمان اضافه شدن (جدیدترین اول)
+        combinedSchedules.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        
+        combinedSchedules.forEach(schedule => {
+          const timeSlotKey = `${schedule.day}-${schedule.timeStart}`;
+          if (!timeSlots.has(timeSlotKey)) {
+            timeSlots.add(timeSlotKey);
+            
+            // افزودن اطلاعات پرسنل از savedPersonnelSchedules
+            const personnelInfo = savedPersonnelSchedules.find(
+              p => p.personnel.personnelCode === schedule.personnelCode
+            );
+            
+            if (personnelInfo) {
+              uniqueSchedules.push({
+                ...schedule,
+                fullName: personnelInfo.personnel.fullName,
+                employmentStatus: personnelInfo.personnel.employmentStatus || schedule.employmentStatus,
+                mainPosition: schedule.mainPosition || personnelInfo.personnel.mainPosition
+              });
+            } else {
+              uniqueSchedules.push(schedule);
+            }
+          }
+        });
+        
+        setSchedule(uniqueSchedules);
         calculateClassStatistics();
       });
       
@@ -828,11 +1012,139 @@ const SchedulePageContent = () => {
   // انتخاب پرسنل از نتایج جستجو
   const selectPersonnelFromSearch = (personnel: Personnel) => {
     setPersonnelCode(personnel.personnelCode);
+    setPersonnelName(personnel.fullName);
     setEmploymentStatus(personnel.employmentStatus || '');
     setMainPosition(personnel.mainPosition);
     setShowPersonnelSearch(false);
     setPersonnelSearchQuery('');
     setSearchResults([]);
+  };
+
+  const renderCellContent = (day: string, hour: string) => {
+    const cellSchedule = getScheduleForCell(day, hour);
+    
+    if (!cellSchedule) {
+      return (
+        <button 
+          className={styles.emptyCell}
+          onClick={() => handleTimeSelection(day, hour)}
+          title={`${day} ${hour}`}
+        >
+          <span className="sr-only">انتخاب {day} {hour}</span>
+          <div className="w-full h-full flex items-center justify-center">
+            <FaPlus className="text-gray-300 hover:text-lime-600" />
+          </div>
+        </button>
+      );
+    }
+    
+    // رنگ پس‌زمینه بر اساس نوع ساعت
+    let bgColorClass = "bg-blue-100";
+    if (cellSchedule.hourType === 'موظف اول' || cellSchedule.hourType === 'موظف دوبل') {
+      bgColorClass = "bg-green-100";
+    } else if (cellSchedule.hourType === 'غیرموظف اول' || cellSchedule.hourType === 'غیرموظف دوبل') {
+      bgColorClass = "bg-yellow-100";
+    }
+    
+    // یافتن نام پرسنل
+    const personnelName = cellSchedule.fullName || 
+      savedPersonnelSchedules.find(p => p.personnel.personnelCode === cellSchedule.personnelCode)?.personnel.fullName;
+    
+    return (
+      <div 
+        className={`w-full h-full p-1 text-black ${bgColorClass} rounded text-right schedule-cell-content relative`}
+        draggable
+        onDragStart={(e) => handleDragStart(e, cellSchedule, day, hour)}
+      >
+        <button
+          className="absolute top-1 left-1 text-red-500 hover:text-red-700 z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm(`آیا از حذف این برنامه اطمینان دارید؟`)) {
+              const result = handleDeleteSchedule(cellSchedule.id);
+              if (result) {
+                alert('برنامه با موفقیت حذف شد');
+                // اینجا برنامه‌ها را دوباره لود می‌کنیم تا جدول به‌روز شود
+                loadClassScheduleFromStorage();
+              } else {
+                alert('خطا در حذف برنامه');
+              }
+            }
+          }}
+          title="حذف"
+        >
+          <FaTimes size={14} />
+        </button>
+        
+        {/* نمایش اطلاعات سلول */}
+        <div className="flex justify-between items-start">
+          <div className="font-bold text-black mb-1">{cellSchedule.mainPosition}</div>
+        </div>
+        
+        <div 
+          className="text-xs text-indigo-700 cursor-pointer hover:text-indigo-900 hover:underline flex items-center"
+          onClick={(e) => {
+            e.stopPropagation();
+            // یافتن اطلاعات کامل پرسنل
+            const personnelInfo = savedPersonnelSchedules.find(
+              p => p.personnel.personnelCode === cellSchedule.personnelCode
+            );
+            if (personnelInfo) {
+              navigateToPersonnelSchedule(
+                personnelInfo.personnel.personnelCode,
+                personnelInfo.personnel.fullName,
+                personnelInfo.personnel.mainPosition
+              );
+            }
+          }}
+        >
+          <span className="inline-block ml-1">👤</span>
+          {personnelName || `کد: ${cellSchedule.personnelCode}`}
+        </div>
+        
+        {/* نمایش گروه تدریس با برجستگی بیشتر */}
+        <div className="text-xs text-blue-700 mt-1 font-bold border-t border-gray-200 pt-1">
+          {cellSchedule.teachingGroup || 'بدون گروه تدریس'}
+        </div>
+        
+        <div className="text-xs text-black">نوع ساعت: {cellSchedule.hourType || '-'}</div>
+        {cellSchedule.description && (
+          <div className="text-xs text-black mt-1 overflow-hidden text-ellipsis whitespace-nowrap" title={cellSchedule.description}>
+            توضیحات: {cellSchedule.description}
+          </div>
+        )}
+        
+        {/* نشانگر منبع برنامه */}
+        <div className="absolute bottom-1 right-1 text-xs">
+          {!schedule.some(s => s.day === day && s.timeStart === hour && s.id === cellSchedule.id) && (
+            <span className="text-purple-500 font-medium border border-purple-300 rounded-md px-1 bg-purple-50">
+              از برنامه پرسنلی
+            </span>
+          )}
+        </div>
+        
+        <div 
+          className="absolute inset-0 cursor-pointer z-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            // پر کردن فرم با مقادیر فعلی برای ویرایش
+            setSelectedCell({ day, time: hour });
+            setPersonnelCode(cellSchedule.personnelCode);
+            setEmploymentStatus(cellSchedule.employmentStatus);
+            setMainPosition(cellSchedule.mainPosition);
+            setHourType(cellSchedule.hourType);
+            setTeachingGroup(cellSchedule.teachingGroup);
+            setDescription(cellSchedule.description);
+            
+            // حذف برنامه قبلی
+            handleDeleteSchedule(cellSchedule.id);
+            
+            // باز کردن مودال ویرایش
+            setModalOpen(true);
+          }}
+        ></div>
+      </div>
+    );
   };
 
   return (
@@ -917,118 +1229,16 @@ const SchedulePageContent = () => {
                   {days.map(day => (
                     <tr key={day}>
                       <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold">{day}</td>
-                      {hours.map(hour => {
-                        const cellSchedules = getScheduleForCell(day, hour);
-                        const hasSchedule = cellSchedules.length > 0;
-                        
-                        return (
-                          <td 
-                            key={`${day}-${hour}`} 
-                            className={`border border-gray-300 p-1 h-24 align-top schedule-cell min-w-[120px] ${hasSchedule ? 'bg-blue-50' : ''}`}
-                            onClick={() => handleTimeSelection(day, hour)}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, day, hour)}
-                          >
-                            {hasSchedule ? (
-                              <div 
-                                className="w-full h-full p-1 text-black bg-blue-100 rounded text-right schedule-cell-content relative"
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, cellSchedules[0], day, hour)}
-                              >
-                                <button
-                                  className="absolute top-1 left-1 text-red-500 hover:text-red-700 z-10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSchedule(cellSchedules[0].id);
-                                  }}
-                                  title="حذف"
-                                >
-                                  <FaTimes size={12} />
-                                </button>
-                                
-                                {/* بهبود نمایش اطلاعات سلول */}
-                                <div className="flex justify-between items-start">
-                                  <div className="font-bold text-black mb-1">{cellSchedules[0].mainPosition}</div>
-                                </div>
-                                
-                                <div 
-                                  className="text-xs text-black cursor-pointer hover:text-cyan-700 hover:underline flex items-center font-bold"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // یافتن اطلاعات کامل پرسنل
-                                    const personnelInfo = savedPersonnelSchedules.find(
-                                      p => p.personnel.personnelCode === cellSchedules[0].personnelCode
-                                    );
-                                    if (personnelInfo) {
-                                      navigateToPersonnelSchedule(
-                                        personnelInfo.personnel.personnelCode,
-                                        personnelInfo.personnel.fullName,
-                                        personnelInfo.personnel.mainPosition
-                                      );
-                                    }
-                                  }}
-                                >
-                                  <span className="inline-block ml-1">👤</span>
-                                  {savedPersonnelSchedules.find(p => p.personnel.personnelCode === cellSchedules[0].personnelCode)?.personnel.fullName || 
-                                   `کد: ${cellSchedules[0].personnelCode}`}
-                                </div>
-                                
-                                {/* نمایش گروه تدریس با برجستگی بیشتر */}
-                                <div className="text-xs text-blue-700 mt-1 font-bold border-t border-gray-200 pt-1">
-                                  {cellSchedules[0].teachingGroup || 'بدون گروه تدریس'}
-                                </div>
-                                
-                                <div className="text-xs text-black">نوع ساعت: {cellSchedules[0].hourType || '-'}</div>
-                                {cellSchedules[0].description && (
-                                  <div className="text-xs text-black mt-1 overflow-hidden text-ellipsis whitespace-nowrap" title={cellSchedules[0].description}>
-                                    توضیحات: {cellSchedules[0].description}
-                                  </div>
-                                )}
-                                
-                                {/* نشانگر منبع برنامه */}
-                                <div className="absolute bottom-1 right-1 text-xs">
-                                  {!schedule.some(s => s.day === day && s.timeStart === hour && s.id === cellSchedules[0].id) && (
-                                    <span className="text-purple-500 font-medium border border-purple-300 rounded-md px-1 bg-purple-50">
-                                      از برنامه پرسنلی
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                {/* دکمه ویرایش برنامه */}
-                                <button
-                                  className="absolute top-1 left-6 text-blue-500 hover:text-blue-700 z-10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // پر کردن فرم با مقادیر فعلی برای ویرایش
-                                    setSelectedCell({ day, time: hour });
-                                    setPersonnelCode(cellSchedules[0].personnelCode);
-                                    setEmploymentStatus(cellSchedules[0].employmentStatus);
-                                    setMainPosition(cellSchedules[0].mainPosition);
-                                    setHourType(cellSchedules[0].hourType);
-                                    setTeachingGroup(cellSchedules[0].teachingGroup);
-                                    setDescription(cellSchedules[0].description);
-                                    
-                                    // حذف برنامه قبلی
-                                    handleDeleteSchedule(cellSchedules[0].id);
-                                    
-                                    // باز کردن مودال ویرایش
-                                    setModalOpen(true);
-                                  }}
-                                  title="ویرایش"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                  </svg>
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded">
-                                <FaPlus className="text-gray-400 hover:text-lime-600" />
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
+                      {hours.map(hour => (
+                        <td 
+                          key={`${day}-${hour}`} 
+                          className={`border border-gray-300 p-1 h-24 align-top schedule-cell min-w-[120px]`}
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(e, day, hour)}
+                        >
+                          {renderCellContent(day, hour)}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
@@ -1200,76 +1410,6 @@ ${dayStat.personnel.map(personnelCode => {
               </div>
             </div>
           )}
-
-          {/* فرم و لیست */}
-          <div className="w-full mt-4">
-            <div className="border border-gray-300 rounded p-4">
-              <h2 className="text-xl font-bold mb-4 text-right text-lime-600">مدیریت برنامه</h2>
-              
-              <div className="mb-4">
-                <h3 className="text-lg font-bold mb-2 text-right text-cyan-600">برنامه‌های اخیر</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto">
-                  {schedule.map(item => (
-                    <div key={item.id} className="p-2 bg-cyan-100 rounded-lg text-right text-black relative hover:bg-cyan-200 transition-colors">
-                      <button
-                        className="absolute top-2 left-2 text-red-500 hover:text-red-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSchedule(item.id);
-                        }}
-                        title="حذف"
-                      >
-                        <FaTimes size={14} />
-                      </button>
-                      <div 
-                        className="font-bold text-black cursor-pointer hover:text-cyan-700 hover:underline flex items-center"
-                        onClick={() => {
-                          // یافتن اطلاعات کامل پرسنل
-                          const personnelInfo = savedPersonnelSchedules.find(
-                            p => p.personnel.personnelCode === item.personnelCode
-                          );
-                          if (personnelInfo) {
-                            navigateToPersonnelSchedule(
-                              personnelInfo.personnel.personnelCode,
-                              personnelInfo.personnel.fullName,
-                              personnelInfo.personnel.mainPosition
-                            );
-                          }
-                        }}
-                      >
-                        <span className="inline-block ml-1">👤</span>
-                        {savedPersonnelSchedules.find(p => p.personnel.personnelCode === item.personnelCode)?.personnel.fullName || 
-                         `کد: ${item.personnelCode}`}
-                      </div>
-                      <div className="text-sm text-black">
-                        {item.day} - {item.timeStart}
-                        {item.timeStart !== item.timeEnd && 
-                          ` تا ${item.timeEnd}`
-                        }
-                      </div>
-                      <div className="text-sm text-black">پست: {item.mainPosition}</div>
-                      <div className="text-sm text-black">نوع ساعت: {item.hourType}</div>
-                      <div className="text-sm text-black">گروه تدریس: {item.teachingGroup}</div>
-                      {item.description && (
-                        <div className="text-sm text-black mt-1">توضیحات: {item.description}</div>
-                      )}
-                    </div>
-                  ))}
-                  {schedule.length === 0 && (
-                    <div className="text-black text-center col-span-full">هنوز برنامه‌ای ثبت نشده است</div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <SubmitButton 
-                  label="افزودن برنامه جدید" 
-                  onClick={handleAddNewSchedule}
-                  className="mx-auto text-lime-600 border border-lime-600 pr-2 hover:text-lime-700 hover:scale-110 transition-all duration-250"
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* مودال انتخاب زمان */}
@@ -1296,17 +1436,58 @@ ${dayStat.personnel.map(personnelCode => {
                   {days.map(day => (
                     <tr key={day}>
                       <td className="border border-gray-300 p-2 text-cyan-900 text-right font-bold">{day}</td>
-                      {hours.map(hour => (
-                        <td 
-                          key={`${day}-${hour}`} 
-                          className="border border-gray-300 p-1 h-12 align-middle text-center cursor-pointer hover:bg-lime-100"
-                          onClick={() => handleTimeSelection(day, hour)}
-                        >
-                          <div className="w-full h-full flex items-center justify-center">
-                            <FaPlus className="text-lime-600" />
-                          </div>
-                        </td>
-                      ))}
+                      {hours.map(hour => {
+                        const existingSchedule = getScheduleForCell(day, hour);
+                        
+                        return (
+                          <td 
+                            key={`${day}-${hour}`} 
+                            className={`border border-gray-300 p-1 h-12 align-middle text-center ${existingSchedule ? 'bg-gray-100' : 'cursor-pointer hover:bg-lime-100'}`}
+                            onClick={() => {
+                              if (existingSchedule) {
+                                // اگر برنامه‌ای در این زمان وجود دارد، اطلاعات آن را نمایش دهیم
+                                const personnelInfo = savedPersonnelSchedules.find(
+                                  p => p.personnel.personnelCode === existingSchedule.personnelCode
+                                );
+                                
+                                const personnelName = personnelInfo?.personnel.fullName || `کد: ${existingSchedule.personnelCode}`;
+                                
+                                if (window.confirm(`این زمان قبلاً به ${personnelName} با درس ${existingSchedule.teachingGroup || 'نامشخص'} اختصاص داده شده است. آیا می‌خواهید آن را ویرایش کنید؟`)) {
+                                  setSelectedCell({ day, time: hour });
+                                  setTimeSelectionModalOpen(false);
+                                  
+                                  // پر کردن فرم با مقادیر فعلی برای ویرایش
+                                  setPersonnelCode(existingSchedule.personnelCode);
+                                  setEmploymentStatus(existingSchedule.employmentStatus);
+                                  setMainPosition(existingSchedule.mainPosition);
+                                  setHourType(existingSchedule.hourType);
+                                  setTeachingGroup(existingSchedule.teachingGroup);
+                                  setDescription(existingSchedule.description);
+                                  
+                                  // حذف برنامه قبلی
+                                  handleDeleteSchedule(existingSchedule.id);
+                                  
+                                  setModalOpen(true);
+                                }
+                              } else {
+                                // اگر برنامه‌ای وجود نداشت، مستقیماً به مرحله بعد برویم
+                                handleTimeSelection(day, hour);
+                              }
+                            }}
+                          >
+                            <div className="w-full h-full flex items-center justify-center">
+                              {existingSchedule ? (
+                                <div className="text-xs text-gray-500 w-full">
+                                  <div className="font-bold">{existingSchedule.fullName || existingSchedule.personnelCode}</div>
+                                  <div>{existingSchedule.teachingGroup || 'بدون درس'}</div>
+                                </div>
+                              ) : (
+                                <FaPlus className="text-lime-600" />
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
@@ -1319,8 +1500,8 @@ ${dayStat.personnel.map(personnelCode => {
         {modalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out">
             <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-yellow-500 via-orange-500 to-purple-500 backdrop-blur-[2px] animate-gradient"></div>
-            <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative text-black">
-              <div className="flex justify-between items-center mb-6">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all duration-500 ease-in-out shadow-xl relative text-black">
+              <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-2 border-b">
                 <button 
                   onClick={() => {
                     setModalOpen(false);
@@ -1388,6 +1569,15 @@ ${dayStat.personnel.map(personnelCode => {
                   type="text"
                 />
 
+                <Input
+                  label="نام و نام خانوادگی پرسنل"
+                  value={personnelName}
+                  onChange={(e) => setPersonnelName(e.target.value)}
+                  placeholder="نام و نام خانوادگی پرسنل را وارد کنید"
+                  className="w-full text-black"
+                  type="text"
+                />
+
                 <Dropdown
                   label="وضعیت اشتغال"
                   options={employmentStatuses}
@@ -1431,7 +1621,7 @@ ${dayStat.personnel.map(personnelCode => {
                   />
                 </div>
                 
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-end pt-4 sticky bottom-0 bg-white pb-2 border-t mt-6 pt-6">
                   <SubmitButton 
                     label="ثبت برنامه" 
                     onClick={handleSubmit} 
