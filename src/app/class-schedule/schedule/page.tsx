@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import Dropdown from '../../../components/Dropdown/dropdown';
 import Modal from '../../../components/Modal/modal';
@@ -109,8 +109,9 @@ const SchedulePageContent = () => {
   const [description, setDescription] = useState('');
   const [schedule, setSchedule] = useState<Schedule[]>([]);
   const [draggedItem, setDraggedItem] = useState<Schedule | null>(null);
-  const dragStartRef = useRef<{day: string, time: string} | null>(null);
+  const dragStartRef = useRef<{ day: string; time: string } | null>(null);
   const [savedPersonnelSchedules, setSavedPersonnelSchedules] = useState<SavedPersonnelSchedule[]>([]);
+  const [lastSaved, setLastSaved] = useState<number>(0);
   const [classStats, setClassStats] = useState<ClassStatistics>({
     totalHours: 0,
     uniquePersonnel: 0,
@@ -213,6 +214,84 @@ const SchedulePageContent = () => {
     'هتلداري ،گردشگري و مهمانداري'
   ];
 
+  // بارگذاری برنامه‌های پرسنلی ذخیره شده
+  const loadSavedPersonnelSchedules = (callback?: () => void) => {
+    try {
+      // بارگذاری همه کلیدهای لوکال استوریج که با پیشوند personnel_schedule شروع می‌شوند
+      const personnelSchedules: SavedPersonnelSchedule[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('personnel_schedule_')) {
+          const savedData = localStorage.getItem(key);
+          if (savedData) {
+            try {
+              const parsedData = JSON.parse(savedData);
+              personnelSchedules.push(parsedData);
+            } catch (error) {
+              console.error('خطا در تجزیه داده‌های پرسنلی:', error);
+            }
+          }
+        }
+      }
+      
+      // مرتب‌سازی بر اساس نام پرسنل
+      personnelSchedules.sort((a, b) => a.personnel.fullName.localeCompare(b.personnel.fullName));
+      
+      setSavedPersonnelSchedules(personnelSchedules);
+      
+      if (callback) {
+        callback();
+      }
+      
+    } catch (error) {
+      console.error('خطا در بارگذاری برنامه‌های پرسنلی:', error);
+    }
+  };
+
+  // تابع بارگیری برنامه‌های کلاسی ذخیره شده با useCallback
+  const loadClassScheduleFromStorage = useCallback(() => {
+    if (!grade || !classNumber || !field) return;
+    
+    const key = `class-schedule-${grade}-${classNumber}-${field}`;
+    const savedScheduleJSON = localStorage.getItem(key);
+    
+    if (savedScheduleJSON) {
+      try {
+        const savedData = JSON.parse(savedScheduleJSON);
+        setSchedule(savedData.schedules || []);
+        setLastSaved(savedData.timestamp || Date.now());
+      } catch (error) {
+        console.error("خطا در بارگیری برنامه کلاسی:", error);
+      }
+    } else {
+      // اگر برنامه‌ای برای این کلاس وجود نداشت، از برنامه‌های پرسنلی بارگیری می‌کنیم
+      const schedulesFromPersonnel: Schedule[] = [];
+      
+      savedPersonnelSchedules.forEach(personnelSchedule => {
+        const matchingSchedules = personnelSchedule.schedules.filter(s => 
+          s.grade === grade && 
+          s.classNumber === classNumber && 
+          s.field === field
+        );
+        
+        if (matchingSchedules.length > 0) {
+          // ادغام اطلاعات پرسنلی با برنامه‌ها
+          const schedulesWithPersonnelInfo = matchingSchedules.map(s => ({
+            ...s,
+            personnelCode: personnelSchedule.personnel.personnelCode,
+            employmentStatus: personnelSchedule.personnel.employmentStatus || s.employmentStatus,
+            mainPosition: s.mainPosition || personnelSchedule.personnel.mainPosition
+          }));
+          
+          schedulesFromPersonnel.push(...schedulesWithPersonnelInfo);
+        }
+      });
+      
+      // تنظیم برنامه‌های یافت شده از برنامه‌های پرسنلی
+      setSchedule(schedulesFromPersonnel);
+    }
+  }, [grade, classNumber, field, savedPersonnelSchedules]);
+
   useEffect(() => {
     if (gradeParam && classParam && fieldParam) {
       setGrade(gradeParam);
@@ -245,7 +324,8 @@ const SchedulePageContent = () => {
         loadClassScheduleFromStorage();
       }
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grade, classNumber, field]);
 
   const handleClassSubmit = () => {
     if (grade && classNumber && field) {
@@ -535,9 +615,6 @@ const SchedulePageContent = () => {
                 s.field === field)
             ));
             
-            // به‌روزرسانی برنامه‌های پرسنلی
-            loadSavedPersonnelSchedules();
-            
             foundSchedule = true;
             break;
           }
@@ -599,9 +676,6 @@ const SchedulePageContent = () => {
         personnelData.timestamp = Date.now();
         localStorage.setItem(storageKey, JSON.stringify(personnelData));
         
-        // بارگذاری مجدد برنامه‌های پرسنلی
-        loadSavedPersonnelSchedules();
-        
         console.log(`برنامه پرسنلی ${personnelData.personnel.fullName} به‌روزرسانی شد`);
       } else {
         // اگر پرسنل یافت نشد، یک پرسنل جدید ایجاد می‌کنیم
@@ -631,9 +705,6 @@ const SchedulePageContent = () => {
         // ذخیره پرسنل جدید
         const storageKey = `personnel_schedule_${personnel.id}`;
         localStorage.setItem(storageKey, JSON.stringify(newPersonnelData));
-        
-        // بارگذاری مجدد برنامه‌های پرسنلی
-        loadSavedPersonnelSchedules();
       }
     } catch (error) {
       console.error('خطا در به‌روزرسانی برنامه پرسنلی:', error);
@@ -676,9 +747,6 @@ const SchedulePageContent = () => {
         // برنامه پرسنلی را ذخیره می‌کنیم
         personnelData.timestamp = Date.now();
         localStorage.setItem(storageKey, JSON.stringify(personnelData));
-        
-        // بارگذاری مجدد برنامه‌های پرسنلی
-        loadSavedPersonnelSchedules();
       } else {
         // اگر پرسنل یافت نشد، یک پیام خطا در کنسول نمایش می‌دهیم
         console.warn(`پرسنلی با کد ${scheduleItem.personnelCode} یافت نشد`);
@@ -688,149 +756,7 @@ const SchedulePageContent = () => {
     }
   };
   
-  const loadClassScheduleFromStorage = () => {
-    if (!grade || !classNumber || !field) return;
-    
-    try {
-      const classKey = `${grade}-${classNumber}-${field}`;
-      const storageKey = `class_schedule_${classKey}`;
-      let allSchedules: ScheduleWithFullName[] = [];
-      
-      // 1. بارگذاری برنامه کلاسی
-      const savedData = localStorage.getItem(storageKey);
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          if (parsedData.schedules && Array.isArray(parsedData.schedules)) {
-            // اضافه کردن اطلاعات کلاس به هر برنامه
-            allSchedules = parsedData.schedules.map((s: Schedule) => ({
-              ...s,
-              grade: grade,
-              classNumber: classNumber,
-              field: field
-            }));
-          }
-        } catch (error) {
-          console.error('خطا در تجزیه داده‌ها:', error);
-        }
-      }
-      
-      // 2. بارگذاری برنامه‌های پرسنلی مرتبط
-      loadSavedPersonnelSchedules(() => {
-        const personnelSchedulesForClass: ScheduleWithFullName[] = [];
-        
-        savedPersonnelSchedules.forEach(personnelData => {
-          // پیدا کردن برنامه‌های مرتبط با این کلاس
-          const relatedSchedules = personnelData.schedules.filter(s => 
-            s.grade === grade && 
-            s.classNumber === classNumber && 
-            s.field === field
-          );
-          
-          // برای هر برنامه پرسنلی، بررسی می‌کنیم که آیا قبلاً در برنامه کلاسی اضافه شده است
-          relatedSchedules.forEach(s => {
-            // بررسی اینکه آیا این برنامه قبلاً در برنامه کلاسی اضافه شده است
-            const existingScheduleIndex = allSchedules.findIndex(
-              existing => existing.day === s.day && existing.timeStart === s.timeStart
-            );
-            
-            if (existingScheduleIndex === -1) {
-              // اگر برنامه‌ای با این روز و ساعت در برنامه کلاسی نیست، آن را اضافه می‌کنیم
-              personnelSchedulesForClass.push({
-                ...s,
-                fullName: personnelData.personnel.fullName,
-                personnelCode: personnelData.personnel.personnelCode,
-                employmentStatus: personnelData.personnel.employmentStatus || s.employmentStatus,
-                mainPosition: s.mainPosition || personnelData.personnel.mainPosition
-              });
-            }
-          });
-        });
-        
-        // ترکیب برنامه‌های کلاسی و پرسنلی
-        const combinedSchedules = [...allSchedules, ...personnelSchedulesForClass];
-        
-        // اطمینان از تکراری نبودن برنامه‌ها بر اساس روز و ساعت
-        const uniqueSchedules: ScheduleWithFullName[] = [];
-        const timeSlots = new Set<string>();
-        
-        // مرتب‌سازی برنامه‌ها بر اساس زمان اضافه شدن (جدیدترین اول)
-        combinedSchedules.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        combinedSchedules.forEach(schedule => {
-          const timeSlotKey = `${schedule.day}-${schedule.timeStart}`;
-          if (!timeSlots.has(timeSlotKey)) {
-            timeSlots.add(timeSlotKey);
-            
-            // افزودن اطلاعات پرسنل از savedPersonnelSchedules
-            const personnelInfo = savedPersonnelSchedules.find(
-              p => p.personnel.personnelCode === schedule.personnelCode
-            );
-            
-            if (personnelInfo) {
-              uniqueSchedules.push({
-                ...schedule,
-                fullName: personnelInfo.personnel.fullName,
-                employmentStatus: personnelInfo.personnel.employmentStatus || schedule.employmentStatus,
-                mainPosition: schedule.mainPosition || personnelInfo.personnel.mainPosition
-              });
-            } else {
-              uniqueSchedules.push(schedule);
-            }
-          }
-        });
-        
-        setSchedule(uniqueSchedules);
-        calculateClassStatistics();
-      });
-      
-    } catch (error) {
-      console.error('خطا در بارگیری برنامه کلاسی:', error);
-    }
-  };
-  
-  const loadSavedPersonnelSchedules = (callback?: () => void) => {
-    // بارگیری تمام برنامه‌های پرسنلی از localStorage
-    try {
-      const personnelSchedules: SavedPersonnelSchedule[] = [];
-      
-      // بررسی تمام کلیدهای localStorage
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
-        if (key && key.startsWith('personnel_schedule_')) {
-          try {
-            const savedData = localStorage.getItem(key);
-            if (savedData) {
-              const parsedData = JSON.parse(savedData);
-              if (parsedData.personnel && parsedData.schedules) {
-                personnelSchedules.push(parsedData);
-              }
-            }
-          } catch (error) {
-            console.error('خطا در تجزیه داده‌های پرسنلی:', error);
-          }
-        }
-      }
-      
-      // مرتب‌سازی براساس تاریخ (جدیدترین در ابتدا)
-      personnelSchedules.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      
-      setSavedPersonnelSchedules(personnelSchedules);
-      
-      // اجرای callback در صورت وجود
-      if (callback) {
-        callback();
-      }
-    } catch (error) {
-      console.error('خطا در بارگیری برنامه‌های پرسنلی:', error);
-      // اجرای callback حتی در صورت خطا
-      if (callback) {
-        callback();
-      }
-    }
-  };
-  
+  // ذخیره برنامه کلاسی در لوکال استوریج
   const saveClassScheduleToStorage = () => {
     if (!grade || !classNumber || !field) return;
     
@@ -855,6 +781,7 @@ const SchedulePageContent = () => {
       };
       
       localStorage.setItem(storageKey, JSON.stringify(savedSchedule));
+      setLastSaved(Date.now());
       
       // به‌روزرسانی همه برنامه‌های پرسنلی مرتبط
       classSchedules.forEach(item => {
@@ -862,9 +789,6 @@ const SchedulePageContent = () => {
       });
       
       alert('برنامه کلاسی با موفقیت ذخیره شد');
-      
-      // بارگذاری مجدد برنامه‌ها برای اطمینان از همگام‌سازی
-      loadClassScheduleFromStorage();
       
     } catch (error) {
       console.error('خطا در ذخیره برنامه کلاسی:', error);
@@ -1064,8 +988,8 @@ const SchedulePageContent = () => {
               const result = handleDeleteSchedule(cellSchedule.id);
               if (result) {
                 alert('برنامه با موفقیت حذف شد');
-                // اینجا برنامه‌ها را دوباره لود می‌کنیم تا جدول به‌روز شود
-                loadClassScheduleFromStorage();
+                // بجای فراخوانی مستقیم، اینجا از state فعلی استفاده می‌کنیم
+                // loadClassScheduleFromStorage();
               } else {
                 alert('خطا در حذف برنامه');
               }
@@ -1147,6 +1071,27 @@ const SchedulePageContent = () => {
     );
   };
 
+  // نمایش زمان آخرین ذخیره‌سازی برنامه
+  const renderLastSaved = () => {
+    if (lastSaved) {
+      const date = new Date(lastSaved);
+      const formattedDate = new Intl.DateTimeFormat('fa-IR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+      
+      return (
+        <div className="text-xs text-gray-500 mt-1">
+          آخرین به‌روزرسانی: {formattedDate}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1156,6 +1101,7 @@ const SchedulePageContent = () => {
         <h1 className="text-cyan-700">
           برنامه‌ریزی کلاس {!showClassModal && `${grade}/${classNumber} ${field}`}
         </h1>
+        {renderLastSaved()}
       </header>
 
       <main className={styles.main}>
@@ -1621,7 +1567,7 @@ ${dayStat.personnel.map(personnelCode => {
                   />
                 </div>
                 
-                <div className="flex justify-end pt-4 sticky bottom-0 bg-white pb-2 border-t mt-6 pt-6">
+                <div className="flex justify-end sticky bottom-0 bg-white pb-2 border-t mt-6 pt-6">
                   <SubmitButton 
                     label="ثبت برنامه" 
                     onClick={handleSubmit} 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Schedule, Personnel, ClassSchedule, SavedPersonnelSchedule, toPersianNumber } from '../../data/models';
-import { ScheduleDataManager } from '../ScheduleDataManager';
+import { Schedule, Personnel, ClassSchedule, SavedPersonnelSchedule } from '../../data/models';
+import { ScheduleDataManager } from '../ScheduleDataManager/index';
 
 interface ScheduleContextType {
   // برنامه پرسنلی
@@ -113,7 +113,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       const personnelSchedule = ScheduleDataManager.getPersonnelSchedule(schedule.personnelId);
       if (personnelSchedule) {
         // به‌روزرسانی برنامه پرسنلی
-        const updatedSchedules = personnelSchedule.schedules.map(s => 
+        const updatedSchedules = personnelSchedule.schedules.map((s: Schedule) => 
           s.id === schedule.id ? schedule : s
         );
         ScheduleDataManager.savePersonnelSchedule(personnelSchedule.personnel, updatedSchedules);
@@ -126,7 +126,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       const classSchedule = ScheduleDataManager.getClassSchedule(grade, classNumber, field);
       if (classSchedule) {
         // به‌روزرسانی برنامه کلاسی
-        const updatedSchedules = classSchedule.schedules.map(s => 
+        const updatedSchedules = classSchedule.schedules.map((s: Schedule) => 
           s.id === schedule.id ? schedule : s
         );
         ScheduleDataManager.saveClassSchedule(grade, classNumber, field, updatedSchedules);

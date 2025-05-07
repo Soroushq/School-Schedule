@@ -1,8 +1,8 @@
 import type { 
   Schedule, 
-  Personnel, 
+  Personnel,
   SavedPersonnelSchedule, 
-  ClassSchedule 
+  ClassSchedule
 } from '../../data/models';
 import { ScheduleDataManager } from '../ScheduleDataManager';
 
@@ -18,7 +18,7 @@ export const ScheduleDataAdapter = {
   // ذخیره برنامه پرسنلی در لوکال استوریج
   savePersonnelScheduleToLocalStorage: (
     personnel: { id: string; personnelCode: string; fullName: string; mainPosition: string; employmentStatus: string },
-    schedules: any[]
+    schedules: Schedule[]
   ): void => {
     // تبدیل داده‌های قدیمی به مدل جدید
     const newPersonnel: Personnel = {
@@ -58,7 +58,7 @@ export const ScheduleDataAdapter = {
   loadPersonnelScheduleFromLocalStorage: (
     personnelId?: string,
     personnelCode?: string
-  ): any[] => {
+  ): Schedule[] => {
     if (personnelId) {
       return ScheduleDataManager.loadPersonnelScheduleById(personnelId);
     } else if (personnelCode) {
@@ -69,12 +69,12 @@ export const ScheduleDataAdapter = {
   },
   
   // بارگذاری همه برنامه‌های پرسنلی
-  loadAllSavedPersonnelSchedules: (): any[] => {
+  loadAllSavedPersonnelSchedules: (): SavedPersonnelSchedule[] => {
     return ScheduleDataManager.loadAllPersonnelSchedules();
   },
   
   // جستجوی پرسنل با کد پرسنلی
-  findPersonnelByCode: (personnelCode: string): any => {
+  findPersonnelByCode: (personnelCode: string): Personnel | null => {
     const { personnel } = ScheduleDataManager.loadPersonnelScheduleByCode(personnelCode);
     return personnel;
   },
@@ -86,7 +86,7 @@ export const ScheduleDataAdapter = {
     grade: string,
     classNumber: string,
     field: string,
-    schedules: any[]
+    schedules: Schedule[]
   ): void => {
     // تبدیل داده‌های قدیمی به مدل جدید
     const newSchedules: Schedule[] = schedules.map(oldSchedule => ({
@@ -117,19 +117,19 @@ export const ScheduleDataAdapter = {
     grade: string,
     classNumber: string,
     field: string
-  ): any[] => {
+  ): Schedule[] => {
     return ScheduleDataManager.loadClassScheduleFromPersonnelData(grade, classNumber, field);
   },
   
   // بارگذاری همه برنامه‌های کلاسی
-  loadAllSavedClassSchedules: (): any[] => {
+  loadAllSavedClassSchedules: (): ClassSchedule[] => {
     return ScheduleDataManager.loadAllClassSchedules();
   },
   
   // === توابع به‌روزرسانی متقابل ===
   
   // به‌روزرسانی برنامه پرسنلی از برنامه کلاسی
-  updatePersonnelScheduleFromClass: (scheduleItem: any): void => {
+  updatePersonnelScheduleFromClass: (scheduleItem: Schedule): void => {
     if (!scheduleItem.personnelCode) return;
     
     // تبدیل به مدل جدید
@@ -159,7 +159,7 @@ export const ScheduleDataAdapter = {
   },
   
   // به‌روزرسانی برنامه کلاسی از برنامه پرسنلی
-  updateClassScheduleFromPersonnel: (scheduleItem: any): void => {
+  updateClassScheduleFromPersonnel: (scheduleItem: Schedule): void => {
     if (!scheduleItem.grade || !scheduleItem.classNumber || !scheduleItem.field) return;
     
     // تبدیل به مدل جدید
@@ -184,16 +184,5 @@ export const ScheduleDataAdapter = {
     
     // استفاده از مدیریت داده جدید
     ScheduleDataManager.updateClassScheduleFromPersonnel(newSchedule);
-  }
-};
-
-// برای استفاده در آداپتور
-const storageHelpers = {
-  updatePersonnelScheduleFromClass: (schedule: Schedule): void => {
-    ScheduleDataManager.updatePersonnelScheduleFromClass(schedule);
-  },
-  
-  updateClassScheduleFromPersonnel: (schedule: Schedule): void => {
-    ScheduleDataManager.updateClassScheduleFromPersonnel(schedule);
   }
 }; 
