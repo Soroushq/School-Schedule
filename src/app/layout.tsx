@@ -1,6 +1,7 @@
 import './globals.css'
 import { Metadata } from 'next'
 import Navbar from './components/Navbar'
+import { ClientScheduleSyncObserver } from './ClientComponents'
 
 export const metadata: Metadata = {
   title: 'برنامه ساز مدرسه',
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="fa" dir="rtl">
       <body className="antialiased">
         <Navbar />
+        <ClientScheduleSyncObserver />
         {children}
       </body>
     </html>

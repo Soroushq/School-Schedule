@@ -1,10 +1,21 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaPlus, FaTimes, FaSave, FaSearch, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaExclamationTriangle, FaSchool, FaEye } from "react-icons/fa";
+import Modal from '../../../components/Modal/modal';
+import Dropdown from '../../../components/Dropdown/dropdown';
+import Input from '../../../components/Input/input';
+import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import styles from '../personnel-schedule.module.css';
+import {
+  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye
+} from "react-icons/fa";
+import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { v4 as uuidv4 } from 'uuid';
+import { scheduleSyncService } from '@/services/scheduleSync';
+import { syncService } from '@/services/syncService';
 
 interface Schedule {
   id: string;
@@ -22,6 +33,11 @@ interface Schedule {
   timestamp?: number;
   // اضافه کردن فیلد برای ارتباط با برنامه کلاسی
   classScheduleId?: string;
+  fullName?: string;
+  personnelCode?: string;
+  employmentStatus?: string;
+  source?: 'class' | 'personnel';
+  hourNumber?: number; // اضافه کردن فیلد شماره تک ساعت
 }
 
 interface SavedSchedule {
@@ -108,7 +124,8 @@ const PersonnelSchedule = () => {
   
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = ['تک ساعت اول', 'تک ساعت دوم', 'تک ساعت سوم', 'تک ساعت چهارم', 'تک ساعت پنجم', 'تک ساعت ششم', 'تک ساعت هفتم', 'تک ساعت هشتم', 'تک ساعت نهم', 'تک ساعت دهم', 'تک ساعت یازدهم', 'تک ساعت دوازدهم', 'تک ساعت سیزدهم', 'تک ساعت چهاردهم'];
-  const timeSlots = hours.map((_, index) => `${toPersianNumber(7 + Math.floor(index))}:${index % 2 === 0 ? '۰۰' : '۳۰'}`);
+  // اصلاح timeSlots برای هماهنگی با صفحه کلاس
+  const timeSlots = ['۸:۰۰', '۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۳:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰', '۱۹:۰۰', '۲۰:۰۰', '۲۱:۰۰'];
 
   const grades = ['دهم', 'یازدهم', 'دوازدهم'];
   
@@ -197,15 +214,30 @@ const PersonnelSchedule = () => {
 
   useEffect(() => {
     if (personnelCodeParam && fullNameParam && mainPositionParam) {
-      setSelectedPersonnel({
-        id: Date.now().toString(),
+      const newPersonnel = {
+        id: uuidv4(),
         personnelCode: personnelCodeParam,
         fullName: fullNameParam,
         mainPosition: mainPositionParam,
         employmentStatus: 'شاغل'
-      });
-      setSchedule([]);
-      setShowPersonnelModal(false);
+      };
+      
+      setSelectedPersonnel(newPersonnel);
+      
+      // بارگذاری برنامه بعد از انتخاب پرسنل
+      try {
+        const storageKey = `personnel_schedule_${newPersonnel.id}`;
+        const savedData = localStorage.getItem(storageKey);
+        
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          setSchedule(parsedData.schedules);
+        } else {
+          setSchedule([]);
+        }
+      } catch (error) {
+        console.error('خطا در بارگیری برنامه:', error);
+      }
     }
   }, [personnelCodeParam, fullNameParam, mainPositionParam]);
 
@@ -382,7 +414,11 @@ const PersonnelSchedule = () => {
       const timeEndHour = parseInt(timeStart.split(':')[0]) + 1;
       const timeEnd = `${toPersianNumber(timeEndHour)}:۰۰`;
       
-      const newScheduleId = Date.now().toString();
+      // محاسبه شماره تک ساعت
+      const hourIndex = timeSlots.findIndex(t => t === timeStart);
+      const hourNumber = hourIndex + 1; // شماره ساعت از 1 شروع می‌شود
+      
+      const newScheduleId = uuidv4();
       
       const newScheduleItem: Schedule = {
         id: newScheduleId,
@@ -396,12 +432,33 @@ const PersonnelSchedule = () => {
         day: selectedCell.day,
         timeStart,
         timeEnd,
+        hourNumber, // افزودن شماره تک ساعت
         personnelId: selectedPersonnel.id,
         timestamp: Date.now()
       };
       
       // افزودن برنامه به state برنامه پرسنلی
       setSchedule([...schedule, newScheduleItem]);
+      
+      // همگام‌سازی با برنامه کلاسی
+      syncService.syncFromPersonnelToClass(
+        selectedPersonnel.personnelCode,
+        selectedPersonnel.fullName,
+        selectedPersonnel.mainPosition,
+        selectedPersonnel.employmentStatus,
+        selectedCell.day,
+        timeStart,
+        timeEnd,
+        grade,
+        classNumber,
+        field,
+        hourType,
+        teachingGroup,
+        description,
+        newScheduleId,
+        selectedPersonnel.id,
+        hourNumber // ارسال شماره تک ساعت
+      );
       
       // به‌روزرسانی یا ایجاد برنامه کلاسی
       updateClassSchedule(newScheduleItem);
@@ -423,7 +480,49 @@ const PersonnelSchedule = () => {
   };
 
   const getScheduleForCell = (day: string, time: string) => {
-    return schedule.filter(item => item.day === day && item.timeStart === time);
+    // برنامه‌های پرسنلی برای این سلول
+    const personnelSchedules = schedule.filter(item => item.day === day && item.timeStart === time);
+    
+    // همچنین بررسی برنامه‌های کلاسی مرتبط برای این پرسنل
+    if (selectedPersonnel) {
+      // بارگیری همه برنامه‌های کلاسی
+      const allClassSchedules: ClassSchedule[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('class_schedule_')) {
+          const savedData = localStorage.getItem(key);
+          if (savedData) {
+            try {
+              const parsedData = JSON.parse(savedData) as ClassSchedule;
+              allClassSchedules.push(parsedData);
+            } catch (error) {
+              console.error('خطا در تجزیه داده‌های کلاسی:', error);
+            }
+          }
+        }
+      }
+      
+      // بررسی برنامه‌های کلاسی که به این پرسنل مرتبط هستند
+      const relatedClassSchedules = allClassSchedules.flatMap(classSchedule => 
+        classSchedule.schedules.filter(s => 
+          s.day === day && 
+          s.timeStart === time && 
+          s.personnelCode === selectedPersonnel.personnelCode &&
+          !personnelSchedules.some(ps => ps.id === s.id) // فقط برنامه‌هایی که قبلاً اضافه نشده‌اند
+        ).map(s => ({
+          ...s,
+          grade: classSchedule.grade,
+          classNumber: classSchedule.classNumber,
+          field: classSchedule.field,
+          source: 'class' as const
+        }))
+      );
+      
+      // ترکیب برنامه‌های پرسنلی و کلاسی
+      return [...personnelSchedules, ...relatedClassSchedules];
+    }
+    
+    return personnelSchedules;
   };
 
   const handleDragStart = (e: React.DragEvent, schedule: Schedule, day: string, time: string) => {
@@ -462,6 +561,18 @@ const PersonnelSchedule = () => {
     if (scheduleToDelete) {
       // حذف از برنامه پرسنلی
       setSchedule(schedule.filter(item => item.id !== id));
+      
+      // حذف از برنامه کلاسی با استفاده از سرویس همگام‌سازی
+      syncService.deleteFromBoth(
+        id,
+        scheduleToDelete.day,
+        scheduleToDelete.timeStart,
+        scheduleToDelete.timeEnd,
+        scheduleToDelete.grade,
+        scheduleToDelete.classNumber,
+        scheduleToDelete.field,
+        selectedPersonnel?.id
+      );
       
       // حذف از برنامه کلاسی
       removeFromClassSchedule(scheduleToDelete);
@@ -623,63 +734,113 @@ const PersonnelSchedule = () => {
       const storageKey = `personnel_schedule_${selectedPersonnel.id}`;
       localStorage.setItem(storageKey, JSON.stringify(savedSchedule));
       
+      // همگام‌سازی با برنامه‌های کلاسی - ایجاد یا بروزرسانی همه برنامه‌ها در جدول کلاسی
+      schedule.forEach(item => {
+        if (item.grade && item.classNumber && item.field) {
+          syncService.syncFromPersonnelToClass(
+            selectedPersonnel.personnelCode,
+            selectedPersonnel.fullName,
+            selectedPersonnel.mainPosition,
+            selectedPersonnel.employmentStatus,
+            item.day,
+            item.timeStart,
+            item.timeEnd,
+            item.grade,
+            item.classNumber,
+            item.field,
+            item.hourType,
+            item.teachingGroup,
+            item.description,
+            item.id,
+            selectedPersonnel.id
+          );
+        }
+      });
+      
       // به‌روزرسانی برنامه‌های کلاسی مرتبط
       updateAllClassSchedules(savedSchedule.schedules);
       
       loadAllSavedSchedules();
       
-      alert('برنامه با موفقیت ذخیره شد');
+      toast.success('برنامه با موفقیت ذخیره شد');
     } catch (error) {
       console.error('خطا در ذخیره‌سازی برنامه:', error);
-      alert('خطا در ذخیره‌سازی برنامه. لطفاً دوباره تلاش کنید.');
+      toast.error('خطا در ذخیره‌سازی برنامه. لطفاً دوباره تلاش کنید.');
     }
   };
 
-  const loadScheduleFromLocalStorage = (personnelId?: string) => {
-    const id = personnelId || selectedPersonnel?.id;
-    if (!id) return;
-    
+  const loadScheduleFromLocalStorage = useCallback((personnelId?: string) => {
     try {
-      const storageKey = `personnel_schedule_${id}`;
-      const savedData = localStorage.getItem(storageKey);
-      
-      if (savedData) {
-        const parsedData: SavedSchedule = JSON.parse(savedData);
-        setSchedule(parsedData.schedules);
-        if (!personnelId) {
-          alert('برنامه با موفقیت بارگیری شد');
+      if (selectedPersonnel) {
+        const id = personnelId || selectedPersonnel.id;
+        const savedSchedule = scheduleSyncService.getPersonnelScheduleById(id);
+        
+        if (savedSchedule) {
+          // تبدیل نوع داده‌ها به تایپ‌های مورد نیاز داخلی
+          const convertedSchedules = savedSchedule.schedules.map(s => ({
+            id: s.id,
+            grade: s.grade || '',
+            classNumber: s.classNumber || '',
+            field: s.field || '',
+            mainPosition: s.mainPosition || '',
+            hourType: s.hourType,
+            teachingGroup: s.teachingGroup,
+            description: s.description,
+            day: s.day,
+            timeStart: s.timeStart,
+            timeEnd: s.timeEnd,
+            personnelId: s.personnelId,
+            timestamp: s.timestamp,
+            classScheduleId: s.classScheduleId,
+            fullName: s.fullName,
+            personnelCode: s.personnelCode,
+            employmentStatus: s.employmentStatus,
+            source: s.source
+          }));
+          
+          setSchedule(convertedSchedules);
+        } else {
+          setSchedule([]);
         }
-      } else if (!personnelId) {
-        alert('برنامه‌ای برای این پرسنل در حافظه محلی یافت نشد');
       }
     } catch (error) {
       console.error('خطا در بارگیری برنامه:', error);
-      if (!personnelId) {
-        alert('خطا در بارگیری برنامه. لطفاً دوباره تلاش کنید.');
-      }
     }
-  };
+  }, [selectedPersonnel]);
 
   const loadAllSavedSchedules = () => {
     try {
-      const allSchedules: SavedSchedule[] = [];
+      const allSchedules = scheduleSyncService.getAllPersonnelSchedules();
       
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
-        if (key && key.startsWith('personnel_schedule_')) {
-          const savedData = localStorage.getItem(key);
-          
-          if (savedData) {
-            const parsedData: SavedSchedule = JSON.parse(savedData);
-            allSchedules.push(parsedData);
-          }
-        }
-      }
+      // تبدیل به نوع داده‌های داخلی
+      const convertedSchedules: SavedSchedule[] = allSchedules.map(s => ({
+        personnel: s.personnel,
+        schedules: s.schedules.map(sch => ({
+          id: sch.id,
+          grade: sch.grade || '',
+          classNumber: sch.classNumber || '',
+          field: sch.field || '',
+          mainPosition: sch.mainPosition || '',
+          hourType: sch.hourType,
+          teachingGroup: sch.teachingGroup,
+          description: sch.description,
+          day: sch.day,
+          timeStart: sch.timeStart,
+          timeEnd: sch.timeEnd,
+          personnelId: sch.personnelId,
+          timestamp: sch.timestamp,
+          classScheduleId: sch.classScheduleId,
+          fullName: sch.fullName,
+          personnelCode: sch.personnelCode,
+          employmentStatus: sch.employmentStatus,
+          source: sch.source
+        })),
+        timestamp: s.timestamp
+      }));
       
-      setSavedSchedules(allSchedules);
+      setSavedSchedules(convertedSchedules);
     } catch (error) {
-      console.error('خطا در بارگیری برنامه‌ها:', error);
+      console.error('خطا در بارگیری همه برنامه‌ها:', error);
     }
   };
 
@@ -1137,29 +1298,70 @@ const PersonnelSchedule = () => {
 
   // تابع برای انتقال به برنامه کلاسی
   const navigateToClassSchedule = (grade: string, classNumber: string, field: string) => {
-    // استفاده از search params برای انتقال به صفحه برنامه کلاسی
+    // ایجاد پارامترهای URL برای صفحه کلاس
     const url = `/class-schedule/schedule?grade=${encodeURIComponent(grade)}&class=${encodeURIComponent(classNumber)}&field=${encodeURIComponent(field)}`;
+    
+    // بررسی آیا برنامه‌های پرسنلی فعلی مربوط به این کلاس هستند
+    if (selectedPersonnel) {
+      const classRelatedSchedules = schedule.filter(s => 
+        s.grade === grade && 
+        s.classNumber === classNumber && 
+        s.field === field
+      );
+      
+      // اگر برنامه‌های مرتبط وجود دارند، ذخیره‌سازی آنها را بررسی کنید
+      if (classRelatedSchedules.length > 0) {
+        // بررسی همه برنامه‌ها برای اطمینان از وجود hourNumber
+        classRelatedSchedules.forEach(s => {
+          if (!s.hourNumber) {
+            const hourIndex = timeSlots.findIndex(t => t === s.timeStart);
+            s.hourNumber = hourIndex + 1; // شماره ساعت از 1 شروع می‌شود
+          }
+        });
+        
+        // اطمینان از به‌روزرسانی برنامه‌های کلاسی با اطلاعات hourNumber
+        updateAllClassSchedules(classRelatedSchedules);
+      }
+    }
+    
+    // باز کردن صفحه کلاس در تب جدید
     window.open(url, '_blank');
   };
 
   const loadAllSavedClassSchedules = () => {
     try {
-      const allClassSchedules: ClassSchedule[] = [];
+      const allClassSchedules = scheduleSyncService.getAllClassSchedules();
       
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
-        if (key && key.startsWith('class_schedule_')) {
-          const savedData = localStorage.getItem(key);
-          
-          if (savedData) {
-            const parsedData: ClassSchedule = JSON.parse(savedData);
-            allClassSchedules.push(parsedData);
-          }
-        }
-      }
+      // تبدیل به نوع داده‌های داخلی
+      const convertedClassSchedules: ClassSchedule[] = allClassSchedules.map(s => ({
+        id: s.id,
+        grade: s.grade,
+        classNumber: s.classNumber,
+        field: s.field,
+        schedules: s.schedules.map(sch => ({
+          id: sch.id,
+          grade: sch.grade || '',
+          classNumber: sch.classNumber || '',
+          field: sch.field || '',
+          mainPosition: sch.mainPosition || '',
+          hourType: sch.hourType,
+          teachingGroup: sch.teachingGroup,
+          description: sch.description,
+          day: sch.day,
+          timeStart: sch.timeStart,
+          timeEnd: sch.timeEnd,
+          personnelId: sch.personnelId,
+          timestamp: sch.timestamp,
+          classScheduleId: sch.classScheduleId,
+          fullName: sch.fullName,
+          personnelCode: sch.personnelCode,
+          employmentStatus: sch.employmentStatus,
+          source: sch.source
+        })),
+        timestamp: s.timestamp
+      }));
       
-      setSavedClassSchedules(allClassSchedules);
+      setSavedClassSchedules(convertedClassSchedules);
     } catch (error) {
       console.error('خطا در بارگیری برنامه‌های کلاسی:', error);
     }
@@ -1167,7 +1369,7 @@ const PersonnelSchedule = () => {
 
   const exportCombinedDataToExcel = () => {
     if (savedSchedules.length === 0) {
-      alert('هیچ برنامه‌ای برای صدور وجود ندارد');
+      toast.error('هیچ برنامه‌ای برای صدور وجود ندارد');
       return;
     }
     
@@ -1244,7 +1446,7 @@ const PersonnelSchedule = () => {
       
     } catch (error) {
       console.error('خطا در صدور به اکسل:', error);
-      alert('خطا در صدور به اکسل. لطفاً دوباره تلاش کنید.');
+      toast.error('خطا در صدور به اکسل. لطفاً دوباره تلاش کنید.');
     }
   };
 
@@ -1268,7 +1470,7 @@ const PersonnelSchedule = () => {
                 // بارگذاری مجدد برنامه‌ها
                 loadAllSavedSchedules();
                 setSchedule([]);
-                alert('تمام برنامه‌ها با موفقیت حذف شدند.');
+                toast.success('تمام برنامه‌ها با موفقیت حذف شدند.');
               }
             }}
             className={styles.deleteButton}
@@ -1330,7 +1532,7 @@ const PersonnelSchedule = () => {
                         }
                       }
                       loadAllSavedSchedules();
-                      alert('تمام تاریخچه برنامه‌ها با موفقیت حذف شد.');
+                      toast.success('تمام تاریخچه برنامه‌ها با موفقیت حذف شد.');
                     }
                   }}
                   className="py-1.5 px-3 bg-red-600 text-white text-xs md:text-sm font-medium rounded hover:bg-red-700 transition-colors"
@@ -1463,10 +1665,9 @@ const PersonnelSchedule = () => {
                               {cellSchedules.map((item) => (
                                 <div 
                                   key={item.id}
-                                  className={`${styles.scheduleItem} relative`}
-                                  style={{zIndex: 10}}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, item, day, time)}
+                                  className={`${styles.scheduleItem} ${item.source === 'class' ? 'border-yellow-400 bg-yellow-50' : ''} relative`}
+                                  draggable={item.source !== 'class'}
+                                  onDragStart={(e) => item.source !== 'class' && handleDragStart(e, item, day, time)}
                                 >
                                   <p 
                                     className="font-bold text-gray-900 text-xs md:text-sm cursor-pointer hover:text-cyan-700 hover:underline flex items-center"
@@ -1480,15 +1681,24 @@ const PersonnelSchedule = () => {
                                   </p>
                                   <p className="text-gray-800 text-xs md:text-sm">{item.mainPosition}</p>
                                   <p className="text-gray-800 text-xs md:text-sm">{item.hourType}</p>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteSchedule(item.id);
-                                    }}
-                                    className={styles.deleteButton}
-                                  >
-                                    <FaTimes className="w-2 h-2 md:w-3 md:h-3" />
-                                  </button>
+                                  
+                                  {item.source === 'class' ? (
+                                    <div className="absolute right-1 top-1">
+                                      <span className="inline-block text-[0.6rem] bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded">
+                                        از کلاس
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteSchedule(item.id);
+                                      }}
+                                      className={styles.deleteButton}
+                                    >
+                                      <FaTimes className="w-2 h-2 md:w-3 md:h-3" />
+                                    </button>
+                                  )}
                                 </div>
                               ))}
                               
@@ -2198,6 +2408,8 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
           </div>
         </div>
       )}
+      {/* نمایش اعلان‌ها */}
+      <Toaster />
     </div>
   );
 };

@@ -319,6 +319,7 @@
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-family: 'Farhang2', 'Vazirmatn', sans-serif;
+  color: #000;
 }
 
 @media (max-width: 768px) {

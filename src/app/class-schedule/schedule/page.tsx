@@ -9,6 +9,7 @@ import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import Input from '../../../components/Input/input';
 import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch, FaTrash } from "react-icons/fa";
 import styles from '../class-schedule.module.css';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Schedule {
   id: string;
@@ -21,6 +22,7 @@ interface Schedule {
   day: string;
   timeStart: string;
   timeEnd: string;
+  hourNumber?: number; // افزودن شماره تک ساعت
   grade?: string;
   classNumber?: string;
   field?: string;
@@ -129,6 +131,7 @@ const SchedulePageContent = () => {
   
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = Array.from({ length: 14 }, (_, i) => `تک ساعت ${toPersianNumber(i + 1)}م`);
+  const timeSlots = ['۸:۰۰', '۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۳:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰', '۱۹:۰۰', '۲۰:۰۰', '۲۱:۰۰'];
 
   const grades = ['دهم', 'یازدهم', 'دوازدهم'];
   
@@ -220,6 +223,20 @@ const SchedulePageContent = () => {
     'نمايش',
     'هتلداري ،گردشگري و مهمانداري'
   ];
+
+  // تبدیل ساعت به شماره تک ساعت
+  const getHourNumber = (time: string): number => {
+    const index = timeSlots.findIndex(t => t === time);
+    return index !== -1 ? index + 1 : 0; // شماره تک ساعت از ۱ شروع می‌شود
+  };
+
+  // تبدیل شماره تک ساعت به ساعت
+  const getTimeFromHourNumber = (hourNumber: number): string => {
+    if (hourNumber >= 1 && hourNumber <= timeSlots.length) {
+      return timeSlots[hourNumber - 1];
+    }
+    return '';
+  };
 
   // بارگذاری برنامه‌های پرسنلی ذخیره شده
   const loadSavedPersonnelSchedules = (callback?: () => void) => {
@@ -360,22 +377,37 @@ const SchedulePageContent = () => {
   }, [grade, classNumber, field, savedPersonnelSchedules, updateCellPersonnelSchedules]);
 
   useEffect(() => {
+    // بارگذاری برنامه‌های پرسنلی در هنگام لود اولیه صفحه
+    loadSavedPersonnelSchedules();
+    
+    // اگر پارامترهای کلاس در آدرس نباشند، هنگام تغییر آنها loadClassData فراخوانی می‌شود
     if (gradeParam && classParam && fieldParam) {
       setGrade(gradeParam);
       setClassNumber(classParam);
       setField(fieldParam);
-    }
-  }, [gradeParam, classParam, fieldParam]);
-
-  useEffect(() => {
-    if (grade && classNumber && field) {
-      // بارگذاری برنامه‌های پرسنلی و سپس بارگذاری برنامه کلاسی
-      loadSavedPersonnelSchedules(() => {
-        loadClassScheduleFromStorage();
-      });
+      loadClassData(gradeParam, classParam, fieldParam);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grade, classNumber, field]);
+  }, []);
+
+  // تابع برای بارگذاری داده‌های کلاس
+  const loadClassData = (grade: string, classNumber: string, field: string) => {
+    try {
+      const classKey = `${grade}-${classNumber}-${field}`;
+      const storageKey = `class_schedule_${classKey}`;
+      const savedData = localStorage.getItem(storageKey);
+      
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setSchedule(parsedData.schedules || []);
+        calculateClassStatistics();
+      } else {
+        setSchedule([]);
+      }
+    } catch (error) {
+      console.error('خطا در بارگذاری داده‌های کلاس:', error);
+    }
+  };
 
   useEffect(() => {
     if (schedule.length > 0) {
@@ -384,21 +416,22 @@ const SchedulePageContent = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schedule, savedPersonnelSchedules]);
 
-  useEffect(() => {
-    // اضافه کردن لود کردن برنامه‌های پرسنلی مرتبط برای نمایش در هنگام لود اولیه صفحه
-    loadSavedPersonnelSchedules(() => {
-      if (grade && classNumber && field) {
-        loadClassScheduleFromStorage();
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleClassSubmit = () => {
-    if (grade && classNumber && field) {
-      setShowClassModal(false);
-      loadClassScheduleFromStorage();
+    if (!grade || !classNumber || !field) {
+      toast.error('لطفاً تمامی فیلدهای کلاس را پر کنید');
+      return;
     }
+    
+    setShowClassModal(false);
+    
+    // تغییر آدرس در URL بدون بارگذاری مجدد صفحه
+    const url = `/class-schedule/schedule?grade=${encodeURIComponent(grade)}&class=${encodeURIComponent(classNumber)}&field=${encodeURIComponent(field)}`;
+    window.history.pushState({}, '', url);
+    
+    // بارگذاری داده‌های کلاس
+    loadClassData(grade, classNumber, field);
+    
+    toast.success(`برنامه کلاس ${grade} ${classNumber} ${field} بارگذاری شد`);
   };
 
   const handleAddNewSchedule = () => {
@@ -448,6 +481,9 @@ const SchedulePageContent = () => {
       const timeEndHour = parseInt(timeStart.split(':')[0]) + 1;
       const timeEnd = `${toPersianNumber(timeEndHour)}:۰۰`;
       
+      // محاسبه شماره تک ساعت
+      const hourNumber = getHourNumber(timeStart);
+      
       // بررسی وجود تداخل در برنامه‌های کلاسی
       const existingSchedule = schedule.find(s => 
         s.day === selectedCell.day && 
@@ -491,6 +527,7 @@ const SchedulePageContent = () => {
         day: selectedCell.day,
         timeStart,
         timeEnd,
+        hourNumber, // اضافه کردن شماره تک ساعت
         grade,
         classNumber,
         field,
@@ -523,15 +560,12 @@ const SchedulePageContent = () => {
         };
       });
       
-      // حذف ذخیره خودکار تغییرات
-      // setTimeout(() => {
-      //   saveClassScheduleToStorage();
-      // }, 500);
+      toast.success('برنامه با موفقیت اضافه شد');
       
       setModalOpen(false);
       resetForm();
     } else {
-      alert('لطفاً تمامی فیلدهای ضروری را پر کنید');
+      toast.error('لطفاً تمامی فیلدهای ضروری را پر کنید');
     }
   };
 
@@ -617,22 +651,48 @@ const SchedulePageContent = () => {
     const targetCellSchedule = getScheduleForCell(targetDay, targetTime);
     if (targetCellSchedule) {
       // اگر خانه مقصد پر است، عملیات را متوقف می‌کنیم
-      alert('این خانه قبلاً پر شده است. لطفاً یک خانه خالی را انتخاب کنید.');
+      toast.error('این خانه قبلاً پر شده است. لطفاً یک خانه خالی را انتخاب کنید.');
       return;
     }
 
     if (draggedItem && dragStartRef.current) {
-      const updatedItem = {
-        ...draggedItem,
+      // محاسبه شماره تک ساعت برای خانه مقصد
+      const hourNumber = getHourNumber(targetTime);
+      
+      // یافتن اطلاعات پرسنل
+      const personnelInfo = savedPersonnelSchedules.find(
+        p => p.personnel.personnelCode === draggedItem.personnelCode
+      );
+      const fullName = personnelInfo?.personnel.fullName || '';
+      
+      const updatedItem: Schedule = {
         id: Date.now().toString(),
+        personnelCode: draggedItem.personnelCode,
+        employmentStatus: draggedItem.employmentStatus,
+        mainPosition: draggedItem.mainPosition,
+        hourType: draggedItem.hourType,
+        teachingGroup: draggedItem.teachingGroup,
+        description: draggedItem.description,
         day: targetDay,
         timeStart: targetTime,
-        timeEnd: `${toPersianNumber(parseInt(targetTime.split(':')[0]) + 1)}:۰۰`
+        timeEnd: `${toPersianNumber(parseInt(targetTime.split(':')[0]) + 1)}:۰۰`,
+        hourNumber, // اضافه کردن شماره تک ساعت
+        grade: draggedItem.grade,
+        classNumber: draggedItem.classNumber,
+        field: draggedItem.field,
+        timestamp: Date.now()
       };
       
+      // اضافه کردن به برنامه‌های کلاسی
       setSchedule([...schedule, updatedItem]);
+      
+      // بروزرسانی برنامه پرسنلی مرتبط
+      updatePersonnelSchedule(updatedItem, fullName);
+      
       setDraggedItem(null);
       dragStartRef.current = null;
+      
+      toast(`برنامه به ${targetDay} ساعت ${targetTime} منتقل شد`);
     }
   };
 
@@ -740,6 +800,7 @@ const SchedulePageContent = () => {
           grade: grade,
           classNumber: classNumber,
           field: field,
+          hourNumber: scheduleItem.hourNumber, // اطمینان از انتقال شماره تک ساعت
           timestamp: Date.now()
         };
         
@@ -787,6 +848,7 @@ const SchedulePageContent = () => {
             grade: grade,
             classNumber: classNumber,
             field: field,
+            hourNumber: scheduleItem.hourNumber, // اطمینان از انتقال شماره تک ساعت
             timestamp: Date.now()
           }],
           timestamp: Date.now()
@@ -879,7 +941,10 @@ const SchedulePageContent = () => {
   
   // ذخیره برنامه کلاسی در لوکال استوریج
   const saveClassScheduleToStorage = () => {
-    if (!grade || !classNumber || !field) return;
+    if (!grade || !classNumber || !field) {
+      toast.error('اطلاعات کلاس ناقص است. لطفاً ابتدا کلاس را انتخاب کنید.');
+      return;
+    }
     
     try {
       const classKey = `${grade}-${classNumber}-${field}`;
@@ -892,12 +957,23 @@ const SchedulePageContent = () => {
         !!item.day && !!item.timeStart // و فقط برنامه‌های دارای روز و زمان را نگه می‌داریم
       );
       
+      // اضافه کردن شماره تک ساعت برای برنامه‌هایی که ندارند
+      const updatedSchedules = classSchedules.map(item => {
+        if (!item.hourNumber) {
+          return {
+            ...item,
+            hourNumber: getHourNumber(item.timeStart)
+          };
+        }
+        return item;
+      });
+      
       const savedSchedule = {
         id: Date.now().toString(),
         grade,
         classNumber,
         field,
-        schedules: classSchedules,
+        schedules: updatedSchedules,
         timestamp: Date.now()
       };
       
@@ -905,16 +981,16 @@ const SchedulePageContent = () => {
       setLastSaved(Date.now());
       
       // به‌روزرسانی همه برنامه‌های پرسنلی مرتبط
-      classSchedules.forEach(item => {
+      updatedSchedules.forEach(item => {
         updatePersonnelSchedule(item);
       });
       
-      // نمایش نوتیفیکیشن موفقیت‌آمیز با استایل جدید
-      showSuccessNotification('برنامه کلاسی با موفقیت ذخیره شد');
+      // نمایش نوتیفیکیشن موفقیت‌آمیز
+      toast.success('برنامه کلاسی با موفقیت ذخیره شد');
       
     } catch (error) {
       console.error('خطا در ذخیره برنامه کلاسی:', error);
-      alert('خطا در ذخیره برنامه کلاسی');
+      toast.error('خطا در ذخیره برنامه کلاسی');
     }
   };
   
@@ -1166,6 +1242,33 @@ const SchedulePageContent = () => {
     const scheduleCount = cellPersonnelSchedules[cellKey]?.length || 0;
     
     if (!cellSchedule) {
+      // اگر برنامه کلاسی وجود ندارد، بررسی می‌کنیم آیا برنامه‌های پرسنلی مرتبط وجود دارد
+      const relatedPersonnelSchedules = cellPersonnelSchedules[cellKey];
+      
+      if (relatedPersonnelSchedules && relatedPersonnelSchedules.length > 0) {
+        // اگر برنامه‌های پرسنلی مرتبط وجود دارد، آن‌ها را با استایل متفاوت نمایش می‌دهیم
+        return (
+          <div className={`${styles.relatedSchedule} w-full h-full p-1 border border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 cursor-pointer`}
+               onClick={() => handleTimeSelection(day, time)}>
+            <div className="flex items-start justify-between">
+              <div className="flex-grow">
+                {relatedPersonnelSchedules.map((ps, index) => (
+                  <div key={index} className="text-xs mb-1 opacity-80">
+                    <p className="font-medium text-gray-900">{ps.fullName}</p>
+                    <p className="text-gray-700 text-xs">{ps.teachingGroup || ''}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex-shrink-0 ml-1">
+                <span className="inline-block px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                  {relatedPersonnelSchedules.length}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
       return (
         <button 
           className={styles.emptyCell}
@@ -1191,6 +1294,12 @@ const SchedulePageContent = () => {
     // یافتن نام پرسنل
     const personnelName = cellSchedule.fullName || 
       savedPersonnelSchedules.find(p => p.personnel.personnelCode === cellSchedule.personnelCode)?.personnel.fullName;
+      
+    // بررسی سایر برنامه‌های پرسنلی مرتبط
+    const relatedPersonnelSchedules = cellPersonnelSchedules[cellKey]?.filter(ps => 
+      ps.id !== cellSchedule.id && ps.personnelCode === cellSchedule.personnelCode
+    );
+    const hasRelatedSchedules = relatedPersonnelSchedules && relatedPersonnelSchedules.length > 0;
     
     return (
       <div 
@@ -1258,6 +1367,15 @@ const SchedulePageContent = () => {
           )}
         </div>
         
+        {/* نمایش برچسب اگر برنامه‌های پرسنلی مرتبط وجود دارد */}
+        {hasRelatedSchedules && (
+          <div className="absolute bottom-1 left-1">
+            <span className="inline-block px-1.5 py-0.5 bg-yellow-500 text-white text-[0.6rem] rounded-full">
+              {relatedPersonnelSchedules.length + 1}
+            </span>
+          </div>
+        )}
+        
         <div 
           className="absolute inset-0 cursor-pointer z-0"
           onClick={(e) => {
@@ -1304,6 +1422,78 @@ const SchedulePageContent = () => {
     return null;
   };
 
+  // تابع برای رندر کردن محتوای جدول
+  const renderTableContent = () => {
+    return days.map((day, index) => (
+      <tr key={day} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+        <td className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right font-bold sticky-col">{day}</td>
+        {timeSlots.map((time, hourIndex) => {
+          const hourNumber = hourIndex + 1; // شماره تک ساعت از 1 شروع می‌شود
+          return (
+            <td 
+              key={`${day}-${time}`} 
+              className={`border border-gray-300 p-1 h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, day, time)}
+            >
+              {renderCellContent(day, time)}
+            </td>
+          );
+        })}
+      </tr>
+    ));
+  };
+
+  // تابع برای هدایت به صفحه برنامه کلاسی از صفحه برنامه پرسنلی
+  const navigateToClassSchedule = (grade: string, classNumber: string, field: string) => {
+    // ایجاد پارامترهای URL برای صفحه کلاس
+    const url = `/class-schedule/schedule?grade=${encodeURIComponent(grade)}&class=${encodeURIComponent(classNumber)}&field=${encodeURIComponent(field)}`;
+    
+    // بررسی برنامه‌های مربوط به این کلاس
+    const classSchedules = schedule.filter(s => 
+      s.grade === grade || 
+      s.classNumber === classNumber || 
+      s.field === field
+    );
+    
+    // اطمینان از وجود hourNumber در همه برنامه‌ها
+    if (classSchedules.length > 0) {
+      classSchedules.forEach(s => {
+        if (!s.hourNumber) {
+          const hourIndex = timeSlots.findIndex(t => t === s.timeStart);
+          if (hourIndex !== -1) {
+            s.hourNumber = hourIndex + 1; // شماره ساعت از 1 شروع می‌شود
+            
+            // به‌روزرسانی برنامه‌های پرسنلی مرتبط
+            if (s.personnelCode) {
+              // بررسی برای یافتن نام پرسنل
+              let personnelName = '';
+              const personnelData = savedPersonnelSchedules.find(
+                ps => ps.personnel.personnelCode === s.personnelCode
+              );
+              if (personnelData) {
+                personnelName = personnelData.personnel.fullName;
+              }
+              updatePersonnelSchedule(s, personnelName);
+            }
+          }
+        }
+      });
+      
+      // ذخیره برنامه‌های به‌روزرسانی شده
+      saveClassScheduleToStorage();
+    }
+    
+    // باز کردن صفحه کلاس در تب جدید
+    window.open(url, '_blank');
+  };
+
+  // تنظیمات پیش‌فرض برای react-hot-toast
+  useEffect(() => {
+    // تنظیم استایل پیش‌فرض برای توست‌ها
+    toast.dismiss(); // پاک کردن توست‌های قبلی
+  }, []);
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1311,6 +1501,7 @@ const SchedulePageContent = () => {
           <button onClick={() => router.back()} className={styles.backButton}>
             بازگشت
           </button>
+          {/* اصلاح توست در بخش دکمه حذف همه برنامه‌ها */}
           <button
             onClick={() => {
               if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام برنامه‌ها را حذف کنید؟')) {
@@ -1324,7 +1515,7 @@ const SchedulePageContent = () => {
                 // بارگذاری مجدد برنامه‌ها
                 loadSavedPersonnelSchedules();
                 setSchedule([]);
-                alert('تمام برنامه‌ها با موفقیت حذف شدند.');
+                toast.success('تمام برنامه‌ها با موفقیت حذف شدند');
               }
             }}
             className={styles.deleteButton}
@@ -1398,27 +1589,16 @@ const SchedulePageContent = () => {
                 <thead>
                   <tr className="bg-gradient-to-r from-cyan-50 to-blue-50">
                     <th className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right w-16 sm:w-24 sticky-col">روز / ساعت</th>
-                    {hours.map(hour => (
-                      <th key={hour} className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-center min-w-[100px] sm:min-w-[120px] schedule-header-cell">{hour}</th>
+                    {timeSlots.map((time, index) => (
+                      <th key={time} className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-center min-w-[100px] sm:min-w-[120px] schedule-header-cell">
+                        <div className="font-bold">تک ساعت {toPersianNumber(index + 1)}م</div>
+                        <div className="text-[0.7rem] text-gray-600">{time}</div>
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {days.map((day, index) => (
-                    <tr key={day} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right font-bold sticky-col">{day}</td>
-                      {hours.map(hour => (
-                        <td 
-                          key={`${day}-${hour}`} 
-                          className={`border border-gray-300 p-1 h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, day, hour)}
-                        >
-                          {renderCellContent(day, hour)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                  {renderTableContent()}
                 </tbody>
               </table>
             </div>
@@ -1607,8 +1787,11 @@ ${dayStat.personnel.map(personnelCode => {
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border border-gray-300 p-1 sm:p-2 text-black text-right sticky right-0 bg-gray-100 z-10">روز / ساعت</th>
-                    {hours.map(hour => (
-                      <th key={hour} className="border border-gray-300 p-1 sm:p-2 text-black text-center min-w-[70px] sm:min-w-[100px]">{hour}</th>
+                    {timeSlots.map((time, index) => (
+                      <th key={time} className="border border-gray-300 p-1 sm:p-2 text-black text-center min-w-[70px] sm:min-w-[100px]">
+                        تک ساعت {toPersianNumber(index + 1)}م
+                        <div className="text-[0.6rem] text-gray-500">{time}</div>
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -1616,15 +1799,15 @@ ${dayStat.personnel.map(personnelCode => {
                   {days.map(day => (
                     <tr key={day}>
                       <td className="border border-gray-300 p-1 sm:p-2 text-black text-right font-bold sticky right-0 bg-gray-50 z-10">{day}</td>
-                      {hours.map(hour => (
+                      {timeSlots.map(time => (
                         <td
-                          key={`${day}-${hour}`}
+                          key={`${day}-${time}`}
                           className="border border-gray-300 p-1 sm:p-2 text-center cursor-pointer hover:bg-blue-50 transition-colors"
-                          onClick={() => handleTimeSelection(day, hour)}
+                          onClick={() => handleTimeSelection(day, time)}
                         >
                           <button className="w-full h-full flex items-center justify-center text-[10px] sm:text-sm">
                             <span className="p-1 rounded-full bg-blue-200 hover:bg-blue-300 transition-colors w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                              {getScheduleForCell(day, hour) ? '✓' : '+'}
+                              {getScheduleForCell(day, time) ? '✓' : '+'}
                             </span>
                           </button>
                         </td>
@@ -1930,6 +2113,7 @@ ${dayStat.personnel.map(personnelCode => {
           }
         }
       `}</style>
+      <Toaster />
     </div>
   );
 };

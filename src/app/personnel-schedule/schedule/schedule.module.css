@@ -315,6 +315,11 @@
   }
 }
 
+.formSelect option {
+  color: #000;
+  background-color: #fff;
+}
+
 .formButtonGroup {
   display: flex;
   gap: 1rem;
