@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import './globals.css'
+import { Metadata } from 'next'
+import Navbar from './components/Navbar'
 
 export const metadata: Metadata = {
-  title: "برنامه هفتگی مدرسه",
-  description: "برنامه زمانی هفتگی مدرسه",
+  title: 'برنامه ساز مدرسه',
+  description: 'نرم افزار برنامه سازی مدرسه و کلاس',
   icons: {
     icon: [
       { url: '/photos/icon-black.png', media: '(prefers-color-scheme: light)' },
@@ -18,18 +19,19 @@ export const metadata: Metadata = {
       { url: '/photos/icon-white.png', media: '(prefers-color-scheme: dark)' }
     ]
   },
-};
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="fa" dir="rtl">
       <body className="antialiased">
+        <Navbar />
         {children}
       </body>
     </html>
-  );
+  )
 }

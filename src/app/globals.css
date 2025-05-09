@@ -76,6 +76,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @theme inline {
@@ -90,6 +93,9 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
   }
 }
 
@@ -101,6 +107,15 @@ body {
   font-weight: 400;
   font-style: normal;
   direction: rtl;
+  max-width: 100vw;
+  overflow-x: hidden;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -440,11 +455,73 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+@keyframes tripleGradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  33% {
+    background-position: 50% 25%;
+  }
+  66% {
+    background-position: 75% 75%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradientAnimation 5s ease infinite;
 }
 
+.animate-triple-gradient {
+  background: linear-gradient(45deg, #06b6d4, #10b981, #3b82f6);
+  background-size: 300% 300%;
+  animation: tripleGradientAnimation 10s ease infinite;
+}
+
 .animate-gradientBG {
   position: relative;
+}
+
+/* استایل‌های نوار ناوبری */
+.navbar-glass {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.navbar-gradient {
+  background: linear-gradient(to right, #3b82f6, #06b6d4, #2563eb);
+}
+
+.navbar-shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.btn-gradient-blue {
+  background: linear-gradient(to right, #3b82f6, #0ea5e9);
+}
+
+.btn-gradient-green {
+  background: linear-gradient(to right, #10b981, #059669);
+}
+
+.btn-gradient-purple {
+  background: linear-gradient(to right, #8b5cf6, #6366f1);
+}
+
+.btn-gradient-red {
+  background: linear-gradient(to right, #ef4444, #dc2626);
+}
+
+/* اصلاح فاصله برای هدر در صفحات داخلی */
+.inner-page-container {
+  padding-top: 1rem;
 }

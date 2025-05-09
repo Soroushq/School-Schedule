@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { FaPlus, FaTimes, FaSearch, FaSave, FaFileExport, FaExclamationTriangle, FaHistory, FaCalendarAlt, FaSchool, FaEye } from "react-icons/fa";
+import { useSearchParams, useRouter } from 'next/navigation';
+import { FaPlus, FaTimes, FaSave, FaSearch, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaExclamationTriangle, FaSchool, FaEye } from "react-icons/fa";
 import styles from '../personnel-schedule.module.css';
 import * as XLSX from 'xlsx';
 
@@ -56,6 +55,7 @@ const toPersianNumber = (num: number | string): string => {
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 const PersonnelSchedule = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const personnelCodeParam = searchParams?.get('code') || '';
   const fullNameParam = searchParams?.get('name') || '';
@@ -96,7 +96,6 @@ const PersonnelSchedule = () => {
   const [showConflictWarning, setShowConflictWarning] = useState(false);
   const [addPersonnelError, setAddPersonnelError] = useState('');
   const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([]);
-  const [showCombinedScheduleModal, setShowCombinedScheduleModal] = useState(false);
   const [showCombinedPreview, setShowCombinedPreview] = useState(false);
   const [selectedCellForHistory, setSelectedCellForHistory] = useState<{day: string, time: string} | null>(null);
   const [showCellHistoryMenu, setShowCellHistoryMenu] = useState(false);
@@ -688,94 +687,6 @@ const PersonnelSchedule = () => {
     setShowCombinedPreview(true);
   };
   
-  const exportCombinedDataToExcel = () => {
-    if (savedSchedules.length === 0) {
-      alert('هیچ برنامه‌ای برای صدور وجود ندارد');
-      return;
-    }
-    
-    try {
-      const workbook = XLSX.utils.book_new();
-      
-      const combinedData = days.map(day => {
-        const rowData: Record<string, string> = { 'روز/ساعت': day };
-        
-        hours.forEach((hour, index) => {
-          const time = timeSlots[index];
-          const cellText: string[] = [];
-          
-          savedSchedules.forEach(savedSchedule => {
-            const cellSchedules = savedSchedule.schedules.filter(item => 
-              item.day === day && item.timeStart === time
-            );
-            
-            if (cellSchedules.length > 0) {
-              cellSchedules.forEach(item => {
-                cellText.push(`${item.grade} ${item.classNumber} ${item.field} (${savedSchedule.personnel.fullName})`);
-              });
-            }
-          });
-          
-          rowData[hour] = cellText.join('\n');
-        });
-        
-        return rowData;
-      });
-      
-      const combinedWorksheet = XLSX.utils.json_to_sheet(combinedData);
-      XLSX.utils.book_append_sheet(workbook, combinedWorksheet, 'برنامه کلی');
-      
-      savedSchedules.forEach(savedSchedule => {
-        const personnelData = days.map(day => {
-          const rowData: Record<string, string> = { 'روز/ساعت': day };
-          
-          hours.forEach((hour, index) => {
-            const time = timeSlots[index];
-            const cellSchedules = savedSchedule.schedules.filter(item => 
-              item.day === day && item.timeStart === time
-            );
-            
-            if (cellSchedules.length > 0) {
-              const cellText = cellSchedules.map(item => 
-                `${item.grade} ${item.classNumber} ${item.field}`
-              ).join('\n');
-              
-              rowData[hour] = cellText;
-            } else {
-              rowData[hour] = '';
-            }
-          });
-          
-          return rowData;
-        });
-        
-        const worksheet = XLSX.utils.json_to_sheet(personnelData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, `${savedSchedule.personnel.fullName}`);
-      });
-      
-      const maxWidth = 20;
-      const sheets = Object.keys(workbook.Sheets);
-      sheets.forEach(sheetName => {
-        const worksheet = workbook.Sheets[sheetName];
-        worksheet['!cols'] = Array(hours.length + 1).fill({ wch: maxWidth });
-      });
-      
-      const filename = `برنامه_کلی_پرسنل_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.xlsx`;
-      XLSX.writeFile(workbook, filename);
-      
-      setShowCombinedPreview(false);
-      
-    } catch (error) {
-      console.error('خطا در صدور به اکسل:', error);
-      alert('خطا در صدور به اکسل. لطفاً دوباره تلاش کنید.');
-    }
-  };
-
-  const handleShowCombinedSchedules = () => {
-    loadAllSavedSchedules();
-    setShowCombinedScheduleModal(true);
-  };
-
   const handleAddPersonnel = () => {
     if (!newPersonnel.fullName.trim() || !newPersonnel.mainPosition.trim()) {
       setAddPersonnelError('لطفاً تمام فیلدهای الزامی را پر کنید');
@@ -952,7 +863,6 @@ const PersonnelSchedule = () => {
       if (savedData) {
         const parsedData: SavedSchedule = JSON.parse(savedData);
         setSchedule(parsedData.schedules || []);
-        setShowCombinedScheduleModal(false);
       } else {
         setSchedule([]);
       }
@@ -1255,15 +1165,119 @@ const PersonnelSchedule = () => {
     }
   };
 
+  const exportCombinedDataToExcel = () => {
+    if (savedSchedules.length === 0) {
+      alert('هیچ برنامه‌ای برای صدور وجود ندارد');
+      return;
+    }
+    
+    try {
+      const workbook = XLSX.utils.book_new();
+      
+      const combinedData = days.map(day => {
+        const rowData: Record<string, string> = { 'روز/ساعت': day };
+        
+        hours.forEach((hour, index) => {
+          const time = timeSlots[index];
+          const cellText: string[] = [];
+          
+          savedSchedules.forEach(savedSchedule => {
+            const cellSchedules = savedSchedule.schedules.filter(item => 
+              item.day === day && item.timeStart === time
+            );
+            
+            if (cellSchedules.length > 0) {
+              cellSchedules.forEach(item => {
+                cellText.push(`${item.grade} ${item.classNumber} ${item.field} (${savedSchedule.personnel.fullName})`);
+              });
+            }
+          });
+          
+          rowData[hour] = cellText.join('\n');
+        });
+        
+        return rowData;
+      });
+      
+      const combinedWorksheet = XLSX.utils.json_to_sheet(combinedData);
+      XLSX.utils.book_append_sheet(workbook, combinedWorksheet, 'برنامه کلی');
+      
+      savedSchedules.forEach(savedSchedule => {
+        const personnelData = days.map(day => {
+          const rowData: Record<string, string> = { 'روز/ساعت': day };
+          
+          hours.forEach((hour, index) => {
+            const time = timeSlots[index];
+            const cellSchedules = savedSchedule.schedules.filter(item => 
+              item.day === day && item.timeStart === time
+            );
+            
+            if (cellSchedules.length > 0) {
+              const cellText = cellSchedules.map(item => 
+                `${item.grade} ${item.classNumber} ${item.field}`
+              ).join('\n');
+              
+              rowData[hour] = cellText;
+            } else {
+              rowData[hour] = '';
+            }
+          });
+          
+          return rowData;
+        });
+        
+        const worksheet = XLSX.utils.json_to_sheet(personnelData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${savedSchedule.personnel.fullName}`);
+      });
+      
+      const maxWidth = 20;
+      const sheets = Object.keys(workbook.Sheets);
+      sheets.forEach(sheetName => {
+        const worksheet = workbook.Sheets[sheetName];
+        worksheet['!cols'] = Array(hours.length + 1).fill({ wch: maxWidth });
+      });
+      
+      const filename = `برنامه_کلی_پرسنل_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      
+      setShowCombinedPreview(false);
+      
+    } catch (error) {
+      console.error('خطا در صدور به اکسل:', error);
+      alert('خطا در صدور به اکسل. لطفاً دوباره تلاش کنید.');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Link href="/" className={styles.backButton}>
-          بازگشت
-        </Link>
-        <h1 className="text-cyan-700">
-          برنامه‌ریزی پرسنل
-        </h1>
+        <div className={styles.headerButtons}>
+          <button onClick={() => router.back()} className={styles.backButton}>
+            بازگشت
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام برنامه‌ها را حذف کنید؟')) {
+                // حذف تمام برنامه‌ها از localStorage
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && (key.startsWith('personnel_schedule_') || key.startsWith('class_schedule_'))) {
+                    localStorage.removeItem(key);
+                  }
+                }
+                // بارگذاری مجدد برنامه‌ها
+                loadAllSavedSchedules();
+                setSchedule([]);
+                alert('تمام برنامه‌ها با موفقیت حذف شدند.');
+              }
+            }}
+            className={styles.deleteButton}
+          >
+            <FaTrash className="ml-1" />
+            حذف همه برنامه‌ها
+          </button>
+        </div>
+        <h1>برنامه پرسنلی</h1>
       </header>
 
       <main className={styles.main}>
@@ -1299,13 +1313,6 @@ const PersonnelSchedule = () => {
                 >
                   <FaPlus className="ml-1 inline-block" />
                   <span className="inline-block">افزودن پرسنل جدید</span>
-                </button>
-                <button
-                  onClick={handleShowCombinedSchedules}
-                  className={styles.actionButton}
-                >
-                  <FaHistory className="ml-1 inline-block" />
-                  <span className="inline-block">برنامه‌های اخیر</span>
                 </button>
               </div>
 
@@ -1380,13 +1387,6 @@ const PersonnelSchedule = () => {
                 >
                   <FaSave className="ml-1 inline-block" />
                   <span className="inline-block">ذخیره برنامه</span>
-                </button>
-                <button
-                  onClick={handleShowCombinedSchedules}
-                  className={styles.actionButton}
-                >
-                  <FaHistory className="ml-1 inline-block" />
-                  <span className="inline-block">برنامه‌های اخیر</span>
                 </button>
                 <button
                   onClick={exportToExcel}
@@ -2072,74 +2072,6 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               >
                 تأیید و دانلود
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCombinedScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out">
-          <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-gray-700 via-gray-800 to-gray-900 backdrop-blur-[2px]"></div>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 text-center">برنامه‌های ذخیره‌شده</h2>
-            </div>
-            <div className={styles.scrollableContent}>
-              {savedSchedules.length > 0 ? (
-                <div className="space-y-2">
-                  {savedSchedules.map(savedSchedule => (
-                    <div key={savedSchedule.personnel.id} className="p-3 border rounded-md flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-gray-900">{savedSchedule.personnel.fullName}</p>
-                        <p className="text-sm font-medium text-gray-700">{savedSchedule.personnel.mainPosition}</p>
-                        <p className="text-xs font-medium text-black">آخرین بروزرسانی: {new Date(savedSchedule.timestamp).toLocaleDateString('fa-IR')}</p>
-                      </div>
-                      <div className="flex space-x-2 space-x-reverse">
-                        <button 
-                          onClick={() => {
-                            handleChangePersonnel(savedSchedule.personnel);
-                            setShowCombinedScheduleModal(false);
-                          }}
-                          className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700"
-                        >
-                          انتخاب
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const confirmed = confirm(`آیا از حذف برنامه ${savedSchedule.personnel.fullName} اطمینان دارید؟`);
-                            if (confirmed) {
-                              localStorage.removeItem(`personnel_schedule_${savedSchedule.personnel.id}`);
-                              loadAllSavedSchedules();
-                            }
-                          }}
-                          className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                        >
-                          حذف
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center font-medium text-black">هیچ برنامه‌ای ذخیره نشده است</p>
-              )}
-            </div>
-            
-            <div className="mt-6 flex justify-between">
-              <button 
-                onClick={() => setShowCombinedScheduleModal(false)} 
-                className="py-2 px-4 bg-gray-200 text-gray-800 font-bold rounded hover:bg-gray-300 transition-colors"
-              >
-                بازگشت
-              </button>
-              {savedSchedules.length > 0 && (
-                <button 
-                  onClick={exportToExcel}
-                  className="py-2 px-6 bg-lime-600 hover:bg-lime-700 text-white font-bold rounded transition-colors"
-                >
-                  صدور به اکسل
-                </button>
-              )}
             </div>
           </div>
         </div>

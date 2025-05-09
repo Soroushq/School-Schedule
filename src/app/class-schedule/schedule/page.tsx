@@ -2,13 +2,13 @@
 
 import React, { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Dropdown from '../../../components/Dropdown/dropdown';
 import Modal from '../../../components/Modal/modal';
 import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import Input from '../../../components/Input/input';
-import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch, FaTrash } from "react-icons/fa";
 import styles from '../class-schedule.module.css';
-import { useSearchParams } from 'next/navigation';
 
 interface Schedule {
   id: string;
@@ -89,6 +89,7 @@ const SchedulePage = () => {
 };
 
 const SchedulePageContent = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const gradeParam = searchParams.get('grade') || '';
   const classParam = searchParams.get('class') || '';
@@ -1282,6 +1283,7 @@ const SchedulePageContent = () => {
   };
 
   // نمایش زمان آخرین ذخیره‌سازی برنامه
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderLastSaved = () => {
     if (lastSaved) {
       const date = new Date(lastSaved);
@@ -1305,13 +1307,33 @@ const SchedulePageContent = () => {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Link href="/class-schedule" className={styles.backButton}>
-          بازگشت
-        </Link>
-        <h1 className="text-cyan-700 font-bold">
-          برنامه‌ریزی کلاس {!showClassModal && `${grade}/${classNumber} ${field}`}
-        </h1>
-        {renderLastSaved()}
+        <div className={styles.headerButtons}>
+          <button onClick={() => router.back()} className={styles.backButton}>
+            بازگشت
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام برنامه‌ها را حذف کنید؟')) {
+                // حذف تمام برنامه‌ها از localStorage
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && (key.startsWith('class_schedule_') || key.startsWith('personnel_schedule_'))) {
+                    localStorage.removeItem(key);
+                  }
+                }
+                // بارگذاری مجدد برنامه‌ها
+                loadSavedPersonnelSchedules();
+                setSchedule([]);
+                alert('تمام برنامه‌ها با موفقیت حذف شدند.');
+              }
+            }}
+            className={styles.deleteButton}
+          >
+            <FaTrash className="ml-1" />
+            حذف همه برنامه‌ها
+          </button>
+        </div>
+        <h1>برنامه کلاسی</h1>
       </header>
 
       <main className={styles.main}>
