@@ -1,7 +1,7 @@
 import './globals.css'
 import { Metadata } from 'next'
 import Navbar from './components/Navbar'
-import { ClientScheduleSyncObserver } from './ClientComponents'
+import { ClientScheduleSyncObserver, ClientAnalyticsTracker, ClientPrivacyAgreement } from './ClientComponents'
 import ClientLayout from './ClientLayout'
 import { Suspense } from 'react'
 import PageLoading from '@/components/PageLoading'
@@ -36,8 +36,10 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <PageLoading />
         </Suspense>
+        <ClientPrivacyAgreement />
         <Navbar />
         <ClientScheduleSyncObserver />
+        <ClientAnalyticsTracker />
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

@@ -1,17 +1,48 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export default function AccessDenied() {
+  const [countdown, setCountdown] = useState(15);
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
+    // تشخیص دستگاه موبایل
+    if (typeof window !== 'undefined') {
+      setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    }
+
+    // کاهش تایمر شمارش معکوس
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     // اضافه کردن تایمر برای بستن صفحه بعد از 15 ثانیه
     const timer = setTimeout(() => {
-      window.close();
+      try {
+        window.close();
+      } catch (e) {
+        console.log('نمی‌توان صفحه را به صورت خودکار بست');
+      }
     }, 15000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timer);
+    };
   }, []);
+
+  // تابع بستن دستی صفحه (مخصوص موبایل)
+  const handleCloseManually = () => {
+    window.close();
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
@@ -39,9 +70,23 @@ export default function AccessDenied() {
           شما توافق‌نامه استفاده از برنامه‌ساز مدرسه را نپذیرفته‌اید. برای استفاده از این برنامه، باید توافق‌نامه را بپذیرید.
         </p>
         
-        <p className="text-gray-700 dark:text-gray-300 mb-8">
-          این صفحه به طور خودکار بعد از ۱۵ ثانیه بسته خواهد شد.
+        <p className="text-gray-700 dark:text-gray-300 mb-4">
+          این صفحه به طور خودکار بعد از <span className="font-bold text-red-500">{countdown}</span> ثانیه بسته خواهد شد.
         </p>
+        
+        {isMobile && (
+          <div className="mb-6 text-sm text-gray-600">
+            <p className="bg-yellow-50 border border-yellow-200 p-2 rounded-md">
+              برخی مرورگرهای موبایل اجازه بستن خودکار صفحه را نمی‌دهند. در صورت عدم بسته شدن خودکار، می‌توانید از دکمه زیر استفاده کنید.
+            </p>
+            <button 
+              onClick={handleCloseManually}
+              className="mt-3 w-full py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+            >
+              بستن صفحه
+            </button>
+          </div>
+        )}
         
         <Link 
           href="/"
