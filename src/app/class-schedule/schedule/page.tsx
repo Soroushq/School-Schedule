@@ -477,6 +477,17 @@ const SchedulePageContent = () => {
 
   const handleSubmit = () => {
     if (selectedCell && personnelCode && employmentStatus && mainPosition) {
+      // اعتبارسنجی کد پرسنلی: فقط عدد و دقیقاً ۸ رقم
+      if (personnelCode.length !== 8) {
+        toast.error('کد پرسنلی باید دقیقاً ۸ رقم باشد');
+        return;
+      }
+
+      if (!/^\d+$/.test(personnelCode)) {
+        toast.error('کد پرسنلی باید فقط شامل اعداد باشد');
+        return;
+      }
+      
       const timeStart = selectedCell.time;
       const timeEndHour = parseInt(timeStart.split(':')[0]) + 1;
       const timeEnd = `${toPersianNumber(timeEndHour)}:۰۰`;
@@ -1205,16 +1216,21 @@ const SchedulePageContent = () => {
     
     const results: Personnel[] = [];
     savedPersonnelSchedules.forEach(schedule => {
-      const fullName = schedule.personnel.fullName.toLowerCase();
-      const code = schedule.personnel.personnelCode;
-      const position = schedule.personnel.mainPosition.toLowerCase();
+      const personnel = schedule.personnel;
+      const fullName = personnel.fullName.toLowerCase();
+      const code = personnel.personnelCode;
+      const position = personnel.mainPosition.toLowerCase();
+      
+      // اعتبارسنجی کد پرسنلی: فقط عدد و دقیقاً ۸ رقم
+      const isValidPersonnelCode = code.length === 8 && /^\d+$/.test(code);
       
       if (
-        fullName.includes(query.toLowerCase()) || 
+        (fullName.includes(query.toLowerCase()) || 
         code.includes(query) || 
-        position.includes(query.toLowerCase())
+        position.includes(query.toLowerCase())) &&
+        isValidPersonnelCode
       ) {
-        results.push(schedule.personnel);
+        results.push(personnel);
       }
     });
     
@@ -1225,6 +1241,17 @@ const SchedulePageContent = () => {
 
   // انتخاب پرسنل از نتایج جستجو
   const selectPersonnelFromSearch = (personnel: Personnel) => {
+    // اعتبارسنجی کد پرسنلی: فقط عدد و دقیقاً ۸ رقم
+    if (personnel.personnelCode.length !== 8) {
+      toast.error('کد پرسنلی باید دقیقاً ۸ رقم باشد');
+      return;
+    }
+
+    if (!/^\d+$/.test(personnel.personnelCode)) {
+      toast.error('کد پرسنلی باید فقط شامل اعداد باشد');
+      return;
+    }
+    
     setPersonnelCode(personnel.personnelCode);
     setPersonnelName(personnel.fullName);
     setEmploymentStatus(personnel.employmentStatus || '');
@@ -1887,7 +1914,13 @@ ${dayStat.personnel.map(personnelCode => {
                 <Input
                   label="کد پرسنلی"
                   value={personnelCode}
-                  onChange={(e) => setPersonnelCode(e.target.value)}
+                  onChange={(e) => {
+                    // فقط اعداد قابل قبول هستند و حداکثر ۸ رقم
+                    const value = e.target.value;
+                    if (value === '' || (/^\d+$/.test(value) && value.length <= 8)) {
+                      setPersonnelCode(value);
+                    }
+                  }}
                   placeholder="کد پرسنلی را وارد کنید"
                   className="w-full text-black text-sm focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                   type="text"

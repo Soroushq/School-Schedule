@@ -855,6 +855,22 @@ const PersonnelSchedule = () => {
     }
     
     const personnelCodeToUse = personnelCode || newPersonnel.personnelCode;
+    if (!personnelCodeToUse) {
+      setAddPersonnelError('کد پرسنلی مشخص نشده است');
+      return;
+    }
+
+    // اعتبارسنجی کد پرسنلی: فقط عدد و دقیقاً ۸ رقم
+    if (personnelCodeToUse.length !== 8) {
+      setAddPersonnelError('کد پرسنلی باید دقیقاً ۸ کاراکتر باشد');
+      return;
+    }
+
+    if (!/^\d+$/.test(personnelCodeToUse)) {
+      setAddPersonnelError('کد پرسنلی باید فقط شامل اعداد باشد');
+      return;
+    }
+    
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -1492,7 +1508,13 @@ const PersonnelSchedule = () => {
                   <input
                     type="text"
                     value={personnelCode}
-                    onChange={(e) => setPersonnelCode(e.target.value)}
+                    onChange={(e) => {
+                      // فقط اعداد قابل قبول هستند و حداکثر ۸ رقم
+                      const value = e.target.value;
+                      if (value === '' || (/^\d+$/.test(value) && value.length <= 8)) {
+                        setPersonnelCode(value);
+                      }
+                    }}
                     placeholder="کد پرسنلی را وارد کنید"
                     className="w-full p-2 border border-gray-300 rounded text-black"
                   />
@@ -1510,7 +1532,33 @@ const PersonnelSchedule = () => {
               
               <div className={`${styles.actionButtonsContainer} flex-wrap mb-4`}>
                 <button
-                  onClick={() => setShowAddPersonnelModal(true)}
+                  onClick={() => {
+                    // اعتبارسنجی کد پرسنلی قبل از باز کردن مودال
+                    if (!personnelCode.trim()) {
+                      setSearchError('لطفاً ابتدا کد پرسنلی را وارد کنید');
+                      return;
+                    }
+
+                    if (personnelCode.length !== 8) {
+                      setSearchError('کد پرسنلی باید دقیقاً ۸ کاراکتر باشد');
+                      return;
+                    }
+
+                    if (!/^\d+$/.test(personnelCode)) {
+                      setSearchError('کد پرسنلی باید فقط شامل اعداد باشد');
+                      return;
+                    }
+
+                    setSearchError('');
+                    // تنظیم کد پرسنلی در فرم افزودن پرسنل جدید
+                    setNewPersonnel({
+                      personnelCode: personnelCode,
+                      fullName: '',
+                      mainPosition: '',
+                      employmentStatus: 'شاغل'
+                    });
+                    setShowAddPersonnelModal(true);
+                  }}
                   className={styles.actionButton}
                 >
                   <FaPlus className="ml-1 inline-block" />
