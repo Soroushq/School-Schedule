@@ -9,7 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Farhang2', 'Vazirmatn', 'sans-serif'],
+        sans: [
+          'Farhang',
+          'Farhang-Bold',
+          'Farhang-Light',
+          'Farhang-Medium',
+          'Farhang-Thin',
+          'system-ui',
+          'sans-serif'
+        ],
         mono: ['Farhang2', 'Vazirmatn', 'monospace'],
         farhang: ['Farhang2', 'sans-serif'],
       },

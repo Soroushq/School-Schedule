@@ -2,6 +2,46 @@
 @import "tailwindcss";
 
 @font-face {
+  font-family: 'Farhang';
+  src: url('/fonts/farhang/Farhang.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang-Bold';
+  src: url('/fonts/farhang/Farhang-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang-Light';
+  src: url('/fonts/farhang/Farhang-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang-Medium';
+  src: url('/fonts/farhang/Farhang-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Farhang-Thin';
+  src: url('/fonts/farhang/Farhang-Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Farhang2';
   src: url('/fonts/farhang/Farhang2-Thin.woff2') format('woff2');
   font-weight: 100;
@@ -537,4 +577,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-marquee {
   animation: marquee 40s linear infinite;
+}
+
+/* حذف فونت Inter از لایه اصلی */
+@layer base {
+  html {
+    font-family: 'Farhang', system-ui, sans-serif;
+  }
+}
+
+/* استایل‌های قبلی */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }

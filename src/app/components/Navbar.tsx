@@ -341,7 +341,7 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="w-full shadow-md bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700 text-white">
+      <header className="w-full shadow-md bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700 text-white font-sans" style={{ fontFamily: 'inherit' }}>
         <div className="container mx-auto px-4 py-2 md:py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4 space-x-reverse">

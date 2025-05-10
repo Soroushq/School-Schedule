@@ -3,6 +3,8 @@ import { Metadata } from 'next'
 import Navbar from './components/Navbar'
 import { ClientScheduleSyncObserver } from './ClientComponents'
 import ClientLayout from './ClientLayout'
+import { Suspense } from 'react'
+import PageLoading from '@/components/PageLoading'
 
 export const metadata: Metadata = {
   title: 'برنامه ساز مدرسه',
@@ -30,7 +32,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa" dir="rtl">
-      <body className="antialiased">
+      <body>
+        <Suspense fallback={null}>
+          <PageLoading />
+        </Suspense>
         <Navbar />
         <ClientScheduleSyncObserver />
         <ClientLayout>{children}</ClientLayout>
