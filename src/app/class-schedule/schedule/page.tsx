@@ -515,16 +515,38 @@ const SchedulePageContent = () => {
       
       // بررسی تداخل در برنامه‌های پرسنلی
       const personnelWithSameTime = savedPersonnelSchedules.find(p => 
+        p.personnel.personnelCode === personnelCode &&
         p.schedules.some(s => 
           s.day === selectedCell.day && 
-          s.timeStart === selectedCell.time && 
-          s.personnelCode === personnelCode
+          s.timeStart === selectedCell.time
         )
       );
       
-      if (personnelWithSameTime && personnelWithSameTime.personnel.personnelCode === personnelCode) {
-        if (!window.confirm(`پرسنل ${personnelWithSameTime.personnel.fullName} در این زمان برنامه دیگری دارد. آیا می‌خواهید این برنامه را اضافه کنید؟`)) {
-          return;
+      if (personnelWithSameTime) {
+        // پیدا کردن برنامه‌ای که تداخل دارد
+        const conflictSchedule = personnelWithSameTime.schedules.find(s => 
+          s.day === selectedCell.day && 
+          s.timeStart === selectedCell.time
+        );
+        
+        if (conflictSchedule) {
+          // اگر این تداخل مربوط به همین کلاس است، می‌توانیم آن را جایگزین کنیم
+          if (conflictSchedule.grade === grade && 
+              conflictSchedule.classNumber === classNumber && 
+              conflictSchedule.field === field) {
+            // این برنامه مربوط به همین کلاس است و می‌تواند جایگزین شود
+            if (!window.confirm(`برنامه دیگری در این زمان برای همین کلاس وجود دارد. آیا می‌خواهید آن را جایگزین کنید؟`)) {
+              return;
+            }
+            // حذف برنامه قبلی (این قسمت قبلاً انجام شده)
+          } else {
+            // این تداخل مربوط به کلاس دیگری است و نباید اجازه اضافه شدن داده شود
+            toast.error(
+              `پرسنل ${personnelWithSameTime.personnel.fullName} در ${selectedCell.day} ساعت ${timeStart} در کلاس ${conflictSchedule.grade} ${conflictSchedule.classNumber} ${conflictSchedule.field} برنامه دارد. لطفاً ابتدا از صفحه برنامه پرسنلی، برنامه این پرسنل را ویرایش و خالی کرده و سپس اقدام به اختصاص این بازه زمانی به کلاس دیگری کنید.`,
+              { duration: 7000 }
+            );
+            return; // توقف اجرای تابع
+          }
         }
       }
       
@@ -668,6 +690,47 @@ const SchedulePageContent = () => {
     }
 
     if (draggedItem && dragStartRef.current) {
+      // بررسی تداخل در برنامه‌های پرسنلی
+      const personnelWithSameTime = savedPersonnelSchedules.find(p => 
+        p.personnel.personnelCode === draggedItem.personnelCode &&
+        p.schedules.some(s => 
+          s.day === targetDay && 
+          s.timeStart === targetTime
+        )
+      );
+      
+      if (personnelWithSameTime) {
+        // پیدا کردن برنامه‌ای که تداخل دارد
+        const conflictSchedule = personnelWithSameTime.schedules.find(s => 
+          s.day === targetDay && 
+          s.timeStart === targetTime
+        );
+        
+        if (conflictSchedule) {
+          // اگر این تداخل مربوط به همین کلاس است، می‌توانیم آن را جایگزین کنیم
+          if (conflictSchedule.grade === grade && 
+              conflictSchedule.classNumber === classNumber && 
+              conflictSchedule.field === field) {
+            // این برنامه مربوط به همین کلاس است و می‌تواند جایگزین شود
+            if (!window.confirm(`برنامه دیگری در این زمان برای همین کلاس وجود دارد. آیا می‌خواهید آن را جایگزین کنید؟`)) {
+              setDraggedItem(null);
+              dragStartRef.current = null;
+              return;
+            }
+            // حذف برنامه قبلی (باید اضافه شود)
+          } else {
+            // این تداخل مربوط به کلاس دیگری است و نباید اجازه جابجایی داده شود
+            toast.error(
+              `پرسنل ${personnelWithSameTime.personnel.fullName} در ${targetDay} ساعت ${targetTime} در کلاس ${conflictSchedule.grade} ${conflictSchedule.classNumber} ${conflictSchedule.field} برنامه دارد. لطفاً ابتدا از صفحه برنامه پرسنلی، برنامه این پرسنل را ویرایش و خالی کرده و سپس اقدام به انتقال برنامه به این بازه زمانی کنید.`,
+              { duration: 7000 }
+            );
+            setDraggedItem(null);
+            dragStartRef.current = null;
+            return; // توقف اجرای تابع
+          }
+        }
+      }
+      
       // محاسبه شماره تک ساعت برای خانه مقصد
       const hourNumber = getHourNumber(targetTime);
       

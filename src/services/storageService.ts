@@ -9,10 +9,16 @@
 export class StorageService {
   private static instance: StorageService;
   private hasAccess: boolean = false;
+  private isClient: boolean = false;
 
   // استفاده از الگوی Singleton
   private constructor() {
-    this.checkAccess();
+    // بررسی اینکه آیا کد در محیط کلاینت (مرورگر) اجرا می‌شود یا سرور
+    this.isClient = typeof window !== 'undefined';
+    // فقط در صورتی که در محیط کلاینت باشیم، دسترسی به localStorage را بررسی می‌کنیم
+    if (this.isClient) {
+      this.checkAccess();
+    }
   }
 
   // دریافت نمونه منحصر به فرد از سرویس
@@ -25,6 +31,12 @@ export class StorageService {
 
   // بررسی دسترسی به localStorage
   private checkAccess(): void {
+    if (!this.isClient) {
+      // در محیط سرور، دسترسی به localStorage نداریم
+      this.hasAccess = false;
+      return;
+    }
+
     try {
       // تلاش برای نوشتن و خواندن یک مقدار آزمایشی
       localStorage.setItem('storage_test', 'test');
@@ -40,7 +52,10 @@ export class StorageService {
         this.hasAccess = false;
       }
     } catch (e) {
-      console.error('دسترسی به localStorage ممکن نیست:', e);
+      // در صورت بروز خطا، دسترسی نداریم - ولی خطا را در سرور لاگ نمی‌کنیم
+      if (this.isClient) {
+        console.error('دسترسی به localStorage ممکن نیست:', e);
+      }
       this.hasAccess = false;
     }
   }
@@ -52,6 +67,11 @@ export class StorageService {
 
   // ذخیره‌سازی داده در localStorage با مدیریت خطا
   public setItem(key: string, value: string): boolean {
+    if (!this.isClient) {
+      // در محیط سرور اعلام می‌کنیم که عملیات انجام نشده
+      return false;
+    }
+
     if (!this.hasAccess) {
       console.warn('دسترسی به localStorage وجود ندارد. لطفاً توافق‌نامه را بپذیرید.');
       return false;
@@ -69,6 +89,11 @@ export class StorageService {
 
   // خواندن داده از localStorage با مدیریت خطا
   public getItem(key: string): string | null {
+    if (!this.isClient) {
+      // در محیط سرور، null برمی‌گردانیم
+      return null;
+    }
+
     if (!this.hasAccess) {
       console.warn('دسترسی به localStorage وجود ندارد. لطفاً توافق‌نامه را بپذیرید.');
       return null;
@@ -85,6 +110,11 @@ export class StorageService {
 
   // حذف داده از localStorage با مدیریت خطا
   public removeItem(key: string): boolean {
+    if (!this.isClient) {
+      // در محیط سرور اعلام می‌کنیم که عملیات انجام نشده
+      return false;
+    }
+
     if (!this.hasAccess) {
       console.warn('دسترسی به localStorage وجود ندارد. لطفاً توافق‌نامه را بپذیرید.');
       return false;
@@ -102,6 +132,11 @@ export class StorageService {
 
   // دریافت تمام کلیدهای موجود در localStorage
   public getAllKeys(): string[] {
+    if (!this.isClient) {
+      // در محیط سرور، یک آرایه خالی برمی‌گردانیم
+      return [];
+    }
+
     if (!this.hasAccess) {
       console.warn('دسترسی به localStorage وجود ندارد. لطفاً توافق‌نامه را بپذیرید.');
       return [];
@@ -125,6 +160,11 @@ export class StorageService {
 
   // پاک کردن تمام داده‌های localStorage
   public clear(): boolean {
+    if (!this.isClient) {
+      // در محیط سرور اعلام می‌کنیم که عملیات انجام نشده
+      return false;
+    }
+
     if (!this.hasAccess) {
       console.warn('دسترسی به localStorage وجود ندارد. لطفاً توافق‌نامه را بپذیرید.');
       return false;
@@ -144,12 +184,18 @@ export class StorageService {
 
   // بررسی مجدد دسترسی و بروزرسانی وضعیت
   public refreshAccess(): boolean {
-    this.checkAccess();
+    if (this.isClient) {
+      this.checkAccess();
+    }
     return this.hasAccess;
   }
 
   // ثبت پذیرش توافق‌نامه
   public acceptUserAgreement(): boolean {
+    if (!this.isClient) {
+      return false;
+    }
+
     try {
       localStorage.setItem('userAgreementAccepted', 'true');
       this.hasAccess = true;
@@ -162,6 +208,10 @@ export class StorageService {
 
   // بررسی وضعیت پذیرش توافق‌نامه
   public hasAcceptedAgreement(): boolean {
+    if (!this.isClient) {
+      return false;
+    }
+
     try {
       return localStorage.getItem('userAgreementAccepted') === 'true';
     } catch (e) {

@@ -32,7 +32,7 @@ export default function AnimatedFooter() {
         </button>
         <div className="animate-marquee whitespace-nowrap text-white text-sm py-1.5">
           <span className="inline-block mx-4">designed and created by Soroush Qary Ivary</span>
-          <span className="inline-block mx-4">طراحی و توسعه توسط سروش قاری ایوری</span>
+          <span className="inline-block mx-4">طراحی و توسعه : سروش قاری ایوری</span>
         </div>
       </div>
     </div>

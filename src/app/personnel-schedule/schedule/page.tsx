@@ -422,6 +422,47 @@ const PersonnelSchedule = () => {
       const hourIndex = timeSlots.findIndex(t => t === timeStart);
       const hourNumber = hourIndex + 1; // شماره ساعت از 1 شروع می‌شود
       
+      // بررسی آیا پرسنل در این زمان خاص برنامه دیگری دارد یا خیر
+      const existingSchedulesAtSameTime = schedule.filter(
+        item => item.day === selectedCell.day && item.timeStart === timeStart
+      );
+      
+      if (existingSchedulesAtSameTime.length > 0) {
+        // پرسنل قبلاً در این زمان برنامه دیگری دارد
+        const existingClass = existingSchedulesAtSameTime[0];
+        toast.error(
+          `این پرسنل قبلاً در ${selectedCell.day} ساعت ${timeStart} در کلاس ${existingClass.grade} ${existingClass.classNumber} ${existingClass.field} برنامه دارد. لطفاً ابتدا از صفحه برنامه پرسنلی، برنامه این پرسنل را ویرایش و خالی کرده و سپس اقدام به اختصاص این بازه زمانی به کلاس دیگری کنید.`,
+          { duration: 7000 }
+        );
+        return;
+      }
+      
+      // بررسی برنامه‌های ذخیره شده پرسنل در سایر کلاس‌ها
+      try {
+        const storageKey = `personnel_schedule_${selectedPersonnel.id}`;
+        const savedData = localStorage.getItem(storageKey);
+        
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          const savedSchedules = parsedData.schedules || [];
+          
+          const conflictingSchedules = savedSchedules.filter(
+            (item: Schedule) => item.day === selectedCell.day && item.timeStart === timeStart
+          );
+          
+          if (conflictingSchedules.length > 0) {
+            const conflictClass = conflictingSchedules[0];
+            toast.error(
+              `این پرسنل قبلاً در ${selectedCell.day} ساعت ${timeStart} در کلاس ${conflictClass.grade} ${conflictClass.classNumber} ${conflictClass.field} برنامه دارد. لطفاً ابتدا از صفحه برنامه پرسنلی، برنامه این پرسنل را ویرایش و خالی کرده و سپس اقدام به اختصاص این بازه زمانی به کلاس دیگری کنید.`,
+              { duration: 7000 }
+            );
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('خطا در بررسی تداخل با برنامه‌های ذخیره شده:', error);
+      }
+      
       const newScheduleId = uuidv4();
       
       const newScheduleItem: Schedule = {
@@ -484,49 +525,39 @@ const PersonnelSchedule = () => {
   };
 
   const getScheduleForCell = (day: string, time: string) => {
-    // برنامه‌های پرسنلی برای این سلول
-    const personnelSchedules = schedule.filter(item => item.day === day && item.timeStart === time);
+    // بارگرداندن تمام برنامه‌های مربوط به روز و ساعت مشخص شده
+    let schedules = schedule.filter(item => item.day === day && item.timeStart === time);
     
-    // همچنین بررسی برنامه‌های کلاسی مرتبط برای این پرسنل
+    // بررسی آیا در برنامه‌های ذخیره شده نیز برنامه‌ای وجود دارد
     if (selectedPersonnel) {
-      // بارگیری همه برنامه‌های کلاسی
-      const allClassSchedules: ClassSchedule[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('class_schedule_')) {
-          const savedData = localStorage.getItem(key);
-          if (savedData) {
-            try {
-              const parsedData = JSON.parse(savedData) as ClassSchedule;
-              allClassSchedules.push(parsedData);
-            } catch (error) {
-              console.error('خطا در تجزیه داده‌های کلاسی:', error);
-            }
+      try {
+        const storageKey = `personnel_schedule_${selectedPersonnel.id}`;
+        const savedData = localStorage.getItem(storageKey);
+        
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          const savedSchedules = parsedData.schedules || [];
+          
+          // پیدا کردن برنامه‌های ذخیره شده مطابق با روز و ساعت
+          const additionalSchedules = savedSchedules.filter(
+            (item: Schedule) => 
+              item.day === day && 
+              item.timeStart === time &&
+              // فقط برنامه‌هایی که در لیست فعلی نیستند را اضافه کنیم
+              !schedules.some(s => s.id === item.id)
+          );
+          
+          // اضافه کردن برنامه‌های یافت شده به لیست
+          if (additionalSchedules.length > 0) {
+            schedules = [...schedules, ...additionalSchedules];
           }
         }
+      } catch (error) {
+        console.error('خطا در بازیابی برنامه‌های ذخیره شده:', error);
       }
-      
-      // بررسی برنامه‌های کلاسی که به این پرسنل مرتبط هستند
-      const relatedClassSchedules = allClassSchedules.flatMap(classSchedule => 
-        classSchedule.schedules.filter(s => 
-          s.day === day && 
-          s.timeStart === time && 
-          s.personnelCode === selectedPersonnel.personnelCode &&
-          !personnelSchedules.some(ps => ps.id === s.id) // فقط برنامه‌هایی که قبلاً اضافه نشده‌اند
-        ).map(s => ({
-          ...s,
-          grade: classSchedule.grade,
-          classNumber: classSchedule.classNumber,
-          field: classSchedule.field,
-          source: 'class' as const
-        }))
-      );
-      
-      // ترکیب برنامه‌های پرسنلی و کلاسی
-      return [...personnelSchedules, ...relatedClassSchedules];
     }
     
-    return personnelSchedules;
+    return schedules;
   };
 
   const handleDragStart = (e: React.DragEvent, schedule: Schedule, day: string, time: string) => {
@@ -543,7 +574,54 @@ const PersonnelSchedule = () => {
   const handleDrop = (e: React.DragEvent, targetDay: string, targetTime: string) => {
     e.preventDefault();
     
-    if (draggedItem) {
+    if (draggedItem && selectedPersonnel) {
+      // بررسی آیا پرسنل در این زمان خاص برنامه دیگری دارد یا خیر
+      const existingSchedulesAtSameTime = schedule.filter(
+        item => item.day === targetDay && item.timeStart === targetTime
+      );
+      
+      if (existingSchedulesAtSameTime.length > 0) {
+        // پرسنل قبلاً در این زمان برنامه دیگری دارد
+        const existingClass = existingSchedulesAtSameTime[0];
+        toast.error(
+          `این پرسنل قبلاً در ${targetDay} ساعت ${targetTime} در کلاس ${existingClass.grade} ${existingClass.classNumber} ${existingClass.field} برنامه دارد. لطفاً ابتدا از صفحه برنامه پرسنلی، برنامه این پرسنل را ویرایش و خالی کرده و سپس اقدام به انتقال برنامه به این بازه زمانی کنید.`,
+          { duration: 7000 }
+        );
+        setDraggedItem(null);
+        return;
+      }
+      
+      // بررسی برنامه‌های ذخیره شده پرسنل در سایر کلاس‌ها
+      try {
+        const storageKey = `personnel_schedule_${selectedPersonnel.id}`;
+        const savedData = localStorage.getItem(storageKey);
+        
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          const savedSchedules = parsedData.schedules || [];
+          
+          const conflictingSchedules = savedSchedules.filter(
+            (item: Schedule) => 
+              item.day === targetDay && 
+              item.timeStart === targetTime && 
+              // اطمینان حاصل کنیم که برنامه در حال حرکت را دوباره بررسی نمی‌کنیم
+              item.id !== draggedItem.id
+          );
+          
+          if (conflictingSchedules.length > 0) {
+            const conflictClass = conflictingSchedules[0];
+            toast.error(
+              `این پرسنل قبلاً در ${targetDay} ساعت ${targetTime} در کلاس ${conflictClass.grade} ${conflictClass.classNumber} ${conflictClass.field} برنامه دارد که در صفحه فعلی نمایش داده نشده است. لطفاً ابتدا از صفحه برنامه پرسنلی، برنامه این پرسنل را ویرایش و خالی کرده و سپس اقدام به انتقال برنامه به این بازه زمانی کنید.`,
+              { duration: 7000 }
+            );
+            setDraggedItem(null);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('خطا در بررسی تداخل با برنامه‌های ذخیره شده:', error);
+      }
+      
       const updatedItem = {
         ...draggedItem,
         id: Date.now().toString(),
@@ -739,6 +817,39 @@ const PersonnelSchedule = () => {
 
   const saveScheduleToLocalStorage = () => {
     if (!selectedPersonnel) return;
+    
+    // بررسی تداخل‌های زمانی در برنامه‌های فعلی
+    const timeConflicts: {day: string, time: string}[] = [];
+    const scheduleByTime: Record<string, Schedule[]> = {};
+    
+    // گروه‌بندی برنامه‌ها بر اساس روز و زمان
+    schedule.forEach(item => {
+      const key = `${item.day}-${item.timeStart}`;
+      if (!scheduleByTime[key]) {
+        scheduleByTime[key] = [];
+      }
+      scheduleByTime[key].push(item);
+    });
+    
+    // بررسی تداخل‌ها
+    Object.entries(scheduleByTime).forEach(([key, items]) => {
+      if (items.length > 1) {
+        const [day, time] = key.split('-');
+        timeConflicts.push({day, time});
+      }
+    });
+    
+    if (timeConflicts.length > 0) {
+      const conflictDetails = timeConflicts.map(conflict => 
+        `${conflict.day} ساعت ${conflict.time}`
+      ).join('، ');
+      
+      if (!window.confirm(
+        `تداخل زمانی در برنامه این پرسنل وجود دارد. در زمان‌های (${conflictDetails}) برنامه‌های متعددی ثبت شده است. آیا مطمئن هستید که می‌خواهید برنامه را با این تداخل‌ها ذخیره کنید؟`
+      )) {
+        return;
+      }
+    }
     
     const savedSchedule: SavedSchedule = {
       personnel: selectedPersonnel,
@@ -1225,14 +1336,33 @@ const PersonnelSchedule = () => {
         // اگر برنامه‌ای موجود بود، آن را بارگیری می‌کنیم
         const classSchedule: ClassSchedule = JSON.parse(savedData);
         
-        // برنامه مورد نظر را حذف می‌کنیم
-        classSchedule.schedules = classSchedule.schedules.filter(
-          s => !(s.day === scheduleToRemove.day && s.timeStart === scheduleToRemove.timeStart)
-        );
+        // برنامه مورد نظر را با استفاده از ID حذف می‌کنیم
+        if (scheduleToRemove.id) {
+          classSchedule.schedules = classSchedule.schedules.filter(s => s.id !== scheduleToRemove.id);
+        } else {
+          // اگر ID وجود نداشت، از روز و ساعت استفاده می‌کنیم
+          classSchedule.schedules = classSchedule.schedules.filter(
+            s => !(s.day === scheduleToRemove.day && s.timeStart === scheduleToRemove.timeStart)
+          );
+        }
         
         // برنامه به‌روزرسانی شده را ذخیره می‌کنیم
         classSchedule.timestamp = Date.now();
         localStorage.setItem(storageKey, JSON.stringify(classSchedule));
+        
+        // حذف از سرویس همگام‌سازی
+        if (scheduleToRemove.id) {
+          syncService.deleteFromBoth(
+            scheduleToRemove.id,
+            scheduleToRemove.day,
+            scheduleToRemove.timeStart,
+            scheduleToRemove.timeEnd,
+            scheduleToRemove.grade,
+            scheduleToRemove.classNumber,
+            scheduleToRemove.field,
+            selectedPersonnel?.id
+          );
+        }
         
         // برنامه‌های کلاسی را مجدداً بارگیری می‌کنیم
         loadAllSavedClassSchedules();
@@ -2107,59 +2237,52 @@ const PersonnelSchedule = () => {
                                 </div>
                               )}
                               
-                              {cellSchedules.map((item) => (
-                                <div 
-                                  key={item.id}
-                                  className={`${styles.scheduleItem} ${item.source === 'class' ? 'border-yellow-400 bg-yellow-50' : ''} relative`}
-                                  draggable={item.source !== 'class'}
-                                  onDragStart={(e) => item.source !== 'class' && handleDragStart(e, item, day, time)}
-                                >
-                                  <p 
-                                    className="font-bold text-gray-900 text-xs md:text-sm cursor-pointer hover:text-cyan-700 hover:underline flex items-center"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigateToClassSchedule(item.grade, item.classNumber, item.field);
-                                    }}
-                                  >
-                                    <FaSchool className="ml-1 text-xs" />
-                                    {item.grade} {item.classNumber} {item.field}
-                                  </p>
-                                  <p className="text-gray-800 text-xs md:text-sm">{item.mainPosition}</p>
-                                  <p className="text-gray-800 text-xs md:text-sm">{item.hourType}</p>
-                                  
-                                  {item.source === 'class' ? (
-                                    <div className="absolute right-1 top-1">
-                                      <span className="inline-block text-[0.6rem] bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded">
-                                        از کلاس
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteSchedule(item.id);
-                                      }}
-                                      className={styles.deleteButton}
-                                    >
-                                      <FaTimes className="w-2 h-2 md:w-3 md:h-3" />
-                                    </button>
-                                  )}
+                              {cellSchedules.length > 0 ? (
+                                <div className={`w-full h-full p-1 relative ${styles.scheduleCellContent}`}>
+                                  {cellSchedules.map((cellSchedule, index) => {
+                                    // رنگ پس‌زمینه بر اساس نوع ساعت
+                                    let bgColorClass = "bg-blue-100";
+                                    if (cellSchedule.hourType === 'موظف اول' || cellSchedule.hourType === 'موظف دوبل') {
+                                      bgColorClass = "bg-green-100";
+                                    } else if (cellSchedule.hourType === 'غیرموظف اول' || cellSchedule.hourType === 'غیرموظف دوبل') {
+                                      bgColorClass = "bg-yellow-100";
+                                    }
+                                    
+                                    return (
+                                      <div 
+                                        key={cellSchedule.id} 
+                                        className={`${bgColorClass} rounded p-1 mb-1 text-right relative`}
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, cellSchedule, day, time)}
+                                      >
+                                        {/* دکمه حذف برای هر برنامه - بدون توجه به منبع آن */}
+                                        <button
+                                          className="absolute top-1 left-1 text-red-500 hover:text-red-700 z-10"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (window.confirm(`آیا از حذف این برنامه اطمینان دارید؟`)) {
+                                              handleDeleteSchedule(cellSchedule.id);
+                                            }
+                                          }}
+                                          title="حذف"
+                                        >
+                                          <FaTimes size={12} className="sm:text-[14px]" />
+                                        </button>
+
+                                        <div className="text-[10px] sm:text-xs font-bold text-black mb-1">{cellSchedule.grade} {cellSchedule.classNumber} - {cellSchedule.field}</div>
+                                        <div className="text-[10px] sm:text-xs text-black">{cellSchedule.mainPosition}</div>
+                                        <div className="text-[10px] sm:text-xs text-blue-700 font-bold">{cellSchedule.teachingGroup || 'بدون گروه تدریس'}</div>
+                                        <div className="text-[10px] sm:text-xs text-black">{cellSchedule.hourType || '-'}</div>
+                                        {cellSchedule.description && (
+                                          <div className="text-[10px] sm:text-xs text-gray-600 mt-1 truncate" title={cellSchedule.description}>
+                                            {cellSchedule.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              ))}
-                              
-                              {allCellHistory.length > 0 && (
-                                <div className="absolute left-1 bottom-1 flex">
-                                  {allCellHistory.slice(0, 3).map((historyItem, idx) => (
-                                    <div 
-                                      key={idx} 
-                                      className="bg-gray-200 opacity-50 w-3 h-3 md:w-4 md:h-4 border border-gray-300 -mr-1 rounded-sm"
-                                      style={{zIndex: 1, transform: `translateX(${idx * 2}px)`}} 
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                              
-                              {cellSchedules.length === 0 && (
+                              ) : (
                                 <div className="w-full h-full min-h-[4rem] md:min-h-[6rem] flex items-center justify-center cursor-pointer hover:bg-gray-50">
                                   <span className="text-gray-500">+</span>
                                 </div>

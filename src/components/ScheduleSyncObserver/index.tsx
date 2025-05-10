@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { scheduleSyncService } from '@/services/scheduleSync';
+import { storageService } from '@/services/storageService';
 
 // تعریف اینترفیس‌های مورد نیاز
 interface Personnel {
@@ -50,210 +52,99 @@ interface ClassSchedule {
   timestamp: number;
 }
 
+// اینترفیس برای انتقال پیام بین تب‌ها
+interface SyncMessage {
+  type: 'SYNC_UPDATE';
+  source: string;
+  timestamp: number;
+}
+
 /**
  * کامپوننت مشاهده‌گر تغییرات برنامه‌های پرسنلی و کلاسی
  * این کامپوننت هر تغییری در برنامه‌ها را دنبال کرده و آنها را بین برنامه‌های مختلف همگام می‌کند
  */
 export const ScheduleSyncObserver = () => {
-  const [lastStorageUpdateTime, setLastStorageUpdateTime] = useState<number>(Date.now());
+  const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
 
-  // زمانی که تغییری در localStorage رخ دهد، این کامپوننت آن را رصد خواهد کرد
   useEffect(() => {
-    const storageChangeHandler = () => {
-      // بروزرسانی زمان آخرین تغییر
-      setLastStorageUpdateTime(Date.now());
+    // بررسی اینکه آیا در محیط مرورگر هستیم
+    if (typeof window === 'undefined') {
+      return; // در محیط سرور، اثری ندارد
+    }
+
+    // ایجاد یک شناسه منحصر به فرد برای این نشست
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    
+    // شنونده برای رویداد storage
+    const handleStorageChange = (e: StorageEvent) => {
+      // بررسی تغییرات مربوط به برنامه‌ها
+      if (e.key && (e.key.startsWith('class_schedule_') || e.key.startsWith('personnel_schedule_'))) {
+        console.log('تغییر در داده‌های ذخیره شده شناسایی شد:', e.key);
+        // به‌روزرسانی آخرین زمان تغییر برای القای رندر مجدد
+        setLastUpdate(Date.now());
+      }
+      
+      // بررسی پیام‌های همزمان‌سازی
+      if (e.key === 'sync_message') {
+        try {
+          const message = JSON.parse(e.newValue || '{}') as SyncMessage;
+          
+          // اطمینان از اینکه پیام از منبع دیگری آمده است (نه خود این تب)
+          if (message.type === 'SYNC_UPDATE' && message.source !== sessionId) {
+            console.log('پیام همزمان‌سازی دریافت شد:', message);
+            setLastUpdate(Date.now());
+          }
+        } catch (error) {
+          console.error('خطا در پردازش پیام همزمان‌سازی:', error);
+        }
+      }
     };
 
-    // اضافه کردن شنونده‌ی تغییرات localStorage
-    window.addEventListener('storage', storageChangeHandler);
+    // افزودن شنونده به رویداد storage
+    window.addEventListener('storage', handleStorageChange);
 
-    // پاکسازی شنونده هنگام unmount کامپوننت
+    // تابع ارسال پیام همزمان‌سازی
+    const broadcastSyncMessage = () => {
+      const message: SyncMessage = {
+        type: 'SYNC_UPDATE',
+        source: sessionId,
+        timestamp: Date.now()
+      };
+      
+      storageService.setItem('sync_message', JSON.stringify(message));
+    };
+
+    // اضافه کردن شنونده برای محتوای localStorage
+    const originalSetItem = storageService.setItem;
+    const enhancedSetItem = (key: string, value: string): boolean => {
+      const result = originalSetItem.call(storageService, key, value);
+      
+      // اگر تغییر مربوط به برنامه‌ها باشد، پیام همزمان‌سازی ارسال کن
+      if (key.startsWith('class_schedule_') || key.startsWith('personnel_schedule_')) {
+        broadcastSyncMessage();
+      }
+      
+      return result;
+    };
+    
+    // جایگزینی موقت تابع setItem
+    (storageService as any).setItem = enhancedSetItem;
+
+    // تنظیم بررسی دوره‌ای همزمان‌سازی هر 10 ثانیه (پشتیبان)
+    const syncInterval = setInterval(() => {
+      // این فقط یک پشتیبان است در صورتی که رویداد storage به درستی کار نکند
+      setLastUpdate(Date.now());
+    }, 10000);
+
     return () => {
-      window.removeEventListener('storage', storageChangeHandler);
+      // پاکسازی شنونده‌ها و بازگرداندن تابع اصلی
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(syncInterval);
+      (storageService as any).setItem = originalSetItem;
     };
   }, []);
 
-  // همگام‌سازی برنامه‌ها هر زمان که localStorage تغییر کند
-  useEffect(() => {
-    // همگام‌سازی برنامه‌های پرسنلی با برنامه‌های کلاسی
-    const syncPersonnelToClass = () => {
-      try {
-        // بارگیری همه برنامه‌های پرسنلی
-        const personnelSchedules: PersonnelSchedule[] = [];
-        
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          
-          if (key && key.startsWith('personnel_schedule_')) {
-            const savedData = localStorage.getItem(key);
-            
-            if (savedData) {
-              try {
-                const parsedData = JSON.parse(savedData) as PersonnelSchedule;
-                personnelSchedules.push(parsedData);
-              } catch (e) {
-                console.error('خطا در تجزیه داده‌های ذخیره شده:', e);
-              }
-            }
-          }
-        }
-        
-        // همگام‌سازی هر برنامه پرسنلی با برنامه‌های کلاسی
-        personnelSchedules.forEach(personnelSchedule => {
-          const personnel = personnelSchedule.personnel;
-          const schedules = personnelSchedule.schedules;
-          
-          // بررسی هر برنامه زمانی
-          schedules.forEach((schedule: Schedule) => {
-            if (schedule.grade && schedule.classNumber && schedule.field) {
-              // کلید برنامه کلاسی
-              const classKey = `class_schedule_${schedule.grade}-${schedule.classNumber}-${schedule.field}`;
-              const classScheduleStr = localStorage.getItem(classKey);
-              
-              if (classScheduleStr) {
-                // برنامه کلاسی موجود است
-                const classSchedule = JSON.parse(classScheduleStr) as ClassSchedule;
-                
-                // جستجوی برنامه قبلی در همان روز و زمان
-                const existingScheduleIndex = classSchedule.schedules.findIndex((s: Schedule) => 
-                  s.day === schedule.day && s.timeStart === schedule.timeStart && s.timeEnd === schedule.timeEnd
-                );
-                
-                // برنامه پرسنلی با اطلاعات پرسنلی
-                const scheduleWithPersonnelInfo: Schedule = {
-                  ...schedule,
-                  personnelCode: personnel.personnelCode,
-                  fullName: personnel.fullName,
-                  mainPosition: personnel.mainPosition,
-                  employmentStatus: personnel.employmentStatus,
-                  personnelScheduleId: personnel.id,
-                  source: 'personnel'
-                };
-                
-                if (existingScheduleIndex >= 0) {
-                  // بروزرسانی برنامه موجود
-                  classSchedule.schedules[existingScheduleIndex] = scheduleWithPersonnelInfo;
-                } else {
-                  // افزودن برنامه جدید
-                  classSchedule.schedules.push(scheduleWithPersonnelInfo);
-                }
-                
-                // ذخیره تغییرات برنامه کلاسی
-                classSchedule.timestamp = Date.now();
-                localStorage.setItem(classKey, JSON.stringify(classSchedule));
-              } else {
-                // برنامه کلاسی وجود ندارد - ایجاد برنامه جدید
-                const newClassSchedule: ClassSchedule = {
-                  id: uuidv4(),
-                  grade: schedule.grade,
-                  classNumber: schedule.classNumber,
-                  field: schedule.field,
-                  schedules: [{
-                    ...schedule,
-                    personnelCode: personnel.personnelCode,
-                    fullName: personnel.fullName,
-                    mainPosition: personnel.mainPosition,
-                    employmentStatus: personnel.employmentStatus,
-                    personnelScheduleId: personnel.id,
-                    source: 'personnel'
-                  }],
-                  timestamp: Date.now()
-                };
-                
-                localStorage.setItem(classKey, JSON.stringify(newClassSchedule));
-              }
-            }
-          });
-        });
-      } catch (error) {
-        console.error('خطا در همگام‌سازی برنامه‌های پرسنلی با کلاسی:', error);
-      }
-    };
-    
-    // همگام‌سازی برنامه‌های کلاسی با برنامه‌های پرسنلی
-    const syncClassToPersonnel = () => {
-      try {
-        // بارگیری همه برنامه‌های کلاسی
-        const classSchedules: ClassSchedule[] = [];
-        
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          
-          if (key && key.startsWith('class_schedule_')) {
-            const savedData = localStorage.getItem(key);
-            
-            if (savedData) {
-              try {
-                const parsedData = JSON.parse(savedData) as ClassSchedule;
-                classSchedules.push(parsedData);
-              } catch (e) {
-                console.error('خطا در تجزیه داده‌های ذخیره شده:', e);
-              }
-            }
-          }
-        }
-        
-        // همگام‌سازی هر برنامه کلاسی با برنامه‌های پرسنلی
-        classSchedules.forEach(classSchedule => {
-          const classInfo = {
-            grade: classSchedule.grade,
-            classNumber: classSchedule.classNumber,
-            field: classSchedule.field
-          };
-          
-          // بررسی هر برنامه زمانی
-          classSchedule.schedules.forEach((schedule: Schedule) => {
-            if (schedule.personnelCode && schedule.personnelId) {
-              // کلید برنامه پرسنلی
-              const personnelKey = `personnel_schedule_${schedule.personnelId}`;
-              const personnelScheduleStr = localStorage.getItem(personnelKey);
-              
-              if (personnelScheduleStr) {
-                // برنامه پرسنلی موجود است
-                const personnelSchedule = JSON.parse(personnelScheduleStr) as PersonnelSchedule;
-                
-                // جستجوی برنامه قبلی در همان روز و زمان
-                const existingScheduleIndex = personnelSchedule.schedules.findIndex((s: Schedule) => 
-                  s.day === schedule.day && s.timeStart === schedule.timeStart && s.timeEnd === schedule.timeEnd
-                );
-                
-                // برنامه کلاسی با اطلاعات کلاس
-                const scheduleWithClassInfo: Schedule = {
-                  ...schedule,
-                  grade: classInfo.grade,
-                  classNumber: classInfo.classNumber,
-                  field: classInfo.field,
-                  classScheduleId: classSchedule.id,
-                  source: 'class'
-                };
-                
-                if (existingScheduleIndex >= 0) {
-                  // بروزرسانی برنامه موجود
-                  personnelSchedule.schedules[existingScheduleIndex] = scheduleWithClassInfo;
-                } else {
-                  // افزودن برنامه جدید
-                  personnelSchedule.schedules.push(scheduleWithClassInfo);
-                }
-                
-                // ذخیره تغییرات برنامه پرسنلی
-                personnelSchedule.timestamp = Date.now();
-                localStorage.setItem(personnelKey, JSON.stringify(personnelSchedule));
-              }
-            }
-          });
-        });
-      } catch (error) {
-        console.error('خطا در همگام‌سازی برنامه‌های کلاسی با پرسنلی:', error);
-      }
-    };
-    
-    // اجرای همگام‌سازی
-    syncPersonnelToClass();
-    syncClassToPersonnel();
-    
-  }, [lastStorageUpdateTime]);
-  
-  // این کامپوننت چیزی نمایش نمی‌دهد، فقط منطق همگام‌سازی را اجرا می‌کند
+  // این کامپوننت چیزی رندر نمی‌کند، فقط به عنوان ناظر عمل می‌کند
   return null;
 };
 

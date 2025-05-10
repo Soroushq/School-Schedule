@@ -53,6 +53,11 @@ class ScheduleSyncService {
   // بارگذاری تمام برنامه‌های پرسنلی ذخیره شده
   getAllPersonnelSchedules(): SavedPersonnelSchedule[] {
     try {
+      // بررسی اینکه آیا در محیط مرورگر هستیم
+      if (typeof window === 'undefined') {
+        return [];
+      }
+
       const schedules: SavedPersonnelSchedule[] = [];
       const allKeys = storageService.getAllKeys();
       
@@ -71,7 +76,13 @@ class ScheduleSyncService {
         }
       }
       
-      return schedules;
+      // مرتب‌سازی نتایج بر اساس نام و برنامه‌های دارای فیلد fullName و personnelCode
+      return schedules.sort((a, b) => {
+        if (a.personnel.fullName && b.personnel.fullName) {
+          return a.personnel.fullName.localeCompare(b.personnel.fullName);
+        }
+        return 0;
+      });
     } catch (error) {
       console.error('خطا در بارگیری برنامه‌های پرسنلی:', error);
       return [];
@@ -81,6 +92,11 @@ class ScheduleSyncService {
   // بارگذاری تمام برنامه‌های کلاسی ذخیره شده
   getAllClassSchedules(): SavedClassSchedule[] {
     try {
+      // بررسی اینکه آیا در محیط مرورگر هستیم
+      if (typeof window === 'undefined') {
+        return [];
+      }
+
       const schedules: SavedClassSchedule[] = [];
       const allKeys = storageService.getAllKeys();
       
@@ -109,11 +125,19 @@ class ScheduleSyncService {
   // بارگذاری برنامه پرسنلی با ID مشخص
   getPersonnelScheduleById(personnelId: string): SavedPersonnelSchedule | null {
     try {
+      // بررسی اینکه آیا در محیط مرورگر هستیم
+      if (typeof window === 'undefined') {
+        return null;
+      }
+
       const key = `personnel_schedule_${personnelId}`;
       const savedData = storageService.getItem(key);
       
       if (savedData) {
-        return JSON.parse(savedData);
+        const parsedData = JSON.parse(savedData);
+        // اطمینان از یکپارچگی داده‌ها با برنامه‌های کلاسی
+        parsedData.schedules = this.enrichPersonnelSchedules(parsedData.schedules, parsedData.personnel);
+        return parsedData;
       }
       
       return null;
@@ -123,9 +147,68 @@ class ScheduleSyncService {
     }
   }
 
+  // غنی‌سازی برنامه‌های پرسنلی با اطلاعات مشابه از برنامه‌های کلاسی
+  private enrichPersonnelSchedules(schedules: Schedule[], personnel: Personnel): Schedule[] {
+    try {
+      // بررسی اینکه آیا در محیط مرورگر هستیم
+      if (typeof window === 'undefined') {
+        return schedules;
+      }
+
+      // بررسی وجود تکراری‌ها و حذف آنها
+      const uniqueSchedules = new Map<string, Schedule>();
+      
+      // ابتدا همه برنامه‌های کلاسی مرتبط را بیابیم
+      const classSchedules = this.getAllClassSchedules();
+      const allClassSchedules: Schedule[] = [];
+      
+      classSchedules.forEach(cs => {
+        const matchingSchedules = cs.schedules.filter(s => 
+          s.personnelCode === personnel.personnelCode
+        );
+        
+        allClassSchedules.push(...matchingSchedules);
+      });
+      
+      // اضافه کردن برنامه‌های کلاسی مرتبط
+      allClassSchedules.forEach(s => {
+        const key = `${s.day}-${s.timeStart}-${s.grade}-${s.classNumber}-${s.field}`;
+        if (!uniqueSchedules.has(key)) {
+          uniqueSchedules.set(key, {
+            ...s,
+            source: 'class'
+          });
+        }
+      });
+      
+      // اضافه کردن برنامه‌های پرسنلی (اولویت بالاتر)
+      schedules.forEach(s => {
+        const key = `${s.day}-${s.timeStart}-${s.grade}-${s.classNumber}-${s.field}`;
+        uniqueSchedules.set(key, {
+          ...s,
+          personnelCode: personnel.personnelCode,
+          fullName: personnel.fullName,
+          mainPosition: s.mainPosition || personnel.mainPosition,
+          employmentStatus: s.employmentStatus || personnel.employmentStatus,
+          source: s.source || 'personnel'
+        });
+      });
+      
+      return Array.from(uniqueSchedules.values());
+    } catch (error) {
+      console.error('خطا در غنی‌سازی برنامه‌های پرسنلی:', error);
+      return schedules;
+    }
+  }
+
   // بارگذاری برنامه کلاسی با اطلاعات مشخص
   getClassSchedule(grade: string, classNumber: string, field: string): SavedClassSchedule | null {
     try {
+      // بررسی اینکه آیا در محیط مرورگر هستیم
+      if (typeof window === 'undefined') {
+        return null;
+      }
+
       const key = `class_schedule_${grade}-${classNumber}-${field}`;
       const savedData = storageService.getItem(key);
       
