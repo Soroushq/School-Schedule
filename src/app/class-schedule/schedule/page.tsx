@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Dropdown from '../../../components/Dropdown/dropdown';
 import Modal from '../../../components/Modal/modal';
 import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import Input from '../../../components/Input/input';
-import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch, FaTrash, FaHistory, FaEdit, FaEye, FaExclamationTriangle, FaFileDownload, FaFileExport } from "react-icons/fa";
 import styles from '../class-schedule.module.css';
 import toast, { Toaster } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 
 interface Schedule {
   id: string;
@@ -118,14 +119,11 @@ const SchedulePageContent = () => {
   const [draggedItem, setDraggedItem] = useState<Schedule | null>(null);
   const dragStartRef = useRef<{ day: string; time: string } | null>(null);
   const [savedPersonnelSchedules, setSavedPersonnelSchedules] = useState<SavedPersonnelSchedule[]>([]);
-  const [lastSaved, setLastSaved] = useState<number>(0);
-  const [classStats, setClassStats] = useState<ClassStatistics>({
-    totalHours: 0,
-    uniquePersonnel: 0,
-    dayStats: {},
-    personnelStats: {},
-    subjectStats: {}
-  });
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [classStats, setClassStats] = useState<ClassStatistics | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showCombinedPreview, setShowCombinedPreview] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   // اضافه کردن استیت برای نگهداری برنامه‌های پرسنلی مرتبط با هر سلول
   const [cellPersonnelSchedules, setCellPersonnelSchedules] = useState<{[key: string]: ScheduleWithFullName[]}>({});
   
@@ -1521,6 +1519,140 @@ const SchedulePageContent = () => {
     toast.dismiss(); // پاک کردن توست‌های قبلی
   }, []);
 
+  // تابع برای خروجی گرفتن اکسل
+  const exportToExcel = () => {
+    if (!grade || !classNumber || !field) {
+      toast.error('لطفاً ابتدا کلاس را انتخاب کنید');
+      return;
+    }
+
+    if (schedule.length === 0) {
+      toast.error('هیچ برنامه‌ای برای صدور وجود ندارد');
+      return;
+    }
+    
+    setShowCombinedPreview(true);
+  };
+  
+  // تابع برای تبدیل برنامه به فایل اکسل
+  const exportCombinedDataToExcel = () => {
+    if (schedule.length === 0) {
+      toast.error('هیچ برنامه‌ای برای صدور وجود ندارد');
+      return;
+    }
+    
+    try {
+      const workbook = XLSX.utils.book_new();
+      
+      // ایجاد یک صفحه برای کل برنامه کلاس
+      const classData = days.map(day => {
+        const rowData: Record<string, string> = { 'روز/ساعت': day };
+        
+        hours.forEach((hour, index) => {
+          const time = timeSlots[index];
+          let cellText = '';
+          
+          // بررسی سلول برای برنامه برنامه کلاسی
+          const cellSchedule = schedule.find(item => 
+            item.day === day && item.timeStart === time
+          );
+          
+          if (cellSchedule) {
+            // استفاده از اطلاعات پرسنلی ذخیره شده برای نمایش نام کامل
+            let fullName = '';
+            const personnelData = savedPersonnelSchedules.find(
+              ps => ps.personnel.personnelCode === cellSchedule.personnelCode
+            );
+            
+            if (personnelData) {
+              fullName = personnelData.personnel.fullName;
+            }
+            
+            cellText = `${cellSchedule.teachingGroup} (${fullName || cellSchedule.personnelCode})`;
+          }
+          
+          rowData[hour] = cellText;
+        });
+        
+        return rowData;
+      });
+      
+      const classWorksheet = XLSX.utils.json_to_sheet(classData);
+      XLSX.utils.book_append_sheet(workbook, classWorksheet, `${grade} ${classNumber} ${field}`);
+      
+      // تنظیم عرض ستون‌ها
+      const maxWidth = 20;
+      const sheets = Object.keys(workbook.Sheets);
+      sheets.forEach(sheetName => {
+        const worksheet = workbook.Sheets[sheetName];
+        worksheet['!cols'] = Array(hours.length + 1).fill({ wch: maxWidth });
+      });
+      
+      // ایجاد نام فایل با اطلاعات کلاس و تاریخ
+      const filename = `برنامه_کلاس_${grade}_${classNumber}_${field}_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      
+      setShowCombinedPreview(false);
+      
+    } catch (error) {
+      console.error('خطا در صدور به اکسل:', error);
+      toast.error('خطا در صدور به اکسل. لطفاً دوباره تلاش کنید.');
+    }
+  };
+  
+  // تابع برای خروجی گرفتن JSON
+  const exportToJson = () => {
+    if (!grade || !classNumber || !field) {
+      toast.error('لطفاً ابتدا کلاس را انتخاب کنید');
+      return;
+    }
+    
+    if (schedule.length === 0) {
+      toast.error('هیچ برنامه‌ای برای صدور وجود ندارد');
+      return;
+    }
+    
+    try {
+      const dataToExport = {
+        grade,
+        classNumber,
+        field,
+        schedules: schedule,
+        timestamp: Date.now()
+      };
+      
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `برنامه_کلاس_${grade}_${classNumber}_${field}_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('فایل JSON با موفقیت ایجاد شد');
+    } catch (error) {
+      console.error('خطا در ایجاد فایل JSON:', error);
+      toast.error('خطا در ایجاد فایل JSON. لطفاً دوباره تلاش کنید.');
+    }
+  };
+  
+  // اضافه کردن Effect برای بستن منوی آبشاری با کلیک خارج از آن
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1581,29 +1713,44 @@ const SchedulePageContent = () => {
                 <span className="button-text">افزودن برنامه جدید</span>
               </button>
               {schedule.length > 0 && (
-                <button
-                  onClick={() => {
-                    const dataStr = `data:text/json;charset=utf-8,${encodeURIComponent(
-                      JSON.stringify({
-                        grade,
-                        classNumber,
-                        field,
-                        schedules: schedule,
-                        timestamp: Date.now()
-                      })
-                    )}`;
-                    const downloadAnchorNode = document.createElement('a');
-                    downloadAnchorNode.setAttribute('href', dataStr);
-                    downloadAnchorNode.setAttribute('download', `برنامه_کلاس_${grade}_${classNumber}_${field}.json`);
-                    document.body.appendChild(downloadAnchorNode);
-                    downloadAnchorNode.click();
-                    downloadAnchorNode.remove();
-                  }}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-700 transition-all mx-1 sm:mx-2 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
-                >
-                  <FaDownload className="ml-1 sm:ml-2" />
-                  <span className="button-text">خروجی فایل</span>
-                </button>
+                <div className="relative inline-block" ref={exportMenuRef}>
+                  <button
+                    onClick={() => setShowExportMenu(!showExportMenu)}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-700 transition-all mx-1 sm:mx-2 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
+                  >
+                    <FaFileDownload className="ml-1 sm:ml-2" />
+                    <span className="button-text">خروجی گرفتن</span>
+                  </button>
+                  
+                  {showExportMenu && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div className="py-1" role="menu" aria-orientation="vertical">
+                        <button
+                          onClick={() => {
+                            setShowExportMenu(false);
+                            exportToExcel();
+                          }}
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                        >
+                          <FaFileExport className="ml-2" />
+                          خروجی اکسل
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowExportMenu(false);
+                            exportToJson();
+                          }}
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                        >
+                          <FaFileDownload className="ml-2" />
+                          خروجی JSON
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -1638,11 +1785,11 @@ const SchedulePageContent = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 mb-2 sm:mb-4">
                 <div className="bg-white p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow">
                   <p className="text-gray-600 text-xs md:text-sm">تعداد کل ساعت‌ها</p>
-                  <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats.totalHours}</p>
+                  <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats?.totalHours}</p>
                 </div>
                 <div className="bg-white p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow">
                   <p className="text-gray-600 text-xs md:text-sm">تعداد پرسنل منحصر به فرد</p>
-                  <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats.uniquePersonnel}</p>
+                  <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats?.uniquePersonnel}</p>
                 </div>
                 <div 
                   className="bg-white p-2 md:p-3 rounded-md shadow-sm cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
@@ -1676,7 +1823,7 @@ const SchedulePageContent = () => {
                 <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات برنامه روزانه</h4>
                 <div className="bg-white rounded-md shadow-sm overflow-hidden">
                   {days.map(day => {
-                    const dayStat = classStats.dayStats[day];
+                    const dayStat = classStats?.dayStats[day];
                     if (!dayStat) return null;
                     
                     return (
@@ -1691,7 +1838,7 @@ const SchedulePageContent = () => {
                             <span className="font-medium">پرسنل: </span>
                             <span>
                               {dayStat.personnel.map(personnelCode => {
-                                const personnelInfo = classStats.personnelStats[personnelCode];
+                                const personnelInfo = classStats?.personnelStats[personnelCode];
                                 return personnelInfo?.fullName || `کد: ${personnelCode}`;
                               }).join('، ')}
                             </span>
@@ -1707,7 +1854,7 @@ const SchedulePageContent = () => {
               <div className="mt-4">
                 <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات پرسنل</h4>
                 <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                  {Object.entries(classStats.personnelStats).map(([personnelCode, stat], index) => (
+                  {Object.entries(classStats?.personnelStats || {}).map(([personnelCode, stat], index) => (
                     <div key={index} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
                       <h5 
                         className="text-gray-900 font-bold text-sm md:text-base mb-1 cursor-pointer hover:text-cyan-700 flex items-center"
@@ -1746,7 +1893,7 @@ const SchedulePageContent = () => {
               <div className="mt-4">
                 <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات گروه‌های تدریسی</h4>
                 <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                  {Object.entries(classStats.subjectStats).map(([subject, stat], index) => (
+                  {Object.entries(classStats?.subjectStats || {}).map(([subject, stat], index) => (
                     <div key={index} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
                       <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">
                         {subject}
@@ -1760,7 +1907,7 @@ const SchedulePageContent = () => {
                           <span className="font-medium">پرسنل: </span>
                           <span>
                             {stat.personnel.map(personnelCode => {
-                              const personnelInfo = classStats.personnelStats[personnelCode];
+                              const personnelInfo = classStats?.personnelStats[personnelCode];
                               return personnelInfo?.fullName || `کد: ${personnelCode}`;
                             }).join('، ')}
                           </span>
@@ -1777,16 +1924,16 @@ const SchedulePageContent = () => {
                 <div className="bg-white rounded-md shadow-sm p-3 overflow-x-auto">
                   <pre className="text-xs md:text-sm whitespace-pre-wrap font-[Farhang2] text-gray-900 leading-relaxed">
                     {`کلاس: ${grade} ${classNumber} ${field}
-تعداد کل ساعت: ${classStats.totalHours}
-تعداد پرسنل منحصر به فرد: ${classStats.uniquePersonnel}
+تعداد کل ساعت: ${classStats?.totalHours}
+تعداد پرسنل منحصر به فرد: ${classStats?.uniquePersonnel}
 
 ${days.map(day => {
-  const dayStat = classStats.dayStats[day];
+  const dayStat = classStats?.dayStats[day];
   if (!dayStat) return '';
   
   return `${day}:
 ${dayStat.personnel.map(personnelCode => {
-  const personnelInfo = classStats.personnelStats[personnelCode];
+  const personnelInfo = classStats?.personnelStats[personnelCode];
   return `    ${personnelInfo?.fullName || `کد: ${personnelCode}`}`;
 }).join('\n')}`;
 }).filter(Boolean).join('\n\n')}`}
@@ -1813,11 +1960,11 @@ ${dayStat.personnel.map(personnelCode => {
               <table className={`${styles.scheduleTable} text-xs sm:text-sm`}>
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-1 sm:p-2 text-black text-right sticky right-0 bg-gray-100 z-10">روز / ساعت</th>
+                    <th className="border border-gray-300 p-1 sm:p-2 text-gray-900 font-bold text-right sticky right-0 bg-gray-100 z-10">روز / ساعت</th>
                     {timeSlots.map((time, index) => (
-                      <th key={time} className="border border-gray-300 p-1 sm:p-2 text-black text-center min-w-[70px] sm:min-w-[100px]">
+                      <th key={time} className="border border-gray-300 p-1 sm:p-2 text-gray-900 font-bold text-center min-w-[70px] sm:min-w-[100px]">
                         تک ساعت {toPersianNumber(index + 1)}م
-                        <div className="text-[0.6rem] text-gray-500">{time}</div>
+                        <div className="text-[0.6rem] text-gray-700">{time}</div>
                       </th>
                     ))}
                   </tr>
@@ -1825,7 +1972,7 @@ ${dayStat.personnel.map(personnelCode => {
                 <tbody>
                   {days.map(day => (
                     <tr key={day}>
-                      <td className="border border-gray-300 p-1 sm:p-2 text-black text-right font-bold sticky right-0 bg-gray-50 z-10">{day}</td>
+                      <td className="border border-gray-300 p-1 sm:p-2 text-gray-900 font-bold text-right sticky right-0 bg-gray-50 z-10">{day}</td>
                       {timeSlots.map(time => (
                         <td
                           key={`${day}-${time}`}
@@ -1833,7 +1980,7 @@ ${dayStat.personnel.map(personnelCode => {
                           onClick={() => handleTimeSelection(day, time)}
                         >
                           <button className="w-full h-full flex items-center justify-center text-[10px] sm:text-sm">
-                            <span className="p-1 rounded-full bg-blue-200 hover:bg-blue-300 transition-colors w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                            <span className="p-1 rounded-full bg-blue-200 hover:bg-blue-300 transition-colors w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-gray-900">
                               {getScheduleForCell(day, time) ? '✓' : '+'}
                             </span>
                           </button>
@@ -2147,6 +2294,102 @@ ${dayStat.personnel.map(personnelCode => {
         }
       `}</style>
       <Toaster />
+
+      {/* مودال پیش‌نمایش برای خروجی اکسل */}
+      {showCombinedPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-auto p-4">
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-900">پیش‌نمایش خروجی اکسل</h2>
+                <button
+                  onClick={() => setShowCombinedPreview(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
+              <div className="mt-2">
+                <h3 className="text-lg font-bold text-blue-800 mb-2">اطلاعات کلاس</h3>
+                <div className="flex flex-wrap gap-2">
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">پایه: {grade}</span>
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">کلاس: {classNumber}</span>
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">رشته: {field}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-grow overflow-auto p-4">
+              <div className="overflow-x-auto pb-4">
+                <table className="min-w-full bg-white border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-gray-900 font-bold text-right">روز / ساعت</th>
+                      {hours.map((hour, hourIndex) => (
+                        <th key={hourIndex} className="border border-gray-300 p-2 text-gray-900 font-bold text-center">{hour}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {days.map((day, dayIndex) => (
+                      <tr key={dayIndex} className={dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="border border-gray-300 p-2 text-gray-900 font-bold text-right">{day}</td>
+                        {timeSlots.map((time, timeIndex) => {
+                          const cellSchedule = schedule.find(item => 
+                            item.day === day && item.timeStart === time
+                          );
+                          
+                          return (
+                            <td key={timeIndex} className="border border-gray-300 p-2 text-right">
+                              {cellSchedule && (
+                                <div>
+                                  <div className="font-bold text-cyan-800">
+                                    {cellSchedule.teachingGroup}
+                                  </div>
+                                  <div className="text-sm text-gray-800">
+                                    {(() => {
+                                      let fullName = '';
+                                      const personnelData = savedPersonnelSchedules.find(
+                                        ps => ps.personnel.personnelCode === cellSchedule.personnelCode
+                                      );
+                                      
+                                      if (personnelData) {
+                                        fullName = personnelData.personnel.fullName;
+                                      }
+                                      
+                                      return fullName || cellSchedule.personnelCode;
+                                    })()}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => setShowCombinedPreview(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+              >
+                انصراف
+              </button>
+              <button
+                onClick={exportCombinedDataToExcel}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+              >
+                <FaFileExport className="ml-2" />
+                دانلود فایل اکسل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

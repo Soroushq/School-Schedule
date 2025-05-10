@@ -9,7 +9,7 @@ import Input from '../../../components/Input/input';
 import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import styles from '../personnel-schedule.module.css';
 import {
-  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye
+  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye, FaFileDownload
 } from "react-icons/fa";
 import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -121,7 +121,10 @@ const PersonnelSchedule = () => {
   const [menuPositionUpdateCounter, setMenuPositionUpdateCounter] = useState(0);
   // اضافه کردن state برای ذخیره برنامه‌های کلاسی
   const [savedClassSchedules, setSavedClassSchedules] = useState<ClassSchedule[]>([]);
-  
+  // اضافه کردن state برای نمایش منوی آبشاری
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = ['تک ساعت اول', 'تک ساعت دوم', 'تک ساعت سوم', 'تک ساعت چهارم', 'تک ساعت پنجم', 'تک ساعت ششم', 'تک ساعت هفتم', 'تک ساعت هشتم', 'تک ساعت نهم', 'تک ساعت دهم', 'تک ساعت یازدهم', 'تک ساعت دوازدهم', 'تک ساعت سیزدهم', 'تک ساعت چهاردهم'];
   // اصلاح timeSlots برای هماهنگی با صفحه کلاس
@@ -1466,6 +1469,51 @@ const PersonnelSchedule = () => {
     }
   };
 
+  // تابع جدید برای خروجی گرفتن json
+  const exportToJson = () => {
+    if (selectedPersonnel && schedule.length > 0) {
+      try {
+        const dataToExport = {
+          personnel: selectedPersonnel,
+          schedules: schedule,
+          timestamp: Date.now()
+        };
+        
+        const jsonString = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `برنامه_پرسنلی_${selectedPersonnel.fullName.replace(/ /g, '_')}_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success('فایل JSON با موفقیت ایجاد شد');
+      } catch (error) {
+        console.error('خطا در ایجاد فایل JSON:', error);
+        toast.error('خطا در ایجاد فایل JSON. لطفاً دوباره تلاش کنید.');
+      }
+    } else {
+      toast.error('برنامه‌ای برای خروجی گرفتن وجود ندارد');
+    }
+  };
+
+  // اضافه کردن Effect برای بستن منوی آبشاری با کلیک خارج از آن
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1638,14 +1686,48 @@ const PersonnelSchedule = () => {
                   <FaSave className="ml-1 inline-block" />
                   <span className="inline-block">ذخیره برنامه</span>
                 </button>
-                <button
-                  onClick={exportToExcel}
-                  className={styles.actionButton}
-                  disabled={schedule.length === 0}
-                >
-                  <FaFileExport className="ml-1 inline-block" />
-                  <span className="inline-block">خروجی اکسل</span>
-                </button>
+                
+                {/* منوی آبشاری خروجی گرفتن */}
+                <div className="relative inline-block" ref={exportMenuRef}>
+                  <button
+                    onClick={() => setShowExportMenu(!showExportMenu)}
+                    className={styles.actionButton}
+                    disabled={schedule.length === 0}
+                  >
+                    <FaFileDownload className="ml-1 inline-block" />
+                    <span className="inline-block">خروجی گرفتن</span>
+                  </button>
+                  
+                  {showExportMenu && schedule.length > 0 && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div className="py-1" role="menu" aria-orientation="vertical">
+                        <button
+                          onClick={() => {
+                            setShowExportMenu(false);
+                            exportToExcel();
+                          }}
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                        >
+                          <FaFileExport className="ml-2" />
+                          خروجی اکسل
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowExportMenu(false);
+                            exportToJson();
+                          }}
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                        >
+                          <FaFileDownload className="ml-2" />
+                          خروجی JSON
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 {savedClassSchedules.length > 0 && (
                   <button
                     onClick={() => window.open('/class-schedule', '_blank')}
