@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Modal from '../../../components/Modal/modal';
@@ -9,7 +9,7 @@ import Input from '../../../components/Input/input';
 import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import styles from '../personnel-schedule.module.css';
 import {
-  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye, FaFileDownload
+  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye, FaFileDownload, FaFilePdf
 } from "react-icons/fa";
 import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -124,6 +124,7 @@ const PersonnelSchedule = () => {
   // اضافه کردن state برای نمایش منوی آبشاری
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const [showFooter, setShowFooter] = useState(true);
 
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
   const hours = ['تک ساعت اول', 'تک ساعت دوم', 'تک ساعت سوم', 'تک ساعت چهارم', 'تک ساعت پنجم', 'تک ساعت ششم', 'تک ساعت هفتم', 'تک ساعت هشتم', 'تک ساعت نهم', 'تک ساعت دهم', 'تک ساعت یازدهم', 'تک ساعت دوازدهم', 'تک ساعت سیزدهم', 'تک ساعت چهاردهم'];
@@ -557,28 +558,43 @@ const PersonnelSchedule = () => {
     }
   };
 
-  const handleDeleteSchedule = (id: string) => {
-    // یافتن برنامه مورد نظر برای حذف
-    const scheduleToDelete = schedule.find(item => item.id === id);
-    
-    if (scheduleToDelete) {
-      // حذف از برنامه پرسنلی
-      setSchedule(schedule.filter(item => item.id !== id));
-      
-      // حذف از برنامه کلاسی با استفاده از سرویس همگام‌سازی
-      syncService.deleteFromBoth(
-        id,
-        scheduleToDelete.day,
-        scheduleToDelete.timeStart,
-        scheduleToDelete.timeEnd,
-        scheduleToDelete.grade,
-        scheduleToDelete.classNumber,
-        scheduleToDelete.field,
-        selectedPersonnel?.id
-      );
-      
-      // حذف از برنامه کلاسی
-      removeFromClassSchedule(scheduleToDelete);
+  const handleDeleteSchedule = async (id?: string) => {
+    try {
+      if (id) {
+        // حذف برنامه خاص
+        const scheduleToDelete = schedule.find(item => item.id === id);
+        if (scheduleToDelete) {
+          // حذف از برنامه پرسنلی
+          setSchedule(schedule.filter(item => item.id !== id));
+          
+          // حذف از برنامه کلاسی مرتبط
+          removeFromClassSchedule(scheduleToDelete);
+          
+          // ذخیره تغییرات در localStorage
+          if (selectedPersonnel?.id) {
+            const storageKey = `personnel_schedule_${selectedPersonnel.id}`;
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+              const parsedData = JSON.parse(savedData);
+              if (parsedData.schedules && Array.isArray(parsedData.schedules)) {
+                parsedData.schedules = parsedData.schedules.filter((s: {id: string}) => s.id !== id);
+                parsedData.timestamp = Date.now();
+                localStorage.setItem(storageKey, JSON.stringify(parsedData));
+              }
+            }
+          }
+          
+          toast.success('برنامه با موفقیت حذف شد');
+        }
+      } else {
+        // حذف همه برنامه‌ها
+        syncService.clearAllSchedules();
+        setSchedule([]);
+        toast.success('تمام برنامه‌ها با موفقیت حذف شدند');
+      }
+    } catch (error) {
+      console.error('خطا در حذف برنامه:', error);
+      toast.error('خطا در حذف برنامه');
     }
   };
 
@@ -1514,6 +1530,294 @@ const PersonnelSchedule = () => {
     };
   }, []);
 
+  // تابع جدید برای خروجی گرفتن PDF
+  const exportToPdf = async () => {
+    if (!selectedPersonnel || schedule.length === 0) {
+      toast.error('برنامه‌ای برای خروجی گرفتن وجود ندارد');
+      return;
+    }
+    
+    try {
+      // بارگذاری کتابخانه html2pdf به صورت دینامیک
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      // ایجاد یک المنت div موقت برای رندر جدول
+      const element = document.createElement('div');
+      element.style.padding = '20px';
+      element.style.fontFamily = 'Farhang2, Tahoma, sans-serif';
+      element.style.direction = 'rtl';
+      element.style.color = '#000000';
+      
+      // افزودن عنوان
+      const title = document.createElement('h2');
+      title.style.textAlign = 'center';
+      title.style.marginBottom = '15px';
+      title.style.color = '#1e40af';
+      title.textContent = `برنامه پرسنلی: ${selectedPersonnel.fullName} - ${new Date().toLocaleDateString('fa-IR')}`;
+      element.appendChild(title);
+      
+      // افزودن اطلاعات پرسنل
+      const infoDiv = document.createElement('div');
+      infoDiv.style.textAlign = 'center';
+      infoDiv.style.marginBottom = '15px';
+      infoDiv.style.padding = '10px';
+      infoDiv.style.backgroundColor = '#f9fafb';
+      infoDiv.style.borderRadius = '8px';
+      infoDiv.style.color = '#000000';
+      
+      const personnelInfo = document.createElement('p');
+      personnelInfo.innerHTML = `<strong>کد پرسنلی:</strong> ${selectedPersonnel.personnelCode} | <strong>سمت:</strong> ${selectedPersonnel.mainPosition} | <strong>وضعیت اشتغال:</strong> ${selectedPersonnel.employmentStatus}`;
+      personnelInfo.style.color = '#000000';
+      infoDiv.appendChild(personnelInfo);
+      
+      element.appendChild(infoDiv);
+
+      // تقسیم ساعت‌ها به دو بخش
+      const morningHours = timeSlots.slice(0, 8); // از ساعت 8 تا 15
+      const eveningHours = timeSlots.slice(8); // از ساعت 16 به بعد
+      const morningHoursLabels = hours.slice(0, 8);
+      const eveningHoursLabels = hours.slice(8);
+
+      // تابع کمکی برای ایجاد جدول
+      const createScheduleTable = (timeSlots: string[], hourLabels: string[], title: string) => {
+        const tableContainer = document.createElement('div');
+        tableContainer.style.marginBottom = '30px';
+        tableContainer.style.pageBreakAfter = 'always';
+
+        const tableTitle = document.createElement('h3');
+        tableTitle.textContent = title;
+        tableTitle.style.textAlign = 'center';
+        tableTitle.style.marginBottom = '15px';
+        tableTitle.style.color = '#1e40af';
+        tableContainer.appendChild(tableTitle);
+
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginBottom = '20px';
+        table.style.color = '#000000';
+
+        // ایجاد سر ستون‌ها
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        // ستون روز/ساعت
+        const dayHeader = document.createElement('th');
+        dayHeader.textContent = 'روز/ساعت';
+        dayHeader.style.border = '1px solid #ccc';
+        dayHeader.style.padding = '8px';
+        dayHeader.style.backgroundColor = '#f0f9ff';
+        dayHeader.style.textAlign = 'right';
+        dayHeader.style.color = '#000000';
+        headerRow.appendChild(dayHeader);
+
+        // ستون‌های ساعت
+        timeSlots.forEach((time, index) => {
+          const th = document.createElement('th');
+          th.style.border = '1px solid #ccc';
+          th.style.padding = '8px';
+          th.style.backgroundColor = '#f0f9ff';
+          th.style.textAlign = 'center';
+          th.style.color = '#000000';
+
+          const hourDiv = document.createElement('div');
+          hourDiv.textContent = hourLabels[index];
+          hourDiv.style.fontWeight = 'bold';
+          hourDiv.style.color = '#000000';
+
+          const timeDiv = document.createElement('div');
+          timeDiv.textContent = time;
+          timeDiv.style.fontSize = '11px';
+          timeDiv.style.color = '#4b5563';
+
+          th.appendChild(hourDiv);
+          th.appendChild(timeDiv);
+          headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // ایجاد بدنه جدول
+        const tbody = document.createElement('tbody');
+
+        days.forEach((day, dayIndex) => {
+          const row = document.createElement('tr');
+          row.style.backgroundColor = dayIndex % 2 === 0 ? '#f9fafb' : 'white';
+
+          // ستون روز
+          const dayCell = document.createElement('td');
+          dayCell.textContent = day;
+          dayCell.style.border = '1px solid #ccc';
+          dayCell.style.padding = '8px';
+          dayCell.style.fontWeight = 'bold';
+          dayCell.style.textAlign = 'right';
+          dayCell.style.color = '#000000';
+          row.appendChild(dayCell);
+
+          // ستون‌های ساعت
+          timeSlots.forEach(time => {
+            const cell = document.createElement('td');
+            cell.style.border = '1px solid #ccc';
+            cell.style.padding = '8px';
+            cell.style.textAlign = 'center';
+            cell.style.verticalAlign = 'top';
+            cell.style.height = '70px';
+            cell.style.color = '#000000';
+
+            const cellSchedules = schedule.filter(item => item.day === day && item.timeStart === time);
+
+            if (cellSchedules.length > 0) {
+              cellSchedules.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.padding = '5px';
+                itemDiv.style.marginBottom = '5px';
+                itemDiv.style.backgroundColor = '#f0f9ff';
+                itemDiv.style.borderRadius = '4px';
+                itemDiv.style.color = '#000000';
+
+                const classDiv = document.createElement('div');
+                classDiv.textContent = `${item.grade} ${item.classNumber} ${item.field}`;
+                classDiv.style.fontWeight = 'bold';
+                classDiv.style.color = '#0369a1';
+
+                const positionDiv = document.createElement('div');
+                positionDiv.textContent = item.mainPosition;
+                positionDiv.style.fontSize = '11px';
+                positionDiv.style.color = '#000000';
+
+                const hourTypeDiv = document.createElement('div');
+                hourTypeDiv.textContent = item.hourType;
+                hourTypeDiv.style.fontSize = '11px';
+                hourTypeDiv.style.color = '#4b5563';
+
+                itemDiv.appendChild(classDiv);
+                itemDiv.appendChild(positionDiv);
+                itemDiv.appendChild(hourTypeDiv);
+
+                cell.appendChild(itemDiv);
+              });
+            }
+
+            row.appendChild(cell);
+          });
+
+          tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+        return tableContainer;
+      };
+
+      // ایجاد جداول برای هر بخش
+      const morningTable = createScheduleTable(morningHours, morningHoursLabels, 'برنامه صبح (ساعت ۸ تا ۱۵)');
+      const eveningTable = createScheduleTable(eveningHours, eveningHoursLabels, 'برنامه عصر (ساعت ۱۶ به بعد)');
+
+      element.appendChild(morningTable);
+      element.appendChild(eveningTable);
+
+      // ایجاد بخش آمار
+      const statsDiv = document.createElement('div');
+      statsDiv.style.marginTop = '20px';
+      statsDiv.style.border = '1px solid #e5e7eb';
+      statsDiv.style.borderRadius = '8px';
+      statsDiv.style.padding = '15px';
+      statsDiv.style.backgroundColor = '#f0f9ff';
+      statsDiv.style.color = '#000000';
+
+      const statsTitle = document.createElement('h3');
+      statsTitle.textContent = 'آمار کلی';
+      statsTitle.style.marginBottom = '10px';
+      statsTitle.style.color = '#1e40af';
+      statsDiv.appendChild(statsTitle);
+
+      const statsList = document.createElement('ul');
+      statsList.style.listStyleType = 'none';
+      statsList.style.padding = '0';
+      statsList.style.margin = '0';
+      statsList.style.color = '#000000';
+
+      const totalHoursItem = document.createElement('li');
+      totalHoursItem.textContent = `تعداد کل ساعت: ${calculateTotalHours()}`;
+      totalHoursItem.style.marginBottom = '5px';
+      totalHoursItem.style.color = '#000000';
+      statsList.appendChild(totalHoursItem);
+
+      const uniqueClassesCount = new Set(schedule.map(item => `${item.grade}-${item.classNumber}-${item.field}`)).size;
+      const uniqueClassesItem = document.createElement('li');
+      uniqueClassesItem.textContent = `تعداد کلاس‌های منحصر به فرد: ${uniqueClassesCount}`;
+      uniqueClassesItem.style.marginBottom = '5px';
+      uniqueClassesItem.style.color = '#000000';
+      statsList.appendChild(uniqueClassesItem);
+
+      statsDiv.appendChild(statsList);
+      element.appendChild(statsDiv);
+
+      // خلاصه متنی
+      const summaryDiv = document.createElement('div');
+      summaryDiv.style.marginTop = '20px';
+      summaryDiv.style.border = '1px solid #e5e7eb';
+      summaryDiv.style.borderRadius = '8px';
+      summaryDiv.style.padding = '15px';
+      summaryDiv.style.backgroundColor = '#f0fff4';
+      summaryDiv.style.color = '#000000';
+
+      const summaryTitle = document.createElement('h3');
+      summaryTitle.textContent = 'خلاصه برنامه روزانه';
+      summaryTitle.style.marginBottom = '10px';
+      summaryTitle.style.color = '#046c4e';
+      summaryDiv.appendChild(summaryTitle);
+
+      days.forEach(day => {
+        const daySummary = getDayHoursSummary(day);
+        if (!daySummary || daySummary.length === 0) return;
+
+        const dayTitle = document.createElement('h4');
+        dayTitle.textContent = day;
+        dayTitle.style.marginTop = '10px';
+        dayTitle.style.marginBottom = '5px';
+        dayTitle.style.fontWeight = 'bold';
+        dayTitle.style.color = '#000000';
+        summaryDiv.appendChild(dayTitle);
+
+        const dayList = document.createElement('ul');
+        dayList.style.paddingRight = '20px';
+        dayList.style.margin = '0';
+        dayList.style.color = '#000000';
+
+        daySummary.forEach(item => {
+          const listItem = document.createElement('li');
+          listItem.innerHTML = `<strong>${item.className}:</strong> ${item.hours}`;
+          listItem.style.marginBottom = '3px';
+          listItem.style.color = '#000000';
+          dayList.appendChild(listItem);
+        });
+
+        summaryDiv.appendChild(dayList);
+      });
+
+      element.appendChild(summaryDiv);
+
+      // تنظیمات PDF
+      const opt = {
+        margin: 10,
+        filename: `برنامه_پرسنلی_${selectedPersonnel.fullName.replace(/ /g, '_')}_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' as const }
+      };
+
+      // ایجاد PDF
+      html2pdf().from(element).set(opt).save();
+
+      toast.success('فایل PDF با موفقیت ایجاد شد');
+    } catch (error) {
+      console.error('خطا در ایجاد فایل PDF:', error);
+      toast.error('خطا در ایجاد فایل PDF. لطفاً دوباره تلاش کنید.');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1631,7 +1935,7 @@ const PersonnelSchedule = () => {
                       toast.success('تمام تاریخچه برنامه‌ها با موفقیت حذف شد.');
                     }
                   }}
-                  className="py-1.5 px-3 bg-red-600 text-white text-xs md:text-sm font-medium rounded hover:bg-red-700 transition-colors"
+                  className="py-1.5 px-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs md:text-sm font-medium rounded hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                   <FaTimes className="ml-1 inline-block" />
                   <span className="inline-block">حذف تاریخچه</span>
@@ -1642,7 +1946,7 @@ const PersonnelSchedule = () => {
                       window.location.href = '/';
                     }
                   }}
-                  className="py-1.5 px-3 bg-gray-600 text-white text-xs md:text-sm font-medium rounded hover:bg-gray-700 transition-colors"
+                  className="py-1.5 px-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-xs md:text-sm font-medium rounded hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                   <span className="inline-block">خروج</span>
                 </button>
@@ -1673,14 +1977,14 @@ const PersonnelSchedule = () => {
               <div className={`${styles.actionButtonsContainer} flex-wrap mb-4`}>
                 <button
                   onClick={() => setTimeSelectionModalOpen(true)}
-                  className={styles.actionButton}
+                  className="py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm md:text-base font-medium rounded hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
                 >
                   <FaPlus className="ml-1 inline-block" />
                   <span className="inline-block">افزودن برنامه جدید</span>
                 </button>
                 <button
                   onClick={saveScheduleToLocalStorage}
-                  className={styles.actionButton}
+                  className="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm md:text-base font-medium rounded hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
                   disabled={schedule.length === 0}
                 >
                   <FaSave className="ml-1 inline-block" />
@@ -1691,7 +1995,7 @@ const PersonnelSchedule = () => {
                 <div className="relative inline-block" ref={exportMenuRef}>
                   <button
                     onClick={() => setShowExportMenu(!showExportMenu)}
-                    className={styles.actionButton}
+                    className="py-2 px-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm md:text-base font-medium rounded hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
                     disabled={schedule.length === 0}
                   >
                     <FaFileDownload className="ml-1 inline-block" />
@@ -1706,7 +2010,7 @@ const PersonnelSchedule = () => {
                             setShowExportMenu(false);
                             exportToExcel();
                           }}
-                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                           role="menuitem"
                         >
                           <FaFileExport className="ml-2" />
@@ -1717,11 +2021,22 @@ const PersonnelSchedule = () => {
                             setShowExportMenu(false);
                             exportToJson();
                           }}
-                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                           role="menuitem"
                         >
                           <FaFileDownload className="ml-2" />
                           خروجی JSON
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowExportMenu(false);
+                            exportToPdf();
+                          }}
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                          role="menuitem"
+                        >
+                          <FaFilePdf className="ml-2" />
+                          خروجی PDF
                         </button>
                       </div>
                     </div>
@@ -2540,6 +2855,24 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
       )}
       {/* نمایش اعلان‌ها */}
       <Toaster />
+      
+      {/* فوتر انیمیشن‌دار */}
+      {showFooter && (
+        <div className="fixed bottom-0 left-0 right-0 h-8 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 overflow-hidden z-50">
+          <div className="relative h-full">
+            <button
+              onClick={() => setShowFooter(false)}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-200 transition-colors duration-500 z-10"
+            >
+              <FaTimes />
+            </button>
+            <div className="animate-marquee whitespace-nowrap text-white text-sm py-1.5">
+              <span className="inline-block mx-4">designed and created by Soroush Qary Ivary</span>
+              <span className="inline-block mx-4">طراحی و توسعه توسط سروش قاری ایوری</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

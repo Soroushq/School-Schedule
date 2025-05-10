@@ -7,10 +7,13 @@ import Dropdown from '../../../components/Dropdown/dropdown';
 import Modal from '../../../components/Modal/modal';
 import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import Input from '../../../components/Input/input';
-import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch, FaTrash, FaHistory, FaEdit, FaEye, FaExclamationTriangle, FaFileDownload, FaFileExport } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaUserAlt, FaDownload, FaSearch, FaTrash, FaHistory, FaEdit, FaEye, FaExclamationTriangle, FaFileDownload, FaFileExport, FaFilePdf } from "react-icons/fa";
 import styles from '../class-schedule.module.css';
 import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { v4 as uuidv4 } from 'uuid';
+import { syncService } from '@/services/syncService';
+import { scheduleSyncService } from '@/services/scheduleSync';
 
 interface Schedule {
   id: string;
@@ -127,10 +130,6 @@ const SchedulePageContent = () => {
   // اضافه کردن استیت برای نگهداری برنامه‌های پرسنلی مرتبط با هر سلول
   const [cellPersonnelSchedules, setCellPersonnelSchedules] = useState<{[key: string]: ScheduleWithFullName[]}>({});
   
-  const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
-  const hours = Array.from({ length: 14 }, (_, i) => `تک ساعت ${toPersianNumber(i + 1)}م`);
-  const timeSlots = ['۸:۰۰', '۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۳:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰', '۱۹:۰۰', '۲۰:۰۰', '۲۱:۰۰'];
-
   const grades = ['دهم', 'یازدهم', 'دوازدهم'];
   
   const classOptions = {
@@ -221,6 +220,10 @@ const SchedulePageContent = () => {
     'نمايش',
     'هتلداري ،گردشگري و مهمانداري'
   ];
+
+  const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+  const hours = Array.from({ length: 14 }, (_, i) => `تک ساعت ${toPersianNumber(i + 1)}م`);
+  const timeSlots = ['۸:۰۰', '۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۳:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰', '۱۹:۰۰', '۲۰:۰۰', '۲۱:۰۰'];
 
   // تبدیل ساعت به شماره تک ساعت
   const getHourNumber = (time: string): number => {
@@ -705,89 +708,43 @@ const SchedulePageContent = () => {
     }
   };
 
-  const handleDeleteSchedule = (id: string) => {
+  const handleDeleteSchedule = async (id?: string) => {
     try {
-      // یافتن برنامه‌ای که باید حذف شود
-      const scheduleToDelete = schedule.find(item => item.id === id);
-      
-      if (scheduleToDelete) {
-        // حذف از state فعلی
-        setSchedule(schedule.filter(item => item.id !== id));
-        
-        // حذف از برنامه پرسنلی مرتبط
-        removeFromPersonnelSchedule(scheduleToDelete);
-        
-        // ذخیره تغییرات در localStorage
-        const classKey = `${grade}-${classNumber}-${field}`;
-        const storageKey = `class_schedule_${classKey}`;
-        
-        // بروزرسانی localStorage
-        const savedData = localStorage.getItem(storageKey);
-        if (savedData) {
-          try {
+      if (id) {
+        // حذف برنامه خاص
+        const scheduleToDelete = schedule.find(item => item.id === id);
+        if (scheduleToDelete) {
+          // حذف از برنامه کلاسی
+          setSchedule(schedule.filter(item => item.id !== id));
+          
+          // حذف از برنامه پرسنلی مرتبط
+          removeFromPersonnelSchedule(scheduleToDelete);
+          
+          // ذخیره تغییرات در localStorage
+          const classKey = `${grade}-${classNumber}-${field}`;
+          const storageKey = `class_schedule_${classKey}`;
+          
+          const savedData = localStorage.getItem(storageKey);
+          if (savedData) {
             const parsedData = JSON.parse(savedData);
             if (parsedData.schedules && Array.isArray(parsedData.schedules)) {
-              // فیلتر کردن برنامه حذف شده
               parsedData.schedules = parsedData.schedules.filter((s: {id: string}) => s.id !== id);
               parsedData.timestamp = Date.now();
-              
-              // ذخیره تغییرات
               localStorage.setItem(storageKey, JSON.stringify(parsedData));
             }
-          } catch (error) {
-            console.error('خطا در بروزرسانی localStorage:', error);
           }
-        }
-        
-        return true;
-      } else {
-        // ممکن است این برنامه از صفحه پرسنلی اضافه شده باشد و در state اصلی نباشد
-        
-        let foundSchedule = false;
-        
-        // جستجو در برنامه‌های پرسنلی
-        for (const personnelData of savedPersonnelSchedules) {
-          const scheduleIndex = personnelData.schedules.findIndex(s => 
-            s.id === id || 
-            (s.day === selectedCell?.day && 
-             s.timeStart === selectedCell?.time && 
-             s.grade === grade && 
-             s.classNumber === classNumber && 
-             s.field === field)
-          );
           
-          if (scheduleIndex !== -1) {
-            // برنامه را از برنامه‌های پرسنلی حذف می‌کنیم
-            const removedSchedule = personnelData.schedules[scheduleIndex];
-            personnelData.schedules.splice(scheduleIndex, 1);
-            
-            // ذخیره تغییرات در localStorage
-            const storageKey = `personnel_schedule_${personnelData.personnel.id}`;
-            localStorage.setItem(storageKey, JSON.stringify(personnelData));
-            
-            // حذف این برنامه از state اصلی هم (اگر وجود داشته باشد)
-            setSchedule(prevSchedules => prevSchedules.filter((s: Schedule) => 
-              !(s.day === removedSchedule.day && 
-                s.timeStart === removedSchedule.timeStart &&
-                s.grade === grade &&
-                s.classNumber === classNumber &&
-                s.field === field)
-            ));
-            
-            foundSchedule = true;
-            break;
-          }
+          toast.success('برنامه با موفقیت حذف شد');
         }
-        
-        if (foundSchedule) {
-          return true;
-        }
+      } else {
+        // حذف همه برنامه‌ها
+        syncService.clearAllSchedules();
+        setSchedule([]);
+        toast.success('تمام برنامه‌ها با موفقیت حذف شدند');
       }
-      
-      return false;
     } catch (error) {
       console.error('خطا در حذف برنامه:', error);
-      return false;
+      toast.error('خطا در حذف برنامه');
     }
   };
 
@@ -1653,6 +1610,205 @@ const SchedulePageContent = () => {
     };
   }, []);
 
+  // تابع برای خروجی گرفتن PDF
+  const exportToPdf = async () => {
+    
+    if (schedule.length === 0) {
+      toast.error('هیچ برنامه‌ای برای صدور وجود ندارد');
+      return;
+    }
+    
+    try {
+      // بارگذاری کتابخانه html2pdf به صورت دینامیک
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      // ایجاد یک المنت div موقت برای رندر جدول
+      const element = document.createElement('div');
+      element.style.padding = '20px';
+      element.style.fontFamily = 'Farhang2, Tahoma, sans-serif';
+      element.style.direction = 'rtl';
+      element.style.color = '#000000'; // اضافه کردن رنگ متن سیاه به کل محتوا
+      
+      // افزودن عنوان
+      const title = document.createElement('h2');
+      title.style.textAlign = 'center';
+      title.style.marginBottom = '15px';
+      title.style.color = '#1e40af';
+      title.textContent = `برنامه کلاس ${grade} ${classNumber} ${field} - ${new Date().toLocaleDateString('fa-IR')}`;
+      element.appendChild(title);
+      
+      // ایجاد جدول
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.marginBottom = '20px';
+      table.style.color = '#000000'; // اضافه کردن رنگ متن سیاه به جدول
+      
+      // ایجاد سر ستون‌ها
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      
+      // ستون روز/ساعت
+      const dayHeader = document.createElement('th');
+      dayHeader.textContent = 'روز/ساعت';
+      dayHeader.style.border = '1px solid #ccc';
+      dayHeader.style.padding = '8px';
+      dayHeader.style.backgroundColor = '#f0f9ff';
+      dayHeader.style.textAlign = 'right';
+      dayHeader.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+      headerRow.appendChild(dayHeader);
+      
+      // ستون‌های ساعت
+      timeSlots.forEach((time, index) => {
+        const th = document.createElement('th');
+        th.style.border = '1px solid #ccc';
+        th.style.padding = '8px';
+        th.style.backgroundColor = '#f0f9ff';
+        th.style.textAlign = 'center';
+        th.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+        
+        const hourDiv = document.createElement('div');
+        hourDiv.textContent = hours[index];
+        hourDiv.style.fontWeight = 'bold';
+        hourDiv.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.textContent = time;
+        timeDiv.style.fontSize = '11px';
+        timeDiv.style.color = '#4b5563'; // تغییر رنگ به خاکستری تیره
+        
+        th.appendChild(hourDiv);
+        th.appendChild(timeDiv);
+        
+        headerRow.appendChild(th);
+      });
+      
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      // ایجاد بدنه جدول
+      const tbody = document.createElement('tbody');
+      
+      days.forEach((day, dayIndex) => {
+        const row = document.createElement('tr');
+        row.style.backgroundColor = dayIndex % 2 === 0 ? '#f9fafb' : 'white';
+        
+        // ستون روز
+        const dayCell = document.createElement('td');
+        dayCell.textContent = day;
+        dayCell.style.border = '1px solid #ccc';
+        dayCell.style.padding = '8px';
+        dayCell.style.fontWeight = 'bold';
+        dayCell.style.textAlign = 'right';
+        dayCell.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+        row.appendChild(dayCell);
+        
+        // ستون‌های ساعت
+        timeSlots.forEach(time => {
+          const cell = document.createElement('td');
+          cell.style.border = '1px solid #ccc';
+          cell.style.padding = '8px';
+          cell.style.textAlign = 'center';
+          cell.style.verticalAlign = 'top';
+          cell.style.height = '70px';
+          cell.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+          
+          const cellSchedule = schedule.find(item => 
+            item.day === day && item.timeStart === time
+          );
+          
+          if (cellSchedule) {
+            // پیدا کردن نام کامل پرسنل
+            let fullName = '';
+            const personnelData = savedPersonnelSchedules.find(
+              ps => ps.personnel.personnelCode === cellSchedule.personnelCode
+            );
+            
+            if (personnelData) {
+              fullName = personnelData.personnel.fullName;
+            }
+            
+            const subjectDiv = document.createElement('div');
+            subjectDiv.textContent = cellSchedule.teachingGroup;
+            subjectDiv.style.fontWeight = 'bold';
+            subjectDiv.style.color = '#0369a1';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.textContent = fullName || cellSchedule.personnelCode;
+            nameDiv.style.marginTop = '4px';
+            nameDiv.style.fontSize = '12px';
+            nameDiv.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+            
+            cell.appendChild(subjectDiv);
+            cell.appendChild(nameDiv);
+          }
+          
+          row.appendChild(cell);
+        });
+        
+        tbody.appendChild(row);
+      });
+      
+      table.appendChild(tbody);
+      element.appendChild(table);
+      
+      // ایجاد بخش آمار
+      const statsDiv = document.createElement('div');
+      statsDiv.style.marginTop = '20px';
+      statsDiv.style.border = '1px solid #e5e7eb';
+      statsDiv.style.borderRadius = '8px';
+      statsDiv.style.padding = '15px';
+      statsDiv.style.backgroundColor = '#f0f9ff';
+      statsDiv.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+      
+      const statsTitle = document.createElement('h3');
+      statsTitle.textContent = 'آمار کلی';
+      statsTitle.style.marginBottom = '10px';
+      statsTitle.style.color = '#1e40af';
+      statsDiv.appendChild(statsTitle);
+      
+      const statsList = document.createElement('ul');
+      statsList.style.listStyleType = 'none';
+      statsList.style.padding = '0';
+      statsList.style.margin = '0';
+      statsList.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+      
+      // آمار تعداد ساعت‌ها
+      const totalHoursItem = document.createElement('li');
+      totalHoursItem.textContent = `تعداد کل ساعت‌ها: ${classStats?.totalHours || 0}`;
+      totalHoursItem.style.marginBottom = '5px';
+      totalHoursItem.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+      statsList.appendChild(totalHoursItem);
+      
+      // آمار تعداد پرسنل
+      const totalPersonnelItem = document.createElement('li');
+      totalPersonnelItem.textContent = `تعداد پرسنل منحصر به فرد: ${classStats?.uniquePersonnel || 0}`;
+      totalPersonnelItem.style.marginBottom = '5px';
+      totalPersonnelItem.style.color = '#000000'; // اضافه کردن رنگ متن سیاه
+      statsList.appendChild(totalPersonnelItem);
+      
+      statsDiv.appendChild(statsList);
+      element.appendChild(statsDiv);
+      
+      // تنظیمات PDF
+      const opt = {
+        margin: 10,
+        filename: `برنامه_کلاس_${grade}_${classNumber}_${field}_${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' as const }
+      };
+      
+      // ایجاد PDF
+      html2pdf().from(element).set(opt).save();
+      
+      toast.success('فایل PDF با موفقیت ایجاد شد');
+    } catch (error) {
+      console.error('خطا در ایجاد فایل PDF:', error);
+      toast.error('خطا در ایجاد فایل PDF. لطفاً دوباره تلاش کنید.');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -1746,6 +1902,17 @@ const SchedulePageContent = () => {
                         >
                           <FaFileDownload className="ml-2" />
                           خروجی JSON
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowExportMenu(false);
+                            exportToPdf();
+                          }}
+                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                        >
+                          <FaFilePdf className="ml-2" />
+                          خروجی PDF
                         </button>
                       </div>
                     </div>

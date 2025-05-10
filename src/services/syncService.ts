@@ -352,6 +352,39 @@ export class SyncService {
       console.error('خطا در حذف برنامه از هر دو جدول:', error);
     }
   }
+
+  // حذف کامل تمام برنامه‌ها از localStorage
+  clearAllSchedules(): void {
+    try {
+      // ایجاد لیست کلیدهای مربوط به برنامه‌ها
+      const keysToRemove: string[] = [];
+      
+      // جمع‌آوری تمام کلیدهای مربوط به برنامه‌ها
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('class_schedule_') || key.startsWith('personnel_schedule_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // حذف همه کلیدها به صورت یکجا
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+      });
+      
+      // پاک کردن کش مرورگر برای اطمینان از حذف کامل
+      if (window.caches) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+    } catch (error) {
+      console.error('خطا در حذف کامل برنامه‌ها:', error);
+      throw error;
+    }
+  }
 }
 
 // ایجاد نمونه منفرد
