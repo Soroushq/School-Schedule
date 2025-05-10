@@ -198,6 +198,7 @@ export class StorageService {
 
     try {
       localStorage.setItem('userAgreementAccepted', 'true');
+      localStorage.setItem('privacy_agreement_accepted', 'true');
       this.hasAccess = true;
       return true;
     } catch (e) {
@@ -213,7 +214,9 @@ export class StorageService {
     }
 
     try {
-      return localStorage.getItem('userAgreementAccepted') === 'true';
+      const hasUserAgreement = localStorage.getItem('userAgreementAccepted') === 'true';
+      const hasPrivacyAgreement = localStorage.getItem('privacy_agreement_accepted') === 'true';
+      return hasUserAgreement && hasPrivacyAgreement;
     } catch (e) {
       return false;
     }

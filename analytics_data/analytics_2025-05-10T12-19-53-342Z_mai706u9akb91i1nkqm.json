@@ -1,0 +1,27 @@
+{
+  "to": "soroush.qe.78@gmail.com",
+  "subject": "بازدید جدید از برنامه‌ساز - موبایل - Linux",
+  "data": {
+    "sessionId": "mai706u9akb91i1nkqm",
+    "uniqueId": "mai707advgtvblycvbb",
+    "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36",
+    "platform": "Linux armv81",
+    "language": "en-US",
+    "screenWidth": 384,
+    "screenHeight": 832,
+    "colorDepth": 24,
+    "pixelRatio": 2.8125,
+    "timeZone": "Asia/Tehran",
+    "dateTime": "2025-05-10T12:19:51.396Z",
+    "deviceType": "موبایل",
+    "os": "Linux",
+    "browser": "Chrome",
+    "connectionType": "cellular",
+    "effectiveType": "4g",
+    "currentPath": "/",
+    "referrer": "",
+    "eventType": "page_view",
+    "pageName": "صفحه اصلی",
+    "timestamp": "2025-05-10T12:19:51.397Z"
+  }
+}

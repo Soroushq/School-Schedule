@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes } from "react-icons/fa";
+import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle } from "react-icons/fa";
 import { usePathname } from 'next/navigation';
 
 interface SavedSchedule {
@@ -351,11 +351,45 @@ const Navbar = () => {
               </Link>
               
               <div className="hidden md:flex space-x-4 space-x-reverse">
-                <Link href="/personnel-schedule" className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${pathname?.includes('/personnel-schedule') ? 'bg-blue-700' : ''}`}>
+                <Link
+                  href="/"
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname === "/" 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                >
+                  صفحه اصلی
+                </Link>
+                <Link
+                  href="/class-schedule"
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname?.includes("/class-schedule") 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                >
+                  برنامه کلاسی
+                </Link>
+                <Link
+                  href="/personnel-schedule"
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname?.includes("/personnel-schedule") 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                >
                   برنامه پرسنلی
                 </Link>
-                <Link href="/class-schedule" className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${pathname?.includes('/class-schedule') ? 'bg-blue-700' : ''}`}>
-                  برنامه کلاسی
+                <Link
+                  href="/about-me"
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname === "/about-me" 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                >
+                  درباره من
                 </Link>
               </div>
             </div>

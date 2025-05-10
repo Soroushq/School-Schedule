@@ -1,0 +1,30 @@
+{
+  "to": "soroush.qe.78@gmail.com",
+  "subject": "بازدید جدید از برنامه‌ساز - دسکتاپ - Windows",
+  "data": {
+    "sessionId": "mai6xhbsqgfzbr8nd0a",
+    "uniqueId": "mai6xhyi6yksud5yj26",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "platform": "Win32",
+    "language": "en-US",
+    "screenWidth": 1536,
+    "screenHeight": 864,
+    "colorDepth": 24,
+    "pixelRatio": 1.5625,
+    "timeZone": "Asia/Tehran",
+    "dateTime": "2025-05-10T12:17:45.258Z",
+    "deviceType": "دسکتاپ",
+    "os": "Windows",
+    "browser": "Chrome",
+    "connectionType": "نامشخص",
+    "effectiveType": "3g",
+    "currentPath": "/",
+    "referrer": "",
+    "eventType": "custom_event",
+    "eventName": "app_entry",
+    "eventData": {
+      "entryPoint": "/"
+    },
+    "timestamp": "2025-05-10T12:17:45.258Z"
+  }
+}
