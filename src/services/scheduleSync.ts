@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { storageService } from './storageService';
 
 // تعریف اینترفیس‌ها برای استفاده در کل برنامه
 export interface Personnel {
@@ -53,12 +54,11 @@ class ScheduleSyncService {
   getAllPersonnelSchedules(): SavedPersonnelSchedule[] {
     try {
       const schedules: SavedPersonnelSchedule[] = [];
+      const allKeys = storageService.getAllKeys();
       
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
+      for (const key of allKeys) {
         if (key && key.startsWith('personnel_schedule_')) {
-          const savedData = localStorage.getItem(key);
+          const savedData = storageService.getItem(key);
           
           if (savedData) {
             try {
@@ -82,12 +82,11 @@ class ScheduleSyncService {
   getAllClassSchedules(): SavedClassSchedule[] {
     try {
       const schedules: SavedClassSchedule[] = [];
+      const allKeys = storageService.getAllKeys();
       
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
+      for (const key of allKeys) {
         if (key && key.startsWith('class_schedule_')) {
-          const savedData = localStorage.getItem(key);
+          const savedData = storageService.getItem(key);
           
           if (savedData) {
             try {
@@ -111,7 +110,7 @@ class ScheduleSyncService {
   getPersonnelScheduleById(personnelId: string): SavedPersonnelSchedule | null {
     try {
       const key = `personnel_schedule_${personnelId}`;
-      const savedData = localStorage.getItem(key);
+      const savedData = storageService.getItem(key);
       
       if (savedData) {
         return JSON.parse(savedData);
@@ -128,7 +127,7 @@ class ScheduleSyncService {
   getClassSchedule(grade: string, classNumber: string, field: string): SavedClassSchedule | null {
     try {
       const key = `class_schedule_${grade}-${classNumber}-${field}`;
-      const savedData = localStorage.getItem(key);
+      const savedData = storageService.getItem(key);
       
       if (savedData) {
         return JSON.parse(savedData);
@@ -146,7 +145,7 @@ class ScheduleSyncService {
     try {
       // ذخیره برنامه پرسنلی
       const key = `personnel_schedule_${personnelSchedule.personnel.id}`;
-      localStorage.setItem(key, JSON.stringify({
+      storageService.setItem(key, JSON.stringify({
         ...personnelSchedule,
         timestamp: Date.now()
       }));
@@ -202,6 +201,7 @@ class ScheduleSyncService {
               timestamp: Date.now()
             };
             
+            // ذخیره برنامه کلاسی جدید
             this.saveClassScheduleWithoutSync(newClassSchedule);
           }
         }
@@ -214,19 +214,24 @@ class ScheduleSyncService {
   // ذخیره برنامه کلاسی و بروزرسانی برنامه‌های پرسنلی مرتبط
   saveClassSchedule(classSchedule: SavedClassSchedule): void {
     try {
-      // ذخیره برنامه کلاسی بدون هماهنگی با برنامه‌های پرسنلی
-      this.saveClassScheduleWithoutSync(classSchedule);
+      // ذخیره برنامه کلاسی
+      this.saveClassScheduleWithoutSync({
+        ...classSchedule,
+        timestamp: Date.now()
+      });
 
       // بروزرسانی برنامه‌های پرسنلی مرتبط
       classSchedule.schedules.forEach(schedule => {
-        if (schedule.personnelCode && schedule.fullName) {
-          // بررسی وجود برنامه پرسنلی برای این شخص
-          const allPersonnelSchedules = this.getAllPersonnelSchedules();
-          const personnelSchedule = allPersonnelSchedules.find(p => p.personnel.personnelCode === schedule.personnelCode);
+        if (schedule.personnelCode) {
+          // جستجوی پرسنل مربوطه
+          const personnelSchedules = this.getAllPersonnelSchedules();
+          const matchingPersonnel = personnelSchedules.find(ps => 
+            ps.personnel.personnelCode === schedule.personnelCode
+          );
           
-          if (personnelSchedule) {
-            // حذف برنامه مربوط به این کلاس از برنامه پرسنلی (اگر وجود داشته باشد)
-            const updatedSchedules = personnelSchedule.schedules.filter(s => 
+          if (matchingPersonnel) {
+            // حذف برنامه قبلی از همین روز و ساعت
+            const updatedSchedules = matchingPersonnel.schedules.filter(s => 
               !(s.day === schedule.day && s.timeStart === schedule.timeStart && s.timeEnd === schedule.timeEnd)
             );
             
@@ -234,9 +239,7 @@ class ScheduleSyncService {
             const newSchedule: Schedule = {
               ...schedule,
               id: schedule.id,
-              grade: classSchedule.grade,
-              classNumber: classSchedule.classNumber,
-              field: classSchedule.field,
+              personnelId: matchingPersonnel.personnel.id,
               classScheduleId: classSchedule.id,
               source: 'class'
             };
@@ -245,13 +248,36 @@ class ScheduleSyncService {
             
             // ذخیره برنامه پرسنلی بروزرسانی شده
             this.savePersonnelScheduleWithoutSync({
-              ...personnelSchedule,
+              ...matchingPersonnel,
               schedules: updatedSchedules,
               timestamp: Date.now()
             });
           } else {
-            // در اینجا می‌توان برنامه پرسنلی جدید ایجاد کرد، اما باید اطلاعات پرسنلی کامل باشد
-            console.log('برنامه پرسنلی برای این شخص وجود ندارد');
+            // ایجاد پرسنل جدید
+            const newPersonnelId = uuidv4();
+            const newPersonnel: Personnel = {
+              id: newPersonnelId,
+              personnelCode: schedule.personnelCode,
+              fullName: schedule.fullName || '',
+              mainPosition: schedule.mainPosition || '',
+              employmentStatus: schedule.employmentStatus || ''
+            };
+            
+            // ایجاد برنامه پرسنلی جدید
+            const newPersonnelSchedule: SavedPersonnelSchedule = {
+              personnel: newPersonnel,
+              schedules: [{
+                ...schedule,
+                id: schedule.id,
+                personnelId: newPersonnelId,
+                classScheduleId: classSchedule.id,
+                source: 'class'
+              }],
+              timestamp: Date.now()
+            };
+            
+            // ذخیره برنامه پرسنلی جدید
+            this.savePersonnelScheduleWithoutSync(newPersonnelSchedule);
           }
         }
       });
@@ -260,11 +286,11 @@ class ScheduleSyncService {
     }
   }
 
-  // ذخیره برنامه پرسنلی بدون هماهنگی با برنامه‌های کلاسی
+  // ذخیره برنامه پرسنلی بدون همگام‌سازی با برنامه‌های کلاسی
   private savePersonnelScheduleWithoutSync(personnelSchedule: SavedPersonnelSchedule): void {
     try {
       const key = `personnel_schedule_${personnelSchedule.personnel.id}`;
-      localStorage.setItem(key, JSON.stringify({
+      storageService.setItem(key, JSON.stringify({
         ...personnelSchedule,
         timestamp: Date.now()
       }));
@@ -273,11 +299,11 @@ class ScheduleSyncService {
     }
   }
 
-  // ذخیره برنامه کلاسی بدون هماهنگی با برنامه‌های پرسنلی
+  // ذخیره برنامه کلاسی بدون همگام‌سازی با برنامه‌های پرسنلی
   private saveClassScheduleWithoutSync(classSchedule: SavedClassSchedule): void {
     try {
       const key = `class_schedule_${classSchedule.grade}-${classSchedule.classNumber}-${classSchedule.field}`;
-      localStorage.setItem(key, JSON.stringify({
+      storageService.setItem(key, JSON.stringify({
         ...classSchedule,
         timestamp: Date.now()
       }));
@@ -286,39 +312,45 @@ class ScheduleSyncService {
     }
   }
 
-  // حذف برنامه از هر دو جدول
+  // حذف برنامه از هر دو طرف (کلاسی و پرسنلی)
   deleteScheduleFromBoth(schedule: Schedule): void {
     try {
-      // حذف از برنامه پرسنلی
-      if (schedule.personnelScheduleId) {
-        const personnelSchedule = this.getPersonnelScheduleById(schedule.personnelScheduleId);
-        if (personnelSchedule) {
-          const updatedSchedules = personnelSchedule.schedules.filter(s => s.id !== schedule.id);
-          this.savePersonnelScheduleWithoutSync({
-            ...personnelSchedule,
-            schedules: updatedSchedules,
-            timestamp: Date.now()
-          });
-        }
-      }
-
       // حذف از برنامه کلاسی
       if (schedule.grade && schedule.classNumber && schedule.field) {
         const classSchedule = this.getClassSchedule(schedule.grade, schedule.classNumber, schedule.field);
+        
         if (classSchedule) {
-          const updatedSchedules = classSchedule.schedules.filter(s => s.id !== schedule.id);
-          this.saveClassScheduleWithoutSync({
-            ...classSchedule,
-            schedules: updatedSchedules,
-            timestamp: Date.now()
-          });
+          classSchedule.schedules = classSchedule.schedules.filter(s => s.id !== schedule.id);
+          this.saveClassScheduleWithoutSync(classSchedule);
         }
       }
+      
+      // حذف از برنامه پرسنلی
+      if (schedule.personnelId) {
+        const personnelSchedule = this.getPersonnelScheduleById(schedule.personnelId);
+        
+        if (personnelSchedule) {
+          personnelSchedule.schedules = personnelSchedule.schedules.filter(s => s.id !== schedule.id);
+          this.savePersonnelScheduleWithoutSync(personnelSchedule);
+        }
+      } else {
+        // جستجو در تمام برنامه‌های پرسنلی
+        const personnelSchedules = this.getAllPersonnelSchedules();
+        
+        personnelSchedules.forEach(ps => {
+          const hasSchedule = ps.schedules.some(s => s.id === schedule.id);
+          
+          if (hasSchedule) {
+            ps.schedules = ps.schedules.filter(s => s.id !== schedule.id);
+            this.savePersonnelScheduleWithoutSync(ps);
+          }
+        });
+      }
     } catch (error) {
-      console.error('خطا در حذف برنامه:', error);
+      console.error('خطا در حذف برنامه از هر دو طرف:', error);
     }
   }
 }
 
-// صادرات سرویس به عنوان singleton
+// صادر کردن نمونه منحصر به فرد از سرویس
 export const scheduleSyncService = new ScheduleSyncService(); 

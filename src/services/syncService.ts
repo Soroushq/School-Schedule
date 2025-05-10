@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { storageService } from './storageService';
 
 // سرویس همگام‌سازی برنامه‌های پرسنلی و کلاسی
 export class SyncService {
@@ -26,7 +27,7 @@ export class SyncService {
       const classKey = `class_schedule_${grade}-${classNumber}-${field}`;
       
       // بررسی وجود برنامه کلاسی
-      const classScheduleStr = localStorage.getItem(classKey);
+      const classScheduleStr = storageService.getItem(classKey);
       
       if (classScheduleStr) {
         // برنامه کلاسی وجود دارد
@@ -85,7 +86,7 @@ export class SyncService {
         
         // ذخیره تغییرات
         classSchedule.timestamp = Date.now();
-        localStorage.setItem(classKey, JSON.stringify(classSchedule));
+        storageService.setItem(classKey, JSON.stringify(classSchedule));
       } else {
         // برنامه کلاسی وجود ندارد، ایجاد برنامه جدید
         const newClassSchedule = {
@@ -116,7 +117,7 @@ export class SyncService {
           timestamp: Date.now()
         };
         
-        localStorage.setItem(classKey, JSON.stringify(newClassSchedule));
+        storageService.setItem(classKey, JSON.stringify(newClassSchedule));
       }
     } catch (error) {
       console.error('خطا در همگام‌سازی برنامه از پرسنلی به کلاسی:', error);
@@ -144,12 +145,14 @@ export class SyncService {
     try {
       // جستجوی برنامه پرسنلی موجود
       let personnelId: string = '';
+      const allKeys = storageService.getAllKeys();
       
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
+      for (const key of allKeys) {
         if (key && key.startsWith('personnel_schedule_')) {
-          const schedule = JSON.parse(localStorage.getItem(key) || '{}');
+          const scheduleStr = storageService.getItem(key);
+          if (!scheduleStr) continue;
+          
+          const schedule = JSON.parse(scheduleStr);
           
           if (schedule?.personnel?.personnelCode === personnelCode) {
             personnelId = schedule.personnel.id;
@@ -161,7 +164,7 @@ export class SyncService {
       if (personnelId) {
         // برنامه پرسنلی وجود دارد
         const personnelKey = `personnel_schedule_${personnelId}`;
-        const personnelScheduleStr = localStorage.getItem(personnelKey);
+        const personnelScheduleStr = storageService.getItem(personnelKey);
         
         if (personnelScheduleStr) {
           const personnelSchedule = JSON.parse(personnelScheduleStr);
@@ -219,7 +222,7 @@ export class SyncService {
           
           // ذخیره تغییرات
           personnelSchedule.timestamp = Date.now();
-          localStorage.setItem(personnelKey, JSON.stringify(personnelSchedule));
+          storageService.setItem(personnelKey, JSON.stringify(personnelSchedule));
         }
       } else {
         // برنامه پرسنلی وجود ندارد، ایجاد برنامه جدید
@@ -227,6 +230,7 @@ export class SyncService {
         const newPersonnelKey = `personnel_schedule_${newPersonnelId}`;
         
         const newPersonnelSchedule = {
+          id: newPersonnelId,
           personnel: {
             id: newPersonnelId,
             personnelCode: personnelCode,
@@ -257,14 +261,14 @@ export class SyncService {
           timestamp: Date.now()
         };
         
-        localStorage.setItem(newPersonnelKey, JSON.stringify(newPersonnelSchedule));
+        storageService.setItem(newPersonnelKey, JSON.stringify(newPersonnelSchedule));
       }
     } catch (error) {
       console.error('خطا در همگام‌سازی برنامه از کلاسی به پرسنلی:', error);
     }
   }
-  
-  // حذف برنامه از هر دو جدول
+
+  // حذف برنامه از هر دو طرف (کلاسی و پرسنلی)
   deleteFromBoth(
     scheduleId: string, 
     day: string, 
@@ -279,113 +283,100 @@ export class SyncService {
       // حذف از برنامه کلاسی
       if (grade && classNumber && field) {
         const classKey = `class_schedule_${grade}-${classNumber}-${field}`;
-        const classScheduleStr = localStorage.getItem(classKey);
+        const classScheduleStr = storageService.getItem(classKey);
         
         if (classScheduleStr) {
           const classSchedule = JSON.parse(classScheduleStr);
           
-          // حذف برنامه از لیست
+          // فیلتر کردن برنامه موردنظر
           classSchedule.schedules = classSchedule.schedules.filter(
             (s: any) => s.id !== scheduleId
           );
           
-          // ذخیره تغییرات
+          // بروزرسانی timestamp
           classSchedule.timestamp = Date.now();
-          localStorage.setItem(classKey, JSON.stringify(classSchedule));
+          
+          // ذخیره تغییرات
+          storageService.setItem(classKey, JSON.stringify(classSchedule));
         }
       }
       
       // حذف از برنامه پرسنلی
       if (personnelId) {
         const personnelKey = `personnel_schedule_${personnelId}`;
-        const personnelScheduleStr = localStorage.getItem(personnelKey);
+        const personnelScheduleStr = storageService.getItem(personnelKey);
         
         if (personnelScheduleStr) {
           const personnelSchedule = JSON.parse(personnelScheduleStr);
           
-          // حذف برنامه از لیست
+          // فیلتر کردن برنامه موردنظر
           personnelSchedule.schedules = personnelSchedule.schedules.filter(
             (s: any) => s.id !== scheduleId
           );
           
-          // ذخیره تغییرات
+          // بروزرسانی timestamp
           personnelSchedule.timestamp = Date.now();
-          localStorage.setItem(personnelKey, JSON.stringify(personnelSchedule));
+          
+          // ذخیره تغییرات
+          storageService.setItem(personnelKey, JSON.stringify(personnelSchedule));
         }
       } else {
-        // اگر پرسنل مشخص نیست، جستجو در تمام برنامه‌های پرسنلی
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          
+        // جستجو در تمام برنامه‌های پرسنلی
+        const allKeys = storageService.getAllKeys();
+        
+        for (const key of allKeys) {
           if (key && key.startsWith('personnel_schedule_')) {
-            const personnelScheduleStr = localStorage.getItem(key);
+            const scheduleStr = storageService.getItem(key);
+            if (!scheduleStr) continue;
             
-            if (personnelScheduleStr) {
-              const personnelSchedule = JSON.parse(personnelScheduleStr);
-              
-              // بررسی وجود برنامه
-              const hasSchedule = personnelSchedule.schedules.some(
-                (s: any) => 
-                  s.id === scheduleId || 
-                  (s.day === day && s.timeStart === timeStart && s.timeEnd === timeEnd && 
-                   s.grade === grade && s.classNumber === classNumber && s.field === field)
+            const personnelSchedule = JSON.parse(scheduleStr);
+            
+            // بررسی وجود برنامه مورد نظر
+            const hasSchedule = personnelSchedule.schedules.some(
+              (s: any) => s.id === scheduleId || 
+                (s.day === day && s.timeStart === timeStart && s.timeEnd === timeEnd &&
+                  s.grade === grade && s.classNumber === classNumber && s.field === field)
+            );
+            
+            if (hasSchedule) {
+              // فیلتر کردن برنامه موردنظر
+              personnelSchedule.schedules = personnelSchedule.schedules.filter(
+                (s: any) => s.id !== scheduleId &&
+                  !(s.day === day && s.timeStart === timeStart && s.timeEnd === timeEnd &&
+                    s.grade === grade && s.classNumber === classNumber && s.field === field)
               );
               
-              if (hasSchedule) {
-                // حذف برنامه از لیست
-                personnelSchedule.schedules = personnelSchedule.schedules.filter(
-                  (s: any) => 
-                    s.id !== scheduleId && 
-                    !(s.day === day && s.timeStart === timeStart && s.timeEnd === timeEnd && 
-                      s.grade === grade && s.classNumber === classNumber && s.field === field)
-                );
-                
-                // ذخیره تغییرات
-                personnelSchedule.timestamp = Date.now();
-                localStorage.setItem(key, JSON.stringify(personnelSchedule));
-              }
+              // بروزرسانی timestamp
+              personnelSchedule.timestamp = Date.now();
+              
+              // ذخیره تغییرات
+              storageService.setItem(key, JSON.stringify(personnelSchedule));
             }
           }
         }
       }
     } catch (error) {
-      console.error('خطا در حذف برنامه از هر دو جدول:', error);
+      console.error('خطا در حذف برنامه از دو طرف:', error);
     }
   }
-
-  // حذف کامل تمام برنامه‌ها از localStorage
+  
+  // پاک کردن تمام برنامه‌ها
   clearAllSchedules(): void {
     try {
-      // ایجاد لیست کلیدهای مربوط به برنامه‌ها
-      const keysToRemove: string[] = [];
+      // حذف کامل تمام برنامه‌ها از localStorage
+      const allKeys = storageService.getAllKeys();
       
-      // جمع‌آوری تمام کلیدهای مربوط به برنامه‌ها
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      for (const key of allKeys) {
+        // پاک کردن فقط کلیدهای مربوط به برنامه‌های کلاسی و پرسنلی
         if (key && (key.startsWith('class_schedule_') || key.startsWith('personnel_schedule_'))) {
-          keysToRemove.push(key);
+          storageService.removeItem(key);
         }
       }
-      
-      // حذف همه کلیدها به صورت یکجا
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
-      });
-      
-      // پاک کردن کش مرورگر برای اطمینان از حذف کامل
-      if (window.caches) {
-        caches.keys().then(cacheNames => {
-          cacheNames.forEach(cacheName => {
-            caches.delete(cacheName);
-          });
-        });
-      }
     } catch (error) {
-      console.error('خطا در حذف کامل برنامه‌ها:', error);
-      throw error;
+      console.error('خطا در پاک کردن تمام برنامه‌ها:', error);
     }
   }
 }
 
-// ایجاد نمونه منفرد
+// صادر کردن نمونه منحصر به فرد از سرویس
 export const syncService = new SyncService(); 
