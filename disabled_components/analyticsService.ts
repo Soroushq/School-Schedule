@@ -1,6 +1,6 @@
 "use client";
 
-import { storageService } from './storageService';
+import { storageService } from '../src/services/storageService';
 
 /**
  * تعریف اینترفیس برای NetworkInformation
