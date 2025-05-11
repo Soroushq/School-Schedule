@@ -24,8 +24,9 @@ export const ClientScheduleSyncObserver = () => {
   return <ScheduleSyncObserver />;
 };
 
+// کامپوننت آنالیتیکس غیرفعال شده است
 export const ClientAnalyticsTracker = () => {
-  return <AnalyticsTracker />;
+  return null; // آنالیتیکس غیرفعال شده است
 };
 
 export const ClientPrivacyAgreement = () => {
