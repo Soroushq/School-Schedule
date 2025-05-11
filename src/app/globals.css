@@ -587,33 +587,35 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .animate-marquee {
-  animation: marquee 40s linear infinite;
+  animation: marquee 30s linear infinite;
 }
 
 @keyframes marquee-rtl {
   0% {
-    transform: translateX(100%);
+    transform: translateX(-100%);
   }
   100% {
-    transform: translateX(-100%);
+    transform: translateX(100%);
   }
 }
 
 @keyframes marquee-ltr {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(100%);
   }
   100% {
-    transform: translateX(100%);
+    transform: translateX(-100%);
   }
 }
 
 .animate-marquee-rtl {
-  animation: marquee-rtl 20s linear infinite;
+  animation: marquee-rtl 30s linear infinite;
+  animation-play-state: running;
 }
 
 .animate-marquee-ltr {
-  animation: marquee-ltr 20s linear infinite;
+  animation: marquee-ltr 30s linear infinite;
+  animation-play-state: running;
 }
 
 /* حذف فونت Inter از لایه اصلی */

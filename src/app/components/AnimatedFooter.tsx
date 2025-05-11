@@ -5,7 +5,6 @@ import { FaTimes, FaEnvelope, FaGithub, FaLinkedin, FaPhone } from 'react-icons/
 export default function AnimatedFooter() {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
   const [showFooter, setShowFooter] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState(1); // 1 for left-to-right, -1 for right-to-left
   const marqueeRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef<number | null>(null);
@@ -25,7 +24,6 @@ export default function AnimatedFooter() {
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    setIsPaused(true);
     touchStartXRef.current = e.touches[0].clientX;
   };
 
@@ -43,19 +41,11 @@ export default function AnimatedFooter() {
   };
 
   const handleTouchEnd = () => {
-    setIsPaused(false);
     touchStartXRef.current = null;
   };
 
-  const handleMouseEnter = () => {
-    setIsPaused(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsPaused(false);
-  };
-
   if (!showFooter) return null;
+  
   return (
     <div className="fixed bottom-0 left-0 right-0 h-8 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 overflow-hidden z-50">
       <div className="relative h-full">
@@ -67,16 +57,17 @@ export default function AnimatedFooter() {
         </button>
         <div 
           ref={marqueeRef}
-          className={`whitespace-nowrap text-white text-sm py-1.5 touch-pan-x ${isPaused ? '' : `animate-marquee-${swipeDirection > 0 ? 'ltr' : 'rtl'}`}`}
+          className={`whitespace-nowrap text-white text-sm py-1.5 touch-pan-x animate-marquee-${swipeDirection > 0 ? 'ltr' : 'rtl'}`}
           style={{ 
-            animationPlayState: isPaused ? 'paused' : 'running',
-            direction: swipeDirection > 0 ? 'ltr' : 'rtl' 
+            direction: swipeDirection > 0 ? 'ltr' : 'rtl',
+            animationDuration: '30s',
+            animationIterationCount: 'infinite',
+            animationTimingFunction: 'linear',
+            animationPlayState: 'running'
           }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
         >
           <span className="inline-block mx-4">designed and created by Soroush Qary Ivary</span>
           <span className="inline-block mx-4">راه های ارتباطی:</span>
