@@ -631,3 +631,65 @@ h1, h2, h3, h4, h5, h6 {
     text-wrap: balance;
   }
 }
+
+/* استایل‌های سفارشی برای افکت‌های صفحه خوش‌آمدگویی */
+.dark-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dark-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: all 2s ease;
+  z-index: 3;
+}
+
+.dark-card:hover::before {
+  left: 100%;
+  transition: all 2s ease;
+}
+
+.dark-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), 
+                            rgba(255, 255, 255, 0.2) 0%, 
+                            rgba(255, 255, 255, 0) 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card-glowing::after {
+  opacity: 1;
+}
+
+/* افکت هاله نور ماوس */
+.mouseLightEffect {
+  pointer-events: none;
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}

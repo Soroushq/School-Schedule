@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaSun, FaMoon, FaArrowRight } from 'react-icons/fa';
 import AnimatedFooter from '@/app/components/AnimatedFooter';
+import dynamic from 'next/dynamic';
+
+const LoadingSpinner = dynamic(() => import('@/components/LoadingSpinner'), { ssr: false });
 
 export default function MiddleSchoolPage() {
   const [theme, setTheme] = useState('light');
@@ -47,7 +50,7 @@ export default function MiddleSchoolPage() {
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <LoadingSpinner size={60} color="#3B82F6" />
       </div>
     );
   }

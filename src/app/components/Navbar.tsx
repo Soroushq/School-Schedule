@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars } from "react-icons/fa";
+import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars, FaUserCog } from "react-icons/fa";
 import { usePathname } from 'next/navigation';
+import { useUserRole } from '@/context/UserRoleContext';
 
 interface SavedSchedule {
   personnel: {
@@ -29,10 +30,29 @@ interface ClassSchedule {
 const Navbar = () => {
   const pathname = usePathname();
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'personnel' | 'class' | 'all' | null>(null);
+  const [modalType, setModalType] = useState<'personnel' | 'class' | 'all' | 'role' | null>(null);
   const [savedPersonnelSchedules, setSavedPersonnelSchedules] = useState<SavedSchedule[]>([]);
   const [savedClassSchedules, setSavedClassSchedules] = useState<ClassSchedule[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { userRole, setUserRole } = useUserRole();
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        setTheme(e.newValue || 'light');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (showModal) {
@@ -114,6 +134,21 @@ const Navbar = () => {
     }
   };
 
+  const openModal = (type: 'personnel' | 'class' | 'all' | 'role' | null) => {
+    // اگر مودال دیگری باز است، آن را ببندید
+    if (showModal) {
+      setShowModal(false);
+      // کمی تأخیر برای بستن کامل مودال قبلی قبل از باز کردن مودال جدید
+      setTimeout(() => {
+        setModalType(type);
+        setShowModal(true);
+      }, 100);
+    } else {
+      setModalType(type);
+      setShowModal(true);
+    }
+  };
+
   const renderModalContent = () => {
     if (!modalType) {
       return (
@@ -121,21 +156,21 @@ const Navbar = () => {
           <h2 className="text-xl font-bold text-gray-900 text-center mb-6">انتخاب نوع برنامه</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
-              onClick={() => setModalType('personnel')}
+              onClick={() => openModal('personnel')}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-gradient-to-br from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 shadow-md hover:shadow-lg"
             >
               <FaUserAlt className="text-3xl mb-2" />
               <span className="text-lg font-bold">برنامه‌های بر اساس پرسنل</span>
             </button>
             <button
-              onClick={() => setModalType('class')}
+              onClick={() => openModal('class')}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-gradient-to-br from-green-500 to-teal-600 text-white rounded-lg hover:from-green-600 hover:to-teal-700 transition-all duration-300 shadow-md hover:shadow-lg"
             >
               <FaSchool className="text-3xl mb-2" />
               <span className="text-lg font-bold">برنامه‌های کلاس‌ها</span>
             </button>
             <button
-              onClick={() => setModalType('all')}
+              onClick={() => openModal('all')}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg"
             >
               <FaHistory className="text-3xl mb-2" />
@@ -151,7 +186,7 @@ const Navbar = () => {
         <div className="p-4 md:p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-900">برنامه‌های پرسنلی</h2>
-            <button onClick={() => setModalType(null)} className="text-gray-500 hover:text-gray-700">
+            <button onClick={() => openModal(null)} className="text-gray-500 hover:text-gray-700">
               <FaTimes />
             </button>
           </div>
@@ -204,7 +239,7 @@ const Navbar = () => {
         <div className="p-4 md:p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-900">برنامه‌های کلاسی</h2>
-            <button onClick={() => setModalType(null)} className="text-gray-500 hover:text-gray-700">
+            <button onClick={() => openModal(null)} className="text-gray-500 hover:text-gray-700">
               <FaTimes />
             </button>
           </div>
@@ -255,7 +290,7 @@ const Navbar = () => {
         <div className="p-4 md:p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-900">تمام برنامه‌ها</h2>
-            <button onClick={() => setModalType(null)} className="text-gray-500 hover:text-gray-700">
+            <button onClick={() => openModal(null)} className="text-gray-500 hover:text-gray-700">
               <FaTimes />
             </button>
           </div>
@@ -337,12 +372,94 @@ const Navbar = () => {
       );
     }
 
+    if (modalType === 'role') {
+      return (
+        <div className="p-4 md:p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">انتخاب نقش کاربری</h2>
+            <button onClick={() => openModal(null)} className="text-gray-500 hover:text-gray-700">
+              <FaTimes />
+            </button>
+          </div>
+          
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => {
+                setUserRole('admin');
+                openModal(null);
+              }}
+              className={`flex flex-col items-center justify-center p-4 md:p-6 
+                ${userRole === 'admin' 
+                  ? 'bg-gradient-to-br from-purple-600 to-indigo-700 ring-2 ring-purple-300' 
+                  : 'bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700'} 
+                text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg`}
+            >
+              <FaUserCog className="text-3xl mb-2" />
+              <span className="text-lg font-bold">مدیر سیستم</span>
+              <p className="text-xs mt-2 text-gray-100">دسترسی کامل به تمام بخش‌ها</p>
+              {userRole === 'admin' && (
+                <div className="mt-2 bg-white text-indigo-700 px-2 py-1 rounded-full text-xs font-bold">
+                  فعال
+                </div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => {
+                setUserRole('educator');
+                openModal(null);
+              }}
+              className={`flex flex-col items-center justify-center p-4 md:p-6 
+                ${userRole === 'educator' 
+                  ? 'bg-gradient-to-br from-blue-600 to-cyan-700 ring-2 ring-blue-300' 
+                  : 'bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700'} 
+                text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg`}
+            >
+              <FaUserAlt className="text-3xl mb-2" />
+              <span className="text-lg font-bold">آموزشگر</span>
+              <p className="text-xs mt-2 text-gray-100">دسترسی به برنامه‌های آموزشی</p>
+              {userRole === 'educator' && (
+                <div className="mt-2 bg-white text-blue-700 px-2 py-1 rounded-full text-xs font-bold">
+                  فعال
+                </div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => {
+                setUserRole('learner');
+                openModal(null);
+              }}
+              className={`flex flex-col items-center justify-center p-4 md:p-6 
+                ${userRole === 'learner' 
+                  ? 'bg-gradient-to-br from-green-600 to-teal-700 ring-2 ring-green-300' 
+                  : 'bg-gradient-to-br from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700'} 
+                text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg`}
+            >
+              <FaSchool className="text-3xl mb-2" />
+              <span className="text-lg font-bold">دانش‌آموز</span>
+              <p className="text-xs mt-2 text-gray-100">دسترسی به برنامه‌های کلاسی</p>
+              {userRole === 'learner' && (
+                <div className="mt-2 bg-white text-green-700 px-2 py-1 rounded-full text-xs font-bold">
+                  فعال
+                </div>
+              )}
+            </button>
+          </div>
+          
+          <div className="mt-6 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+            <p>با انتخاب هر نقش، سطح دسترسی شما به بخش‌های مختلف سامانه تغییر می‌کند.</p>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   };
 
   return (
     <>
-      <header className="w-full shadow-md bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700 text-white font-sans" style={{ fontFamily: 'inherit' }}>
+      <header className={`w-full shadow-md ${theme === 'dark' ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700' : 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700'} text-white font-sans`} style={{ fontFamily: 'inherit' }}>
         <div className="container mx-auto px-4 py-2 md:py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4 space-x-reverse">
@@ -355,9 +472,9 @@ const Navbar = () => {
               <div className="hidden md:flex space-x-4 space-x-reverse">
                 <Link
                   href="/"
-                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname === "/" 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                 >
@@ -365,9 +482,9 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/class-schedule"
-                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname?.includes("/class-schedule") 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                 >
@@ -375,9 +492,9 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/personnel-schedule"
-                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname?.includes("/personnel-schedule") 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                 >
@@ -385,9 +502,9 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/about-me"
-                  className={`py-1 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-1 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname === "/about-me" 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700" 
                       : ""
                   }`}
                 >
@@ -396,10 +513,23 @@ const Navbar = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-2 space-x-reverse">              
+            <div className="flex items-center space-x-2 space-x-reverse">
               <button 
-                onClick={() => setShowModal(true)}
-                className="flex items-center py-1.5 px-3 bg-blue-800 hover:bg-blue-900 text-white rounded-md transition-all duration-200 shadow-md"
+                onClick={() => openModal('role')}
+                className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-md transition-all duration-200 shadow-md`}
+              >
+                <FaUserCog className="ml-1.5" />
+                <span>انتخاب نقش</span>
+                {userRole && (
+                  <span className="mr-2 text-xs bg-white text-indigo-800 px-2 py-0.5 rounded-full">
+                    {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}
+                  </span>
+                )}
+              </button>
+              
+              <button 
+                onClick={() => openModal(null)}
+                className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-800 hover:bg-blue-900'} text-white rounded-md transition-all duration-200 shadow-md`}
               >
                 <FaHistory className="ml-1.5" />
                 <span>برنامه‌های اخیر</span>
@@ -407,7 +537,7 @@ const Navbar = () => {
               
               {/* دکمه منوی موبایل */}
               <button 
-                className="md:hidden flex items-center justify-center p-2 rounded-md bg-blue-800 hover:bg-blue-900 transition-colors"
+                className={`md:hidden flex items-center justify-center p-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-800 hover:bg-blue-900'} transition-colors`}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 <FaBars className="text-xl" />
@@ -417,13 +547,13 @@ const Navbar = () => {
           
           {/* منوی موبایل */}
           {isMobileMenuOpen && (
-            <div className="md:hidden mt-3 py-2 border-t border-blue-400">
+            <div className="md:hidden mt-3 py-2 border-t border-blue-400 dark:border-gray-600">
               <div className="flex flex-col space-y-2">
                 <Link
                   href="/"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname === "/" 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -432,9 +562,9 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/class-schedule"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname?.includes("/class-schedule") 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -443,9 +573,9 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/personnel-schedule"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname?.includes("/personnel-schedule") 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -454,15 +584,30 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/about-me"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
                     pathname === "/about-me" 
-                      ? "bg-blue-700" 
+                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
                       : ""
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   درباره من
                 </Link>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    openModal('role');
+                  }}
+                  className={`flex items-center py-2 px-3 rounded-md ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-700 hover:bg-indigo-800'} transition-colors duration-200 text-left`}
+                >
+                  <FaUserCog className="ml-2" />
+                  انتخاب نقش
+                  {userRole && (
+                    <span className="mr-2 text-xs bg-white text-indigo-800 px-2 py-0.5 rounded-full">
+                      {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
           )}
@@ -472,7 +617,7 @@ const Navbar = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 animate-triple-gradient bg-opacity-90 backdrop-blur-md" onClick={() => setShowModal(false)}></div>
-          <div className="bg-white rounded-xl shadow-2xl z-10 w-full max-w-3xl max-h-[80vh] overflow-hidden">
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl z-10 w-full max-w-3xl max-h-[80vh] overflow-hidden`}>
             {renderModalContent()}
           </div>
         </div>

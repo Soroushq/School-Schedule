@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 const LoadingSpinner = dynamic(() => import('./LoadingSpinner'), { ssr: false });
@@ -9,7 +9,6 @@ const LoadingSpinner = dynamic(() => import('./LoadingSpinner'), { ssr: false })
 const PageLoading = () => {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const handleStart = () => {
@@ -38,7 +37,7 @@ const PageLoading = () => {
     }, 500); // حداقل زمان نمایش لودینگ
 
     return () => clearTimeout(timer);
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   if (!isLoading) return null;
 

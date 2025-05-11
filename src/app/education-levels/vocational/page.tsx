@@ -6,6 +6,9 @@ import Link from 'next/link';
 import styles from './vocational.module.css';
 import { FaSun, FaMoon, FaArrowRight, FaUsers, FaChalkboardTeacher } from 'react-icons/fa';
 import AnimatedFooter from '@/app/components/AnimatedFooter';
+import dynamic from 'next/dynamic';
+
+const LoadingSpinner = dynamic(() => import('@/components/LoadingSpinner'), { ssr: false });
 
 export default function VocationalPage() {
   const router = useRouter();
@@ -50,7 +53,7 @@ export default function VocationalPage() {
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <LoadingSpinner size={60} color="#3B82F6" />
       </div>
     );
   }
@@ -102,7 +105,7 @@ export default function VocationalPage() {
         }
       </button>
 
-      <h1 className={`${styles.title} ${theme === 'dark' ? 'text-white' : ''}`}>
+      <h1 className={`${styles.title} ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
         برنامه‌ریزی مقطع متوسطه دوم فنی و حرفه‌ای، کاردانش
       </h1>
       

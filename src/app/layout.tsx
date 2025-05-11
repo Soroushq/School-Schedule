@@ -1,15 +1,17 @@
 import './globals.css'
 import { Metadata } from 'next'
 import Navbar from './components/Navbar'
+import { ThemeProvider } from '@/context/ThemeContext'
+import { UserRoleProvider } from '@/context/UserRoleContext'
+import AnalyticsInitializer from '@/components/AnalyticsInitializer'
 import { ClientScheduleSyncObserver, ClientPrivacyAgreement } from './ClientComponents'
 import ClientLayout from './ClientLayout'
 import { Suspense } from 'react'
 import PageLoading from '@/components/PageLoading'
-import { ThemeProvider } from '@/context/ThemeContext'
 
 export const metadata: Metadata = {
-  title: 'برنامه ساز مدرسه',
-  description: 'نرم افزار برنامه سازی مدرسه و کلاس',
+  title: 'سیستم برنامه‌ریزی مدرسه',
+  description: 'برنامه‌ریزی مدرسه',
   icons: {
     icon: [
       { url: '/photos/icon-black.png', media: '(prefers-color-scheme: light)' },
@@ -33,15 +35,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <body className="transition-colors duration-300 ease-in-out">
+      <body className="transition-colors duration-300 ease-in-out bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
         <ThemeProvider>
-          <Suspense fallback={null}>
-            <PageLoading />
-          </Suspense>
-          <ClientPrivacyAgreement />
-          <Navbar />
-          <ClientScheduleSyncObserver />
-          <ClientLayout>{children}</ClientLayout>
+          <UserRoleProvider>
+            <Suspense fallback={null}>
+              <PageLoading />
+            </Suspense>
+            <ClientPrivacyAgreement />
+            <Navbar />
+            <ClientScheduleSyncObserver />
+            <ClientLayout>{children}</ClientLayout>
+            <AnalyticsInitializer />
+          </UserRoleProvider>
         </ThemeProvider>
       </body>
     </html>

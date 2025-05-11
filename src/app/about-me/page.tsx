@@ -10,6 +10,9 @@ import { FreeMode, Mousewheel } from 'swiper/modules';
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/free-mode';
+import dynamic from 'next/dynamic';
+
+const LoadingSpinner = dynamic(() => import('@/components/LoadingSpinner'), { ssr: false });
 
 interface Competency {
   icon: React.ReactNode;
@@ -130,7 +133,7 @@ export default function AboutMe() {
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <LoadingSpinner size={60} color="#3B82F6" />
       </div>
     );
   }
