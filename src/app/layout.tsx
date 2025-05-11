@@ -5,6 +5,7 @@ import { ClientScheduleSyncObserver, ClientAnalyticsTracker, ClientPrivacyAgreem
 import ClientLayout from './ClientLayout'
 import { Suspense } from 'react'
 import PageLoading from '@/components/PageLoading'
+import { ThemeProvider } from '@/context/ThemeContext'
 
 export const metadata: Metadata = {
   title: 'برنامه ساز مدرسه',
@@ -31,16 +32,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fa" dir="rtl">
-      <body>
-        <Suspense fallback={null}>
-          <PageLoading />
-        </Suspense>
-        <ClientPrivacyAgreement />
-        <Navbar />
-        <ClientScheduleSyncObserver />
-        <ClientAnalyticsTracker />
-        <ClientLayout>{children}</ClientLayout>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <body className="transition-colors duration-300 ease-in-out">
+        <ThemeProvider>
+          <Suspense fallback={null}>
+            <PageLoading />
+          </Suspense>
+          <ClientPrivacyAgreement />
+          <Navbar />
+          <ClientScheduleSyncObserver />
+          <ClientAnalyticsTracker />
+          <ClientLayout>{children}</ClientLayout>
+        </ThemeProvider>
       </body>
     </html>
   )

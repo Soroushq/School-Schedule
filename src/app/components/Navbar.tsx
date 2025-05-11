@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle } from "react-icons/fa";
+import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars } from "react-icons/fa";
 import { usePathname } from 'next/navigation';
 
 interface SavedSchedule {
@@ -32,6 +32,7 @@ const Navbar = () => {
   const [modalType, setModalType] = useState<'personnel' | 'class' | 'all' | null>(null);
   const [savedPersonnelSchedules, setSavedPersonnelSchedules] = useState<SavedSchedule[]>([]);
   const [savedClassSchedules, setSavedClassSchedules] = useState<ClassSchedule[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (showModal) {
@@ -350,6 +351,7 @@ const Navbar = () => {
                 <span className="mr-2 text-lg md:text-xl font-bold hidden md:inline-block">صفحه اصلی</span>
               </Link>
               
+              {/* منوی دسکتاپ */}
               <div className="hidden md:flex space-x-4 space-x-reverse">
                 <Link
                   href="/"
@@ -394,7 +396,7 @@ const Navbar = () => {
               </div>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2 space-x-reverse">              
               <button 
                 onClick={() => setShowModal(true)}
                 className="flex items-center py-1.5 px-3 bg-blue-800 hover:bg-blue-900 text-white rounded-md transition-all duration-200 shadow-md"
@@ -402,8 +404,68 @@ const Navbar = () => {
                 <FaHistory className="ml-1.5" />
                 <span>برنامه‌های اخیر</span>
               </button>
+              
+              {/* دکمه منوی موبایل */}
+              <button 
+                className="md:hidden flex items-center justify-center p-2 rounded-md bg-blue-800 hover:bg-blue-900 transition-colors"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                <FaBars className="text-xl" />
+              </button>
             </div>
           </div>
+          
+          {/* منوی موبایل */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden mt-3 py-2 border-t border-blue-400">
+              <div className="flex flex-col space-y-2">
+                <Link
+                  href="/"
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname === "/" 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  صفحه اصلی
+                </Link>
+                <Link
+                  href="/class-schedule"
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname?.includes("/class-schedule") 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  برنامه کلاسی
+                </Link>
+                <Link
+                  href="/personnel-schedule"
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname?.includes("/personnel-schedule") 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  برنامه پرسنلی
+                </Link>
+                <Link
+                  href="/about-me"
+                  className={`py-2 px-3 rounded-md hover:bg-blue-700 transition-colors duration-200 ${
+                    pathname === "/about-me" 
+                      ? "bg-blue-700" 
+                      : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  درباره من
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

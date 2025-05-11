@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode, useRef } from 'react';
 import Image from 'next/image';
-import { FaEnvelope, FaGithub, FaLinkedin, FaDownload, FaCode, FaTools, FaDatabase, FaPhone, FaExternalLinkAlt, FaSchool, FaBriefcase, FaGraduationCap, FaArrowLeft, FaMoon, FaSun } from "react-icons/fa";
+import { FaEnvelope, FaGithub, FaLinkedin, FaDownload, FaCode, FaTools, FaDatabase, FaPhone, FaExternalLinkAlt, FaSchool, FaBriefcase, FaGraduationCap, FaArrowLeft, FaSun, FaMoon } from "react-icons/fa";
 import Link from 'next/link';
+// Import Swiper
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode, Mousewheel } from 'swiper/modules';
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/free-mode';
 
 interface Competency {
   icon: React.ReactNode;
@@ -43,33 +49,91 @@ interface Content {
 
 export default function AboutMe() {
   const [language, setLanguage] = useState<'fa' | 'en'>('fa');
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-  
-  useEffect(() => {
-    // بررسی حالت تم ذخیره شده در localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setDarkMode(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+  const [activeTimeframe, setActiveTimeframe] = useState<string | null>(null);
+  // رفرنس‌ها برای اسکرول
+  const experienceSectionRef = useRef<HTMLDivElement>(null);
+  const educationSectionRef = useRef<HTMLDivElement>(null);
+  // تایمر برای حذف انتخاب فعال
+  const activeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // تابع تغییر تم به صورت محلی در صفحه
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    
+    // اعمال مستقیم تم با استفاده از classList
+    if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
-      setDarkMode(false);
       document.documentElement.classList.remove('dark');
     }
     
+    // ذخیره در localStorage
+    localStorage.setItem('theme', newTheme);
+    
+    // به‌روزرسانی state
+    setTheme(newTheme);
+    
+    console.log('تم صفحه تغییر کرد به:', newTheme);
+  };
+  
+  useEffect(() => {
     // تنظیم زبان پیش‌فرض
     setLanguage('fa');
+    setMounted(true);
+    
+    // بررسی وضعیت تم از localStorage
+    try {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      setTheme(savedTheme as 'light' | 'dark');
+      
+      // اعمال مستقیم تم
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (error) {
+      console.error('خطا در خواندن تم:', error);
+    }
   }, []);
 
-  const toggleTheme = () => {
-    setDarkMode(!darkMode);
-    if (darkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+  // تابع اسکرول به بخش مربوطه بر اساس دوره زمانی
+  const scrollToTimeframe = (period: string, type: string) => {
+    // اگر تایمر قبلی وجود داشته باشد، آن را پاک کن
+    if (activeTimeoutRef.current) {
+      clearTimeout(activeTimeoutRef.current);
+    }
+    
+    // تنظیم دوره زمانی فعال
+    setActiveTimeframe(period);
+    
+    // پس از 5 ثانیه، وضعیت فعال را حذف کن
+    activeTimeoutRef.current = setTimeout(() => {
+      setActiveTimeframe(null);
+    }, 5000);
+    
+    // انتخاب مرجع بخش مناسب بر اساس نوع
+    const targetRef = type === 'experience' ? experienceSectionRef : educationSectionRef;
+    
+    // اسکرول به بخش مربوطه با انیمیشن
+    if (targetRef.current) {
+      window.scrollTo({
+        top: targetRef.current.offsetTop - 100, // کمی بالاتر از بخش
+        behavior: 'smooth'
+      });
     }
   };
+
+  // نمایش لودینگ تا زمان هیدریشن
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const content: Content = language === "en" ? {
     title: "Soroush Qary Ivary",
@@ -257,40 +321,111 @@ export default function AboutMe() {
     downloadResume: "دانلود رزومه",
   };
 
+  // کامپوننت Toggle ساده
+  const SimpleThemeToggle = () => (
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleTheme();
+      }}
+      className="w-full h-full flex justify-center items-center"
+      aria-label={theme === 'light' ? 'تغییر به حالت تاریک' : 'تغییر به حالت روشن'}
+    >
+      {theme === 'light' ? (
+        <FaSun className="h-8 w-8 text-yellow-500 hover:animate-pulse hover:drop-shadow-[0_0_10px_rgb(255,223,0)]" />
+      ) : (
+        <FaMoon className="h-8 w-8 text-blue-500 hover:animate-pulse hover:drop-shadow-[0_0_10px_rgb(100,149,237)]" />
+      )}
+    </button>
+  );
+
+  // استخراج همه تاریخ‌ها برای خط زمانی افقی خلاصه
+  const timelineItems = [
+    ...content.experience.map(exp => ({ 
+      period: exp.period, 
+      title: exp.title, 
+      type: 'experience',
+      color: theme === 'dark' ? 'bg-emerald-500' : 'bg-emerald-600' 
+    })),
+    ...content.education.map(edu => ({ 
+      period: edu.period, 
+      title: edu.degree, 
+      type: 'education',
+      color: theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'
+    }))
+  ].sort((a, b) => {
+    // مرتب‌سازی بر اساس سال (از آخر به اول)
+    const yearA = a.period.match(/\d{4}/g);
+    const yearB = b.period.match(/\d{4}/g);
+    if (!yearA || !yearB) return 0;
+    return parseInt(yearB[0]) - parseInt(yearA[0]);
+  });
+
   return (
-    <div dir="rtl" className={`relative min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950 py-8`}>
+    <div 
+      dir="rtl" 
+      className={`relative min-h-screen py-8 transition-colors duration-300 
+        ${theme === 'dark' 
+          ? 'bg-gradient-to-br from-gray-900 to-indigo-950 text-white' 
+          : 'bg-gradient-to-br from-blue-50 to-indigo-50 text-gray-800'}`}
+    >
+      
       {/* دکمه بازگشت به صفحه اصلی */}
       <div className="absolute top-6 right-6 z-50">
-        <Link href="/" className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-          <FaArrowLeft className="text-blue-600 dark:text-blue-400" />
+        <Link 
+          href="/" 
+          className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all 
+            ${theme === 'dark' 
+              ? 'bg-gray-800 text-white' 
+              : 'bg-white text-gray-800'}`}
+        >
+          <FaArrowLeft className={theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} />
           <span>بازگشت به صفحه اصلی</span>
         </Link>
       </div>
       
       {/* دکمه تغییر تم با طراحی بهتر */}
       <div className="absolute top-6 left-6 z-50">
-        <button
-          onClick={toggleTheme}
-          className="flex items-center justify-center bg-white/90 dark:bg-gray-800/90 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 backdrop-blur-sm border border-gray-200 dark:border-gray-700"
-          aria-label={darkMode ? "روشن کردن تم" : "تاریک کردن تم"}
+        <div 
+          className={`flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 backdrop-blur-sm cursor-pointer ${
+            theme === 'dark' 
+              ? 'bg-gray-800/90 border border-gray-700' 
+              : 'bg-white/90 border border-gray-200'
+          }`}
         >
-          {darkMode ? (
-            <FaSun className="text-yellow-500 text-2xl" />
-          ) : (
-            <FaMoon className="text-blue-600 text-2xl" />
-          )}
-        </button>
+          <SimpleThemeToggle />
+        </div>
+      </div>
+      
+      {/* نشانگر وضعیت تم فعلی */}
+      <div 
+        className={`absolute top-24 left-6 z-50 px-3 py-1 rounded-md shadow-md text-sm cursor-pointer hover:shadow-lg transition-all ${
+          theme === 'dark' 
+            ? 'bg-gray-800/90 text-white' 
+            : 'bg-white/90 text-gray-800'
+        }`}
+        onClick={toggleTheme}
+      >
+        <p>تم فعلی: <span className="font-bold">{theme === 'dark' ? 'تاریک' : 'روشن'}</span></p>
       </div>
       
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
         {/* کارت اصلی با طراحی شیشه‌ای و سایه‌ها */}
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+        <div 
+          className={`backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 ${
+            theme === 'dark'
+              ? 'bg-gray-800/90 border border-gray-700'
+              : 'bg-white/90 border border-gray-100'
+          }`}
+        >
           <div className="p-6 sm:p-10">
             {/* بخش هدر با اطلاعات اصلی */}
             <div className="flex flex-col md:flex-row gap-8 items-center md:items-start mb-12">
               {/* عکس پروفایل با حاشیه شیک - تغییر چینش به راست */}
               <div className="relative w-48 h-48 md:w-64 md:h-64 order-1 md:order-1 ml-0 md:ml-0 md:mr-0">
-                <div className="w-full h-full rounded-full overflow-hidden border-4 border-gradient-to-r from-blue-400 to-purple-500 shadow-xl">
+                <div className={`w-full h-full rounded-full overflow-hidden border-4 border-gradient-to-r from-blue-400 to-purple-500 shadow-xl ${
+                  theme === 'dark' ? 'shadow-blue-900/20' : ''
+                }`}>
                   <Image
                     src="/photos/avatar/me.jpg"
                     alt="تصویر سروش قاری ایوری"
@@ -300,18 +435,30 @@ export default function AboutMe() {
                     priority
                   />
                 </div>
-                <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg">
+                <div className={`absolute -bottom-2 -right-2 text-white p-2 rounded-full shadow-lg ${
+                  theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'
+                }`}>
                   <FaBriefcase size={18} />
                 </div>
               </div>
 
               {/* اطلاعات هویتی و توضیحات */}
               <div className="flex-1 text-right order-2 md:order-2">
-                <h1 className="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+                <h1 className={`text-4xl font-bold mb-2 bg-clip-text text-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-r from-blue-400 to-purple-400'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600'
+                }`}>
                   {content.title}
                 </h1>
-                <h2 className="text-xl text-gray-600 dark:text-gray-300 mb-4">{content.subtitle}</h2>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-justify">
+                <h2 className={`text-xl mb-4 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  {content.subtitle}
+                </h2>
+                <p className={`leading-relaxed text-justify ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   {content.description}
                 </p>
                 
@@ -319,14 +466,18 @@ export default function AboutMe() {
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-6">
                   <a
                     href={`mailto:${content.contact.email}`}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md"
+                    className={`flex items-center gap-2 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md ${
+                      theme === 'dark' ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
                     <FaEnvelope />
                     <span className="hidden sm:inline">ایمیل</span>
                   </a>
                   <a
                     href={`tel:${content.contact.phone}`}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md"
+                    className={`flex items-center gap-2 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md ${
+                      theme === 'dark' ? 'bg-emerald-700 hover:bg-emerald-600' : 'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
                   >
                     <FaPhone />
                     <span className="hidden sm:inline">تماس</span>
@@ -335,7 +486,9 @@ export default function AboutMe() {
                     href={content.contact.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md"
+                    className={`flex items-center gap-2 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md ${
+                      theme === 'dark' ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
                     <FaLinkedin />
                     <span className="hidden sm:inline">لینکدین</span>
@@ -344,7 +497,9 @@ export default function AboutMe() {
                     href={content.contact.github}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md"
+                    className={`flex items-center gap-2 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md ${
+                      theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-700'
+                    }`}
                   >
                     <FaGithub />
                     <span className="hidden sm:inline">گیت‌هاب</span>
@@ -352,7 +507,9 @@ export default function AboutMe() {
                   <a
                     href="/resume-soroush-qary.pdf"
                     download
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md"
+                    className={`flex items-center gap-2 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md ${
+                      theme === 'dark' ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-700'
+                    }`}
                   >
                     <FaDownload />
                     <span>{content.downloadResume}</span>
@@ -364,100 +521,279 @@ export default function AboutMe() {
             {/* بخش مهارت‌ها با کارت‌های متحرک */}
             <section className="mb-12">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-10 bg-blue-600"></div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">مهارت‌های اصلی</h2>
-                <div className="h-1 flex-grow bg-blue-600/20"></div>
+                <div className={`h-1 w-10 ${theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
+                <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                  مهارت‌های اصلی
+                </h2>
+                <div className={`h-1 flex-grow ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-600/20'}`}></div>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {content.competencies.map((competency, index) => (
                   <div
                     key={index}
-                    className="bg-white dark:bg-gray-700 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-r-4 border-r-blue-500"
+                    className={`p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-r-4 border-r-blue-500 ${
+                      theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-700'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">{competency.icon}</div>
-                      <p className="text-gray-700 dark:text-gray-200">{competency.label}</p>
+                      <p>{competency.label}</p>
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
+
+            {/* خط زمانی افقی خلاصه */}
+            <section className="mb-12">
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`h-1 w-10 ${theme === 'dark' ? 'bg-cyan-500' : 'bg-cyan-600'}`}></div>
+                <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                  خط زمانی
+                </h2>
+                <div className={`h-1 flex-grow ${theme === 'dark' ? 'bg-cyan-500/20' : 'bg-cyan-600/20'}`}></div>
+              </div>
+
+              <div 
+                className={`relative py-6 ${
+                  theme === 'dark' ? 'bg-gray-700/30' : 'bg-gray-100/60'
+                } rounded-xl mb-6`}
+              >
+                <div className="absolute h-1 top-1/2 left-4 right-4 transform -translate-y-1/2 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500"></div>
+                
+                <Swiper
+                  modules={[FreeMode, Mousewheel]}
+                  spaceBetween={8}
+                  slidesPerView="auto"
+                  freeMode={true}
+                  mousewheel={true}
+                  dir="rtl"
+                  className="w-full select-none"
+                  breakpoints={{
+                    640: {
+                      slidesPerView: 3,
+                      spaceBetween: 15,
+                    },
+                    768: {
+                      slidesPerView: 4,
+                      spaceBetween: 20,
+                    },
+                    1024: {
+                      slidesPerView: timelineItems.length,
+                      spaceBetween: 25,
+                    },
+                  }}
+                >
+                  {timelineItems.map((item, index) => (
+                    <SwiperSlide key={index} className="!w-auto">
+                      <div 
+                        className="flex flex-col items-center cursor-pointer group transition-all px-2"
+                        onClick={() => scrollToTimeframe(item.period, item.type)}
+                      >
+                        <div className={`w-6 h-6 rounded-full ${
+                          item.type === 'experience' 
+                            ? theme === 'dark' ? 'bg-emerald-500' : 'bg-emerald-600'
+                            : theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'
+                        } ${
+                          activeTimeframe === item.period ? 'ring-4 ring-offset-2' : ''
+                        } ${
+                          theme === 'dark' ? 'ring-gray-800' : 'ring-white'
+                        } shadow-lg z-10 transition-all group-hover:scale-125`}></div>
+                        
+                        <div className={`px-3 py-1 rounded-lg mt-4 text-sm font-medium transition-all ${
+                          activeTimeframe === item.period
+                            ? theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                            : theme === 'dark' ? 'bg-gray-800/60 text-gray-300' : 'bg-white/60 text-gray-600'
+                        } group-hover:scale-105 shadow-md max-w-[150px] text-center select-none`}>
+                          <p className="whitespace-nowrap">{item.period}</p>
+                          <p className="text-xs mt-1 truncate" title={item.title}>{item.title}</p>
+                        </div>
+                      </div>
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
               </div>
             </section>
 
             {/* بخش سوابق کاری با خط زمانی بهبود یافته */}
-            <section className="mb-12">
+            <section ref={experienceSectionRef} className="mb-12">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-10 bg-green-600"></div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                  <FaBriefcase className="text-green-600" />
+                <div className={`h-1 w-10 ${theme === 'dark' ? 'bg-emerald-500' : 'bg-emerald-600'}`}></div>
+                <h2 className={`text-2xl font-bold flex items-center gap-2 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                }`}>
+                  <FaBriefcase className={theme === 'dark' ? 'text-emerald-500' : 'text-emerald-600'} />
                   تجربه‌های حرفه‌ای
                 </h2>
-                <div className="h-1 flex-grow bg-green-600/20"></div>
+                <div className={`h-1 flex-grow ${theme === 'dark' ? 'bg-emerald-500/20' : 'bg-emerald-600/20'}`}></div>
               </div>
               
-              <div className="space-y-0 relative timeline">
-                {content.experience.map((exp, index) => (
-                  <div key={index} className="timeline-item mb-8 relative z-0">
-                    <div className="timeline-badge absolute top-0 right-0 w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/60 flex items-center justify-center shadow-md -mr-7 z-10 backdrop-blur-sm border-2 border-green-400 dark:border-green-500">
-                      <div className="w-7 h-7 rounded-full bg-green-600 dark:bg-green-400 flex items-center justify-center">
-                        <FaBriefcase className="text-white text-sm" />
+              <div className="relative">
+                {/* خط زمانی عمودی بهبود یافته */}
+                <div className={`absolute top-0 right-6 md:right-9 bottom-0 w-1 ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-b from-emerald-600/70 via-cyan-500/70 to-blue-500/70'
+                    : 'bg-gradient-to-b from-emerald-600 via-cyan-500 to-blue-500'
+                }`}></div>
+                
+                <div className="space-y-6">
+                  {content.experience.map((exp, index) => (
+                    <div 
+                      key={index} 
+                      id={`experience-${exp.period.replace(/\s/g, '-')}`}
+                      className={`relative ${
+                        activeTimeframe && activeTimeframe !== exp.period
+                          ? 'opacity-90'
+                          : 'opacity-100'
+                      } transition-all duration-300`}
+                    >
+                      {/* نشانگر زمان روی خط */}
+                      <div className="absolute right-4 md:right-7 top-6 transform translate-x-1/2 -translate-y-1/2 z-10">
+                        <div className={`flex flex-col items-center group`}>
+                          <div className={`w-6 h-6 rounded-full ${
+                            theme === 'dark' ? 'bg-emerald-400' : 'bg-emerald-500'
+                          } flex items-center justify-center group-hover:animate-pulse`}>
+                            <div className="w-3 h-3 rounded-full bg-white"></div>
+                          </div>
+                          <div className={`mt-2 px-2 py-1 rounded-lg text-sm font-medium hidden md:block ${
+                            theme === 'dark' 
+                              ? 'bg-emerald-900/40 text-emerald-300' 
+                              : 'bg-emerald-100 text-emerald-800'
+                          } whitespace-nowrap`}>
+                            {exp.period}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="timeline-panel mr-20 bg-white dark:bg-gray-700 p-5 rounded-xl shadow-lg hover:shadow-xl transition-all relative border border-gray-100 dark:border-gray-600">
-                      {/* مثلث کوچک برای اتصال به خط زمانی - بهبود یافته */}
-                      <div className="absolute top-4 right-0 w-4 h-4 bg-white dark:bg-gray-700 transform rotate-45 -mr-2 border-r border-t border-gray-100 dark:border-gray-600"></div>
                       
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">{exp.title}</h3>
-                        <span className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 text-sm px-3 py-1 rounded-full border border-green-200 dark:border-green-700 shadow-sm backdrop-blur-sm">
-                          {exp.period}
-                        </span>
+                      <div className={`mr-20 p-5 rounded-xl shadow-lg hover:shadow-xl transition-all relative ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border border-gray-600'
+                          : 'bg-white border border-gray-100'
+                      }`}>
+                        {/* مثلث اتصال به خط زمانی */}
+                        <div className={`absolute top-6 right-0 w-4 h-4 transform rotate-45 -mr-2 ${
+                          theme === 'dark'
+                            ? 'bg-gray-700 border-r border-t border-gray-600'
+                            : 'bg-white border-r border-t border-gray-100'
+                        }`}></div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                          <h3 className={`text-xl font-bold ${
+                            theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          }`}>{exp.title}</h3>
+                          {/* نمایش تاریخ در داخل باکس در نمای موبایل */}
+                          <div className="md:hidden text-sm font-medium">
+                            <span className={`px-2 py-0.5 rounded ${
+                              theme === 'dark' 
+                                ? 'bg-emerald-900/40 text-emerald-300' 
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {exp.period}
+                            </span>
+                          </div>
+                        </div>
+                        <p className={`mb-3 font-medium ${
+                          theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'
+                        }`}>{exp.company}</p>
+                        <ul className={`list-disc list-inside space-y-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          {exp.details.map((detail, i) => (
+                            <li key={i}>{detail}</li>
+                          ))}
+                        </ul>
                       </div>
-                      <p className="text-blue-600 dark:text-blue-400 mb-3 font-medium">{exp.company}</p>
-                      <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-                        {exp.details.map((detail, i) => (
-                          <li key={i}>{detail}</li>
-                        ))}
-                      </ul>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
 
             {/* بخش تحصیلات با خط زمانی بهبود یافته */}
-            <section>
+            <section ref={educationSectionRef}>
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-10 bg-purple-600"></div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                  <FaGraduationCap className="text-purple-600" />
+                <div className={`h-1 w-10 ${theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
+                <h2 className={`text-2xl font-bold flex items-center gap-2 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                }`}>
+                  <FaGraduationCap className={theme === 'dark' ? 'text-blue-500' : 'text-blue-600'} />
                   سوابق تحصیلی
                 </h2>
-                <div className="h-1 flex-grow bg-purple-600/20"></div>
+                <div className={`h-1 flex-grow ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-600/20'}`}></div>
               </div>
               
-              <div className="space-y-0 relative timeline">
-                {content.education.map((edu, index) => (
-                  <div key={index} className="timeline-item mb-8 relative z-0">
-                    <div className="timeline-badge absolute top-0 right-0 w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/60 flex items-center justify-center shadow-md -mr-7 z-10 backdrop-blur-sm border-2 border-purple-400 dark:border-purple-500">
-                      <FaGraduationCap className="text-purple-600 dark:text-purple-300 text-xl" />
-                    </div>
-                    
-                    <div className="timeline-panel mr-20 bg-white dark:bg-gray-700 p-5 rounded-xl shadow-lg hover:shadow-xl transition-all relative border border-gray-100 dark:border-gray-600">
-                      {/* مثلث کوچک برای اتصال به خط زمانی - بهبود یافته */}
-                      <div className="absolute top-4 right-0 w-4 h-4 bg-white dark:bg-gray-700 transform rotate-45 -mr-2 border-r border-t border-gray-100 dark:border-gray-600"></div>
-                      
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">{edu.degree}</h3>
-                        <span className="bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 text-sm px-3 py-1 rounded-full border border-purple-200 dark:border-purple-700 shadow-sm backdrop-blur-sm">
-                          {edu.period}
-                        </span>
+              <div className="relative">
+                {/* خط زمانی عمودی بهبود یافته */}
+                <div className={`absolute top-0 right-6 md:right-9 bottom-0 w-1 ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-b from-blue-600/70 via-cyan-500/70 to-emerald-500/70'
+                    : 'bg-gradient-to-b from-blue-600 via-cyan-500 to-emerald-500'
+                }`}></div>
+                
+                <div className="space-y-6">
+                  {content.education.map((edu, index) => (
+                    <div 
+                      key={index} 
+                      id={`education-${edu.period.replace(/\s/g, '-')}`}
+                      className={`relative ${
+                        activeTimeframe && activeTimeframe !== edu.period
+                          ? 'opacity-90'
+                          : 'opacity-100'
+                      } transition-all duration-300`}
+                    >
+                      {/* نشانگر زمان روی خط */}
+                      <div className="absolute right-4 md:right-7 top-6 transform translate-x-1/2 -translate-y-1/2 z-10">
+                        <div className={`flex flex-col items-center group`}>
+                          <div className={`w-6 h-6 rounded-full ${
+                            theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'
+                          } flex items-center justify-center group-hover:animate-pulse`}>
+                            <div className="w-3 h-3 rounded-full bg-white"></div>
+                          </div>
+                          <div className={`mt-2 px-2 py-1 rounded-lg text-sm font-medium hidden md:block ${
+                            theme === 'dark' 
+                              ? 'bg-blue-900/40 text-blue-300' 
+                              : 'bg-blue-100 text-blue-800'
+                          } whitespace-nowrap`}>
+                            {edu.period}
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300">{edu.institution}</p>
+                      
+                      <div className={`mr-20 p-5 rounded-xl shadow-lg hover:shadow-xl transition-all relative ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border border-gray-600'
+                          : 'bg-white border border-gray-100'
+                      }`}>
+                        {/* مثلث اتصال به خط زمانی */}
+                        <div className={`absolute top-6 right-0 w-4 h-4 transform rotate-45 -mr-2 ${
+                          theme === 'dark'
+                            ? 'bg-gray-700 border-r border-t border-gray-600'
+                            : 'bg-white border-r border-t border-gray-100'
+                        }`}></div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                          <h3 className={`text-xl font-bold ${
+                            theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          }`}>{edu.degree}</h3>
+                          {/* نمایش تاریخ در داخل باکس در نمای موبایل */}
+                          <div className="md:hidden text-sm font-medium">
+                            <span className={`px-2 py-0.5 rounded ${
+                              theme === 'dark' 
+                                ? 'bg-blue-900/40 text-blue-300' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {edu.period}
+                            </span>
+                          </div>
+                        </div>
+                        <p className={`mt-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                        }`}>{edu.institution}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
           </div>
@@ -474,13 +810,20 @@ export default function AboutMe() {
           height: 100%;
           width: 3px;
           background: linear-gradient(to bottom, 
-            rgba(74, 222, 128, 0.7) 0%, 
-            rgba(74, 222, 128, 0.7) 50%, 
-            rgba(168, 85, 247, 0.7) 50%, 
-            rgba(168, 85, 247, 0.7) 100%);
+            rgba(16, 185, 129, 0.7) 0%, 
+            rgba(6, 182, 212, 0.7) 50%, 
+            rgba(59, 130, 246, 0.7) 100%);
           z-index: 1;
           border-radius: 3px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        html.dark .timeline::before {
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+          background: linear-gradient(to bottom, 
+            rgba(16, 185, 129, 0.5) 0%, 
+            rgba(6, 182, 212, 0.5) 50%, 
+            rgba(59, 130, 246, 0.5) 100%);
         }
         
         .timeline-item:last-child {
@@ -497,6 +840,10 @@ export default function AboutMe() {
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
         
+        html.dark .timeline-panel:hover {
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+        }
+        
         /* افکت انیمیشن برای بج‌های خط زمانی */
         .timeline-badge {
           transition: all 0.3s ease;
@@ -504,6 +851,26 @@ export default function AboutMe() {
         
         .timeline-item:hover .timeline-badge {
           transform: scale(1.1);
+        }
+        
+        /* حذف نمایش اسکرول‌بار */
+        .no-scrollbar {
+          -ms-overflow-style: none;  /* برای اینترنت اکسپلورر و Edge */
+          scrollbar-width: none;  /* برای Firefox */
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+          display: none; /* برای Chrome, Safari, and Opera */
+        }
+        
+        /* استایل‌های Swiper */
+        :global(.swiper-slide) {
+          width: auto;
+          height: auto;
+        }
+        
+        :global(.swiper) {
+          padding: 0 10px;
         }
       `}</style>
     </div>

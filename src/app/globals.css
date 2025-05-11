@@ -121,6 +121,15 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* تنظیمات حالت تاریک - اضافه شده */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -129,8 +138,9 @@
   --font-display: 'Farhang2', 'Lalezar', sans-serif;
 }
 
+/* این بخش فقط وقتی کار می‌کند که کاربر تنظیمات پیش‌فرض تاریک را در مرورگر داشته باشد */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
     --background: #0a0a0a;
     --foreground: #ededed;
     --foreground-rgb: 255, 255, 255;
@@ -156,6 +166,7 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
