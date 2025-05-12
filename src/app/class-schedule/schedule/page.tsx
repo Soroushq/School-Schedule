@@ -101,6 +101,9 @@ const SchedulePageContent = () => {
   const classParam = searchParams.get('class') || '';
   const fieldParam = searchParams.get('field') || '';
   
+  // اضافه کردن متغیر برای نگهداری مقطع انتخاب شده
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  
   const [showClassModal, setShowClassModal] = useState(!gradeParam || !classParam || !fieldParam);
   const [grade, setGrade] = useState(gradeParam || '');
   const [classNumber, setClassNumber] = useState(classParam || '');
@@ -389,6 +392,36 @@ const SchedulePageContent = () => {
       loadClassData(gradeParam, classParam, fieldParam);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // بارگذاری مقطع انتخاب شده از localStorage
+  useEffect(() => {
+    const savedLevel = localStorage.getItem('selectedLevel');
+    if (savedLevel) {
+      setSelectedLevel(savedLevel);
+    }
+    
+    // بارگذاری اطلاعات کلاس انتخاب شده از localStorage
+    const savedClass = localStorage.getItem('selectedClass');
+    if (savedClass) {
+      try {
+        const classData = JSON.parse(savedClass);
+        if (classData.grade && classData.name && classData.section) {
+          setGrade(classData.grade);
+          setClassNumber(classData.section);
+          setField(classData.field || '');
+          
+          // بارگذاری برنامه کلاس
+          loadClassData(classData.grade, classData.section, classData.field || '');
+          setShowClassModal(false);
+        }
+      } catch (error) {
+        console.error('Error parsing saved class data:', error);
+      }
+    }
+    
+    // بارگذاری برنامه‌های پرسنلی
+    loadSavedPersonnelSchedules();
   }, []);
 
   // تابع برای بارگذاری داده‌های کلاس

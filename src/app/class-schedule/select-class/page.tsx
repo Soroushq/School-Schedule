@@ -1,120 +1,93 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import styles from './select-class.module.css';
+import { EducationSystem, ClassOption } from '../../../types/education';
+import { ClassSelector } from '../../../components/ClassSelector';
+import { initialEducationSystem } from '../../../data/educationData';
+import { EducationLevelLoader, getGradeOptionsByLevel, getClassOptionsByLevel, getFieldOptionsByLevel, isFieldRequired } from '../../../components/EducationLevelLoader';
 
-const grades = ['دهم', 'یازدهم', 'دوازدهم'];
-
-const classNumbers = {
-  'دهم': ['101', '102', '103'],
-  'یازدهم': ['111', '112', '113'],
-  'دوازدهم': ['121', '122', '123']
-};
-
-const fields = [
-  'امور دامي',
-  'امور زراعي',
-  'پويانمايي (انيميشن)',
-  'تأسيسات مكانيكي',
-  'تربيت بدني',
-  'تربيت كودك',
-  'توليد برنامه‌ تلویزيوني',
-  'چاپ',
-  'حسابداري',
-  'ساختمان',
-  'سراميك',
-  'سينما',
-  'شبكه و نرم‌افزار رايانه',
-  'صنايع چوب و مبلمان',
-  'صنايع دستي - فرش',
-  'صنايع شيميايي'
-];
-
-export default function SelectClass() {
+export default function SelectClassPage() {
   const router = useRouter();
-  const [selectedGrade, setSelectedGrade] = useState('');
-  const [selectedClassNumber, setSelectedClassNumber] = useState('');
-  const [selectedField, setSelectedField] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<keyof EducationSystem | null>(null);
+  const [educationSystem, setEducationSystem] = useState<EducationSystem>(initialEducationSystem);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedGrade && selectedClassNumber && selectedField) {
-      // TODO: Save to database
-      router.push(`/class-schedule/schedule?grade=${selectedGrade}&class=${selectedClassNumber}&field=${selectedField}`);
+  // خواندن مقطع انتخاب شده از localStorage
+  const handleLevelLoaded = (level: string) => {
+    if (Object.keys(initialEducationSystem).includes(level)) {
+      setSelectedLevel(level as keyof EducationSystem);
+    } else {
+      // اگر مقطعی انتخاب نشده باشد، به صورت پیش‌فرض دوره دوم متوسطه انتخاب می‌شود
+      setSelectedLevel('highSchool');
     }
   };
 
+  // خواندن کلاس انتخاب شده از localStorage
+  useEffect(() => {
+    const savedClass = localStorage.getItem('selectedClass');
+    if (savedClass) {
+      try {
+        const classData = JSON.parse(savedClass);
+        if (classData.grade && classData.name && classData.section) {
+          // اطلاعات کلاس انتخاب شده را نمایش می‌دهیم
+          console.log('Loaded class data:', classData);
+        }
+      } catch (error) {
+        console.error('Error parsing saved class data:', error);
+      }
+    }
+  }, []);
+
+  const handleClassSelect = (selectedClass: ClassOption) => {
+    // ذخیره اطلاعات کلاس انتخاب شده
+    localStorage.setItem('selectedClass', JSON.stringify(selectedClass));
+    // انتقال به صفحه برنامه کلاس
+    router.push('/class-schedule/schedule');
+  };
+
+  // اگر هنوز مقطع انتخاب نشده است، نمایش لودینگ
+  if (!selectedLevel) {
+    return (
+      <>
+        <EducationLevelLoader onLevelLoaded={handleLevelLoaded} />
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.backButton}>
-          بازگشت
-        </Link>
-        <h1>انتخاب کلاس</h1>
-      </header>
-      
-      <main className={styles.main}>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label htmlFor="grade">پایه:</label>
-            <select
-              id="grade"
-              value={selectedGrade}
-              onChange={(e) => {
-                setSelectedGrade(e.target.value);
-                setSelectedClassNumber('');
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">انتخاب کلاس</h1>
+
+      {/* انتخاب مقطع */}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {Object.entries(educationSystem).map(([key, level]) => (
+            <button
+              key={key}
+              onClick={() => {
+                setSelectedLevel(key as keyof EducationSystem);
+                localStorage.setItem('selectedLevel', key);
               }}
-              required
+              className={`p-4 rounded-lg ${
+                selectedLevel === key
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white'
+              }`}
             >
-              <option value="">انتخاب کنید</option>
-              {grades.map(grade => (
-                <option key={grade} value={grade}>{grade}</option>
-              ))}
-            </select>
-          </div>
+              {level.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="classNumber">شماره کلاس:</label>
-            <select
-              id="classNumber"
-              value={selectedClassNumber}
-              onChange={(e) => setSelectedClassNumber(e.target.value)}
-              disabled={!selectedGrade}
-              required
-            >
-              <option value="">انتخاب کنید</option>
-              {selectedGrade && classNumbers[selectedGrade as keyof typeof classNumbers].map(number => (
-                <option key={number} value={number}>{number}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label htmlFor="field">گرایش کلاس:</label>
-            <select
-              id="field"
-              value={selectedField}
-              onChange={(e) => setSelectedField(e.target.value)}
-              required
-            >
-              <option value="">انتخاب کنید</option>
-              {fields.map(field => (
-                <option key={field} value={field}>{field}</option>
-              ))}
-            </select>
-          </div>
-
-          <button 
-            type="submit" 
-            className={styles.submitButton}
-            disabled={!selectedGrade || !selectedClassNumber || !selectedField}
-          >
-            ادامه
-          </button>
-        </form>
-      </main>
+      {/* انتخاب کلاس */}
+      <ClassSelector
+        level={educationSystem[selectedLevel]}
+        onSelect={handleClassSelect}
+      />
     </div>
   );
 } 
