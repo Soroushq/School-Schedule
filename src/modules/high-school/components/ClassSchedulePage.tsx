@@ -6,6 +6,7 @@ import { useHighSchoolSchedule } from './HighSchoolScheduleProvider';
 import { useVocationalSchedule } from './VocationalScheduleProvider';
 import { Schedule, ScheduleWithFullName, ClassStatistics } from '../../common/types/scheduleTypes';
 import { DAYS, TIME_SLOTS, HOUR_TYPES, MAIN_POSITIONS, EMPLOYMENT_STATUSES } from '../../common/constants/scheduleConstants';
+import { useTheme } from '@/context/ThemeContext';
 
 // کامپوننت صفحه برنامه‌ریزی کلاسی هنرستان
 const HighSchoolClassSchedulePage: React.FC<{isVocational?: boolean}> = ({ isVocational = false }) => {
@@ -14,12 +15,12 @@ const HighSchoolClassSchedulePage: React.FC<{isVocational?: boolean}> = ({ isVoc
   const gradeParam = searchParams.get('grade') || '';
   const classParam = searchParams.get('class') || '';
   const fieldParam = searchParams.get('field') || '';
+  const { theme } = useTheme();
   
   // استفاده از کانتکست مناسب بر اساس نوع مدرسه
-  const highSchoolContext = useHighSchoolSchedule();
-  const vocationalContext = isVocational ? useVocationalSchedule() : null;
+  const context = isVocational ? useVocationalSchedule() : useHighSchoolSchedule();
   
-  // انتخاب کانتکست مناسب
+  // استفاده از توابع و داده‌های کانتکست
   const {
     grades,
     classOptions,
@@ -33,7 +34,7 @@ const HighSchoolClassSchedulePage: React.FC<{isVocational?: boolean}> = ({ isVoc
     hasClassConflict,
     hasPersonnelConflict,
     personnelSchedules
-  } = isVocational ? vocationalContext! : highSchoolContext;
+  } = context;
   
   // استیت‌های صفحه
   const [showClassModal, setShowClassModal] = useState(!gradeParam || !classParam || !fieldParam);
@@ -354,118 +355,224 @@ const HighSchoolClassSchedulePage: React.FC<{isVocational?: boolean}> = ({ isVoc
   };
   
   return (
-    <div className="class-schedule-page">
-      <div className="schedule-header">
-        <h1>برنامه کلاسی {isVocational ? 'هنرستان فنی و حرفه‌ای' : 'هنرستان'}</h1>
-        <div className="class-info">
-          <span>پایه: {grade}</span>
-          <span>کلاس: {classNumber}</span>
-          <span>رشته: {field}</span>
-          <button onClick={openClassSelectionModal} className="change-class-btn">
-            تغییر کلاس
+    <div className={`class-schedule-page min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`schedule-header p-4 md:p-6 rounded-lg shadow-md mb-6 mx-4 ${
+        theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+      }`}>
+        <h1 className={`text-2xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          برنامه کلاسی {isVocational ? 'هنرستان فنی و حرفه‌ای' : 'هنرستان'}
+        </h1>
+        
+        <div className="class-selection-section">
+          <button 
+            onClick={openClassSelectionModal}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            انتخاب کلاس
           </button>
+          
+          {grade && classNumber && field && (
+            <div className={`selected-class-info mt-4 p-4 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 ${
+              theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-blue-50 text-gray-900'
+            }`}>
+              <div className="info-item">
+                <span className={`info-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  پایه:
+                </span>
+                <span className="info-value block mt-1">{grade}</span>
+              </div>
+              <div className="info-item">
+                <span className={`info-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  کلاس:
+                </span>
+                <span className="info-value block mt-1">{classNumber}</span>
+              </div>
+              <div className="info-item">
+                <span className={`info-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  رشته:
+                </span>
+                <span className="info-value block mt-1">{field}</span>
+              </div>
+            </div>
+          )}
         </div>
         
         {classStats && (
-          <div className="class-stats">
-            <div className="stat-item">
-              <span className="stat-label">کل ساعات:</span>
-              <span className="stat-value">{classStats.totalHours}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">ساعات پر شده:</span>
-              <span className="stat-value">{classStats.filledHours}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">ساعات خالی:</span>
-              <span className="stat-value">{classStats.emptyHours}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">تعداد پرسنل:</span>
-              <span className="stat-value">{classStats.personnelCount}</span>
+          <div className={`class-stats mt-4 p-4 rounded-lg ${
+            theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-blue-50 text-gray-900'
+          }`}>
+            <h3 className="text-lg font-bold mb-2">آمار کلاس</h3>
+            <div className="stats-grid grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="stat-item">
+                <span className={`stat-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  کل ساعات:
+                </span>
+                <span className="stat-value block mt-1">{classStats.totalHours}</span>
+              </div>
+              <div className="stat-item">
+                <span className={`stat-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  ساعات پر شده:
+                </span>
+                <span className="stat-value block mt-1">{classStats.filledHours}</span>
+              </div>
+              <div className="stat-item">
+                <span className={`stat-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  ساعات خالی:
+                </span>
+                <span className="stat-value block mt-1">{classStats.emptyHours}</span>
+              </div>
+              <div className="stat-item">
+                <span className={`stat-label font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  تعداد پرسنل:
+                </span>
+                <span className="stat-value block mt-1">{classStats.personnelCount}</span>
+              </div>
             </div>
           </div>
         )}
       </div>
       
-      <div className="schedule-table-container">
-        <table className="schedule-table">
-          <thead>
-            <tr>
-              <th className="time-header">ساعت / روز</th>
-              {DAYS.map(day => (
-                <th key={day} className="day-header">{day}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {TIME_SLOTS.map(slot => (
-              <tr key={slot.start} className={slot.label.includes('تفریح') || slot.label.includes('نماز') ? 'break-row' : ''}>
-                <td className="time-cell">
-                  <div className="time-label">{slot.label}</div>
-                  <div className="time-range">{slot.start} - {slot.end}</div>
-                </td>
+      {grade && classNumber && field && (
+        <div className={`schedule-table-container mx-4 rounded-lg shadow-md overflow-x-auto ${
+          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <table className={`schedule-table w-full ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <thead>
+              <tr>
+                <th className={`time-header p-3 font-bold text-center border ${
+                  theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                }`}>ساعت / روز</th>
                 {DAYS.map(day => (
-                  <td key={`${day}-${slot.start}`} className="schedule-cell-container">
-                    {slot.label.includes('تفریح') || slot.label.includes('نماز') ? (
-                      <div className="break-cell">{slot.label}</div>
-                    ) : (
-                      renderScheduleCell(day, slot.start)
-                    )}
-                  </td>
+                  <th key={day} className={`day-header p-3 font-bold text-center border ${
+                    theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                  }`}>{day}</th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {TIME_SLOTS.map(slot => (
+                <tr key={slot.start} className={slot.label.includes('تفریح') || slot.label.includes('نماز') ? 'break-row' : ''}>
+                  <td className={`time-cell p-2 border ${
+                    theme === 'dark' ? 'border-gray-600' : 'border-gray-200'
+                  }`}>
+                    <div className="time-label font-medium">{slot.label}</div>
+                    <div className={`time-range text-sm ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>{slot.start} - {slot.end}</div>
+                  </td>
+                  {DAYS.map(day => (
+                    <td key={`${day}-${slot.start}`} className={`schedule-cell-container p-0 border ${
+                      theme === 'dark' ? 'border-gray-600' : 'border-gray-200'
+                    }`}>
+                      {slot.label.includes('تفریح') || slot.label.includes('نماز') ? (
+                        <div className={`break-cell p-2 text-center ${
+                          theme === 'dark' ? 'bg-gray-700/50 text-gray-300' : 'bg-gray-100 text-gray-600'
+                        }`}>{slot.label}</div>
+                      ) : (
+                        renderScheduleCell(day, slot.start)
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       
       {/* مدال انتخاب کلاس */}
       {showClassModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>انتخاب کلاس</h2>
-            <div className="form-group">
-              <label>پایه:</label>
-              <select value={grade} onChange={e => setGrade(e.target.value)}>
-                <option value="">انتخاب کنید</option>
-                {grades.map(g => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>کلاس:</label>
-              <select 
-                value={classNumber} 
-                onChange={e => setClassNumber(e.target.value)}
-                disabled={!grade}
-              >
-                <option value="">انتخاب کنید</option>
-                {grade && classOptions[grade]?.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>رشته:</label>
-              <select value={field} onChange={e => setField(e.target.value)}>
-                <option value="">انتخاب کنید</option>
-                {fields.map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="modal-actions">
-              <button 
-                onClick={handleClassSelection}
-                disabled={!grade || !classNumber || !field}
-              >
-                تأیید
-              </button>
+        <div className="modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className={`modal-content w-full max-w-lg rounded-xl shadow-xl ${
+            theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+          }`}>
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">انتخاب کلاس</h2>
+              
+              <div className="space-y-4">
+                <div className="form-group">
+                  <label className="block mb-1">پایه:</label>
+                  <select 
+                    value={grade} 
+                    onChange={e => setGrade(e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-white border-gray-600'
+                        : 'bg-white text-gray-900 border-gray-300'
+                    }`}
+                  >
+                    <option value="">انتخاب کنید</option>
+                    {grades.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="block mb-1">کلاس:</label>
+                  <select 
+                    value={classNumber} 
+                    onChange={e => setClassNumber(e.target.value)}
+                    disabled={!grade}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-white border-gray-600'
+                        : 'bg-white text-gray-900 border-gray-300'
+                    } disabled:opacity-50`}
+                  >
+                    <option value="">انتخاب کنید</option>
+                    {grade && classOptions[grade]?.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="block mb-1">رشته:</label>
+                  <select 
+                    value={field} 
+                    onChange={e => setField(e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-white border-gray-600'
+                        : 'bg-white text-gray-900 border-gray-300'
+                    }`}
+                  >
+                    <option value="">انتخاب کنید</option>
+                    {fields.map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="modal-actions flex justify-end gap-2 mt-6">
+                <button 
+                  onClick={handleClassSelection}
+                  disabled={!grade || !classNumber || !field}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600'
+                      : 'bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300'
+                  } text-white disabled:cursor-not-allowed`}
+                >
+                  تأیید
+                </button>
+                <button 
+                  onClick={() => setShowClassModal(false)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-600 hover:bg-gray-700'
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  } text-white`}
+                >
+                  انصراف
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -473,118 +580,180 @@ const HighSchoolClassSchedulePage: React.FC<{isVocational?: boolean}> = ({ isVoc
       
       {/* مدال افزودن برنامه */}
       {modalOpen && selectedCell && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>افزودن برنامه</h2>
-            <div className="modal-info">
-              <span>روز: {selectedCell.day}</span>
-              <span>ساعت: {selectedCell.time}</span>
-            </div>
-            
-            <div className="form-group">
-              <label>کد پرسنلی:</label>
-              <div className="search-input-container">
-                <input
-                  type="text"
-                  value={personnelCode}
-                  onChange={e => setPersonnelCode(e.target.value)}
-                  placeholder="کد پرسنلی را وارد کنید"
-                />
-                <button onClick={() => setShowPersonnelSearch(true)}>جستجو</button>
+        <div className="modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className={`modal-content w-full max-w-lg rounded-xl shadow-xl ${
+            theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+          }`}>
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">افزودن برنامه</h2>
+              <div className={`modal-info mb-4 p-3 rounded-lg ${
+                theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
+              }`}>
+                <span className="ml-4">روز: {selectedCell.day}</span>
+                <span>ساعت: {selectedCell.time}</span>
               </div>
-            </div>
-            
-            {showPersonnelSearch && (
-              <div className="personnel-search">
-                <div className="search-input-container">
-                  <input
-                    type="text"
-                    value={personnelSearchQuery}
-                    onChange={e => setPersonnelSearchQuery(e.target.value)}
-                    placeholder="نام یا کد پرسنلی را وارد کنید"
-                  />
-                  <button onClick={handlePersonnelSearch}>جستجو</button>
+              
+              <div className="space-y-4">
+                <div className="form-group">
+                  <label className="block mb-1">کد پرسنلی:</label>
+                  <div className="search-input-container flex gap-2">
+                    <input
+                      type="text"
+                      value={personnelCode}
+                      onChange={e => setPersonnelCode(e.target.value)}
+                      placeholder="کد پرسنلی را وارد کنید"
+                      className={`flex-1 px-4 py-2 rounded-lg border ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 text-white border-gray-600 placeholder-gray-400'
+                          : 'bg-white text-gray-900 border-gray-300 placeholder-gray-500'
+                      }`}
+                    />
+                    <button 
+                      onClick={() => setShowPersonnelSearch(true)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-blue-500 hover:bg-blue-600'
+                      } text-white`}
+                    >
+                      جستجو
+                    </button>
+                  </div>
                 </div>
                 
-                <div className="search-results">
-                  {searchResults.map(result => (
-                    <div
-                      key={result.personnelCode}
-                      className="search-result-item"
-                      onClick={() => selectPersonnel(result.personnelCode, result.fullName)}
-                    >
-                      <span>{result.fullName}</span>
-                      <span>{result.personnelCode}</span>
+                {showPersonnelSearch && (
+                  <div className={`personnel-search p-4 rounded-lg ${
+                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
+                  }`}>
+                    <div className="search-input-container flex gap-2 mb-4">
+                      <input
+                        type="text"
+                        value={personnelSearchQuery}
+                        onChange={e => setPersonnelSearchQuery(e.target.value)}
+                        placeholder="نام یا کد پرسنلی را وارد کنید"
+                        className={`flex-1 px-4 py-2 rounded-lg border ${
+                          theme === 'dark'
+                            ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400'
+                            : 'bg-white text-gray-900 border-gray-300 placeholder-gray-500'
+                        }`}
+                      />
+                      <button 
+                        onClick={handlePersonnelSearch}
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-blue-600 hover:bg-blue-700'
+                            : 'bg-blue-500 hover:bg-blue-600'
+                        } text-white`}
+                      >
+                        جستجو
+                      </button>
                     </div>
-                  ))}
+                    
+                    <div className="search-results space-y-2">
+                      {searchResults.map(result => (
+                        <div
+                          key={result.personnelCode}
+                          className={`search-result-item p-2 rounded-lg cursor-pointer transition-colors ${
+                            theme === 'dark'
+                              ? 'hover:bg-gray-600'
+                              : 'hover:bg-gray-200'
+                          }`}
+                          onClick={() => selectPersonnel(result.personnelCode, result.fullName)}
+                        >
+                          <span className="block font-medium">{result.fullName}</span>
+                          <span className={`block text-sm ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>{result.personnelCode}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="form-group">
+                  <label className="block mb-1">نوع ساعت:</label>
+                  <select 
+                    value={hourType} 
+                    onChange={e => setHourType(e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-white border-gray-600'
+                        : 'bg-white text-gray-900 border-gray-300'
+                    }`}
+                  >
+                    <option value="">انتخاب کنید</option>
+                    {HOUR_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="block mb-1">گروه تدریس:</label>
+                  <select 
+                    value={teachingGroup} 
+                    onChange={e => setTeachingGroup(e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-white border-gray-600'
+                        : 'bg-white text-gray-900 border-gray-300'
+                    }`}
+                  >
+                    <option value="">انتخاب کنید</option>
+                    {teachingGroups.map(group => (
+                      <option key={group} value={group}>{group}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="block mb-1">توضیحات:</label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="توضیحات را وارد کنید"
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-white border-gray-600 placeholder-gray-400'
+                        : 'bg-white text-gray-900 border-gray-300 placeholder-gray-500'
+                    }`}
+                  />
                 </div>
               </div>
-            )}
-            
-            <div className="form-group">
-              <label>نام و نام خانوادگی:</label>
-              <input
-                type="text"
-                value={personnelName}
-                onChange={e => setPersonnelName(e.target.value)}
-                placeholder="نام و نام خانوادگی پرسنل را وارد کنید"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>وضعیت اشتغال:</label>
-              <select value={employmentStatus} onChange={e => setEmploymentStatus(e.target.value)}>
-                <option value="">انتخاب کنید</option>
-                {EMPLOYMENT_STATUSES.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>پست اصلی:</label>
-              <select value={mainPosition} onChange={e => setMainPosition(e.target.value)}>
-                <option value="">انتخاب کنید</option>
-                {MAIN_POSITIONS.map(position => (
-                  <option key={position} value={position}>{position}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>نوع ساعت:</label>
-              <select value={hourType} onChange={e => setHourType(e.target.value)}>
-                <option value="">انتخاب کنید</option>
-                {HOUR_TYPES.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>گروه تدریس:</label>
-              <select value={teachingGroup} onChange={e => setTeachingGroup(e.target.value)}>
-                <option value="">انتخاب کنید</option>
-                {teachingGroups.map(group => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>توضیحات:</label>
-              <input
-                type="text"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="توضیحات را وارد کنید"
-              />
-            </div>
-            
-            <div className="modal-actions">
-              <button onClick={handleSaveSchedule}>ذخیره</button>
-              <button onClick={handleDeleteSchedule} className="delete-btn">حذف</button>
-              <button onClick={() => setModalOpen(false)}>انصراف</button>
+              
+              <div className="modal-actions flex justify-end gap-2 mt-6">
+                <button 
+                  onClick={handleSaveSchedule}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-blue-500 hover:bg-blue-600'
+                  } text-white`}
+                >
+                  ذخیره
+                </button>
+                <button 
+                  onClick={handleDeleteSchedule}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-red-500 hover:bg-red-600'
+                  } text-white`}
+                >
+                  حذف
+                </button>
+                <button 
+                  onClick={() => setModalOpen(false)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-600 hover:bg-gray-700'
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  } text-white`}
+                >
+                  انصراف
+                </button>
+              </div>
             </div>
           </div>
         </div>
