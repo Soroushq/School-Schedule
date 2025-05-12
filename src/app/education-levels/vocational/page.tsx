@@ -1,53 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import styles from './vocational.module.css';
-import { FaSun, FaMoon, FaArrowRight, FaUsers, FaChalkboardTeacher } from 'react-icons/fa';
+import { FaArrowRight } from 'react-icons/fa';
 import AnimatedFooter from '@/app/components/AnimatedFooter';
 import dynamic from 'next/dynamic';
+import { useTheme } from '@/context/ThemeContext';
 
 const LoadingSpinner = dynamic(() => import('@/components/LoadingSpinner'), { ssr: false });
 
 export default function VocationalPage() {
-  const router = useRouter();
-  const [theme, setTheme] = useState('light');
   const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
 
   // مدیریت تم در سمت کلاینت
   useEffect(() => {
-    // بررسی localStorage برای تم ذخیره شده
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    
-    // اعمال کلاس به المان ریشه
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
     setMounted(true);
   }, []);
-
-  // تغییر تم
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    
-    // اعمال به DOM
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // ذخیره در localStorage
-    localStorage.setItem('theme', newTheme);
-    
-    // به‌روزرسانی state
-    setTheme(newTheme);
-  };
 
   // اگر کامپوننت هنوز به صورت کامل لود نشده است، نمایش یک اسپینر
   if (!mounted) {
@@ -58,81 +27,47 @@ export default function VocationalPage() {
     );
   }
 
-  const scheduleOptions = [
-    {
-      id: 'class-schedule',
-      title: 'برنامه‌ریزی بر اساس کلاس',
-      description: 'برنامه‌ریزی بر اساس کلاس‌ها و دروس',
-      icon: <FaChalkboardTeacher className="text-3xl" />,
-      path: '/class-schedule'
-    },
-    {
-      id: 'personnel-schedule',
-      title: 'برنامه‌ریزی بر اساس پرسنل',
-      description: 'برنامه‌ریزی بر اساس معلمان و کارکنان',
-      icon: <FaUsers className="text-3xl" />,
-      path: '/personnel-schedule'
-    }
-  ];
-
   return (
-    <div className={`${styles.container} ${theme === 'dark' ? styles.darkMode : ''}`}>
+    <div 
+      className={`min-h-screen flex flex-col items-center justify-center p-8 ${
+        theme === 'dark' 
+          ? 'bg-gray-900 text-white' 
+          : 'bg-yellow-50 text-gray-800'
+      }`}
+    >
       {/* دکمه بازگشت به صفحه اصلی */}
-      <Link
-        href="/"
+      <Link 
+        href="/" 
         className={`fixed duration-250 z-50 opacity-50 hover:opacity-100 top-12 right-6 p-3 rounded-full transition-all shadow-lg ${
           theme === 'dark' 
             ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' 
             : 'bg-white text-gray-800 hover:bg-gray-100'
         }`}
       >
-        <FaArrowRight className={theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'} />
+        <FaArrowRight className={theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'} />
       </Link>
-
-      {/* دکمه تغییر تم */}
-      <button
-        onClick={toggleTheme}
-        className={`fixed duration-250 z-50 opacity-50 hover:opacity-100 top-12 left-6 p-3 rounded-full transition-all shadow-lg ${
-          theme === 'dark' 
-            ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' 
-            : 'bg-white text-gray-800 hover:bg-gray-100'
-        }`}
-        aria-label={theme === 'light' ? 'تغییر به حالت تاریک' : 'تغییر به حالت روشن'}
-      >
-        {theme === 'light' 
-          ? <FaMoon className="text-blue-500 text-xl" /> 
-          : <FaSun className="text-yellow-500 text-xl" />
-        }
-      </button>
-
-      <h1 className={`${styles.title} ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-        برنامه‌ریزی مقطع متوسطه دوم فنی و حرفه‌ای، کاردانش
-      </h1>
       
-      <p className={`${styles.subtitle} ${theme === 'dark' ? 'text-gray-300' : ''}`}>
-        لطفا نوع برنامه‌ریزی مورد نظر خود را انتخاب کنید:
-      </p>
-      
-      <div className={styles.options}>
-        {scheduleOptions.map((option) => (
-          <div 
-            key={option.id}
-            className={`${styles.option} ${theme === 'dark' ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white hover:bg-gray-50'}`}
-            onClick={() => router.push(option.path)}
-          >
-            <div className={`${styles.optionIcon} ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`}>
-              {option.icon}
-            </div>
-            <h2 className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>
-              {option.title}
-            </h2>
-            <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-              {option.description}
-            </p>
-          </div>
-        ))}
+      <div className={`text-center max-w-lg mx-auto ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} p-8 rounded-2xl shadow-xl`}>
+        <h1 className={`text-3xl font-bold mb-6 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`}>
+          برنامه‌ریزی مقطع متوسطه دوم فنی و حرفه‌ای، کاردانش
+        </h1>
+        
+        <p className="text-lg mb-8">
+          این بخش در حال توسعه است. به زودی امکان برنامه‌ریزی برای هنرستان‌ها و مدارس فنی و حرفه‌ای فراهم خواهد شد.
+        </p>
+        
+        <Link 
+          href="/"
+          className={`inline-block px-6 py-3 rounded-lg font-medium transition-all ${
+            theme === 'dark'
+              ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+              : 'bg-yellow-500 text-white hover:bg-yellow-600'
+          }`}
+        >
+          بازگشت به صفحه اصلی
+        </Link>
       </div>
-      
+
       {/* فوتر انیمیشن‌دار */}
       <AnimatedFooter />
     </div>

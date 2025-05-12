@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars, FaUserCog } from "react-icons/fa";
+import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars, FaUserCog, FaSun, FaMoon } from "react-icons/fa";
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/context/UserRoleContext';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SavedSchedule {
   personnel: {
@@ -27,6 +28,31 @@ interface ClassSchedule {
   timestamp: number;
 }
 
+const ThemeToggleButton = () => {
+  const { theme, toggleTheme } = useTheme();
+  
+  return (
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleTheme();
+      }}
+      className={`flex items-center justify-center w-10 h-10 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 backdrop-blur-sm ${
+        theme === 'dark' 
+          ? 'bg-gray-800/90 border border-gray-700' 
+          : 'bg-white/90 border border-gray-200'
+      }`}
+      aria-label={theme === 'light' ? 'تغییر به حالت تاریک' : 'تغییر به حالت روشن'}
+    >
+      {theme === 'light' ? (
+        <FaSun className="h-5 w-5 text-yellow-500 hover:animate-pulse hover:drop-shadow-[0_0_10px_rgb(255,223,0)]" />
+      ) : (
+        <FaMoon className="h-5 w-5 text-blue-500 hover:animate-pulse hover:drop-shadow-[0_0_10px_rgb(100,149,237)]" />
+      )}
+    </button>
+  );
+};
+
 const Navbar = () => {
   const pathname = usePathname();
   const [showModal, setShowModal] = useState(false);
@@ -35,23 +61,11 @@ const Navbar = () => {
   const [savedClassSchedules, setSavedClassSchedules] = useState<ClassSchedule[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { userRole, setUserRole } = useUserRole();
-  const [theme, setTheme] = useState('light');
+  const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'theme') {
-        setTheme(e.newValue || 'light');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    setMounted(true);
   }, []);
 
   useEffect(() => {
@@ -514,6 +528,11 @@ const Navbar = () => {
             </div>
             
             <div className="flex items-center space-x-2 space-x-reverse">
+              {/* دکمه تغییر تم در منوی اصلی */}
+              <div className="hidden md:flex items-center ml-4">
+                <ThemeToggleButton />
+              </div>
+
               <button 
                 onClick={() => openModal('role')}
                 className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-md transition-all duration-200 shadow-md`}
@@ -608,6 +627,10 @@ const Navbar = () => {
                     </span>
                   )}
                 </button>
+                {/* دکمه تغییر تم در منوی موبایل */}
+                <div className="flex items-center justify-center mt-4">
+                  <ThemeToggleButton />
+                </div>
               </div>
             </div>
           )}

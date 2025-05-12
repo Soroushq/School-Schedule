@@ -9,7 +9,10 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: 'light',
+  toggleTheme: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
@@ -33,8 +36,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     // به‌روزرسانی state
     setTheme(newTheme);
-    
-    console.log('تم اعمال شد:', newTheme);
   };
 
   // فقط در سمت کلاینت اجرا می‌شود
@@ -75,11 +76,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // در مرحله اول رندر سرور هیچ چیزی را برنگردان تا از ناهماهنگی هیدریشن جلوگیری شود
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
@@ -89,8 +85,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
   return context;
 } 

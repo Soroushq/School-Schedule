@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, ReactNode, useRef } from 'react';
 import Image from 'next/image';
-import { FaEnvelope, FaGithub, FaLinkedin, FaDownload, FaCode, FaTools, FaDatabase, FaPhone, FaExternalLinkAlt, FaSchool, FaBriefcase, FaGraduationCap, FaArrowLeft, FaSun, FaMoon } from "react-icons/fa";
+import { FaEnvelope, FaGithub, FaLinkedin, FaDownload, FaCode, FaTools, FaDatabase, FaPhone, FaExternalLinkAlt, FaSchool, FaBriefcase, FaGraduationCap, FaArrowLeft } from "react-icons/fa";
 import Link from 'next/link';
 // Import Swiper
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -11,6 +11,7 @@ import { FreeMode, Mousewheel } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import dynamic from 'next/dynamic';
+import { useTheme } from '@/context/ThemeContext';
 
 const LoadingSpinner = dynamic(() => import('@/components/LoadingSpinner'), { ssr: false });
 
@@ -52,54 +53,19 @@ interface Content {
 
 export default function AboutMe() {
   const [language, setLanguage] = useState<'fa' | 'en'>('fa');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
   const [activeTimeframe, setActiveTimeframe] = useState<string | null>(null);
+  const { theme } = useTheme();
   // رفرنس‌ها برای اسکرول
   const experienceSectionRef = useRef<HTMLDivElement>(null);
   const educationSectionRef = useRef<HTMLDivElement>(null);
   // تایمر برای حذف انتخاب فعال
   const activeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // تابع تغییر تم به صورت محلی در صفحه
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    
-    // اعمال مستقیم تم با استفاده از classList
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // ذخیره در localStorage
-    localStorage.setItem('theme', newTheme);
-    
-    // به‌روزرسانی state
-    setTheme(newTheme);
-    
-    console.log('تم صفحه تغییر کرد به:', newTheme);
-  };
-  
   useEffect(() => {
     // تنظیم زبان پیش‌فرض
     setLanguage('fa');
     setMounted(true);
-    
-    // بررسی وضعیت تم از localStorage
-    try {
-      const savedTheme = localStorage.getItem('theme') || 'light';
-      setTheme(savedTheme as 'light' | 'dark');
-      
-      // اعمال مستقیم تم
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } catch (error) {
-      console.error('خطا در خواندن تم:', error);
-    }
   }, []);
 
   // تابع اسکرول به بخش مربوطه بر اساس دوره زمانی
@@ -324,24 +290,6 @@ export default function AboutMe() {
     downloadResume: "دانلود رزومه",
   };
 
-  // کامپوننت Toggle ساده
-  const SimpleThemeToggle = () => (
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        toggleTheme();
-      }}
-      className="w-full h-full flex justify-center items-center"
-      aria-label={theme === 'light' ? 'تغییر به حالت تاریک' : 'تغییر به حالت روشن'}
-    >
-      {theme === 'light' ? (
-        <FaSun className="h-8 w-8 text-yellow-500 hover:animate-pulse hover:drop-shadow-[0_0_10px_rgb(255,223,0)]" />
-      ) : (
-        <FaMoon className="h-8 w-8 text-blue-500 hover:animate-pulse hover:drop-shadow-[0_0_10px_rgb(100,149,237)]" />
-      )}
-    </button>
-  );
-
   // استخراج همه تاریخ‌ها برای خط زمانی افقی خلاصه
   const timelineItems = [
     ...content.experience.map(exp => ({ 
@@ -385,31 +333,6 @@ export default function AboutMe() {
           <FaArrowLeft className={theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} />
           <span>بازگشت به صفحه اصلی</span>
         </Link>
-      </div>
-      
-      {/* دکمه تغییر تم با طراحی بهتر */}
-      <div className="absolute top-6 left-6 z-50">
-        <div 
-          className={`flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 backdrop-blur-sm cursor-pointer ${
-            theme === 'dark' 
-              ? 'bg-gray-800/90 border border-gray-700' 
-              : 'bg-white/90 border border-gray-200'
-          }`}
-        >
-          <SimpleThemeToggle />
-        </div>
-      </div>
-      
-      {/* نشانگر وضعیت تم فعلی */}
-      <div 
-        className={`absolute top-24 left-6 z-50 px-3 py-1 rounded-md shadow-md text-sm cursor-pointer hover:shadow-lg transition-all ${
-          theme === 'dark' 
-            ? 'bg-gray-800/90 text-white' 
-            : 'bg-white/90 text-gray-800'
-        }`}
-        onClick={toggleTheme}
-      >
-        <p>تم فعلی: <span className="font-bold">{theme === 'dark' ? 'تاریک' : 'روشن'}</span></p>
       </div>
       
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">

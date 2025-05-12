@@ -4,18 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './welcome.module.css';
-import { FaSun, FaMoon, FaSchool, FaChild, FaUserGraduate, FaTools, FaPhone, FaEnvelope, FaGithub, FaLinkedin, FaInfoCircle, FaShieldAlt } from 'react-icons/fa';
+import { FaSchool, FaChild, FaUserGraduate, FaTools, FaPhone, FaEnvelope, FaGithub, FaLinkedin, FaInfoCircle, FaShieldAlt } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { useUserRole } from '@/context/UserRoleContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const LoadingSpinner = dynamic(() => import('@/components/LoadingSpinner'), { ssr: false });
 
 export default function WelcomePage() {
   const router = useRouter();
-  const [theme, setTheme] = useState('light');
   const [mounted, setMounted] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { userRole } = useUserRole();
+  const { theme } = useTheme();
   
   // رفرنس برای هاله نور ماوس و کارت‌ها
   const mouseLightRef = useRef<HTMLDivElement>(null);
@@ -23,17 +24,6 @@ export default function WelcomePage() {
 
   // مدیریت تم در سمت کلاینت
   useEffect(() => {
-    // بررسی localStorage برای تم ذخیره شده
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    
-    // اعمال کلاس به المان ریشه
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
     setMounted(true);
   }, []);
 
@@ -84,11 +74,11 @@ export default function WelcomePage() {
         if (x > 0 && x < rect.width && y > 0 && y < rect.height) {
           (card as HTMLElement).style.setProperty('--mouse-x', `${x}px`);
           (card as HTMLElement).style.setProperty('--mouse-y', `${y}px`);
-          
-          // افکت درخشش فقط روی کارت فعلی
           (card as HTMLElement).classList.add('card-glowing');
+          (card as HTMLElement).classList.add('animate-light');
         } else {
           (card as HTMLElement).classList.remove('card-glowing');
+          (card as HTMLElement).classList.remove('animate-light');
         }
       });
     };
@@ -105,24 +95,6 @@ export default function WelcomePage() {
       }
     };
   }, [mounted, theme]);
-
-  // تغییر تم
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    
-    // اعمال به DOM
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // ذخیره در localStorage
-    localStorage.setItem('theme', newTheme);
-    
-    // به‌روزرسانی state
-    setTheme(newTheme);
-  };
 
   // اگر کامپوننت هنوز به صورت کامل لود نشده است، نمایش یک اسپینر
   if (!mounted) {
@@ -183,22 +155,6 @@ export default function WelcomePage() {
       
       {/* محتوای اصلی */}
       <div className="container mx-auto px-4 py-10 relative z-10">
-        {/* دکمه تغییر تم */}
-        <button 
-          onClick={toggleTheme}
-          className={`fixed duration-250 z-50 opacity-50 hover:opacity-100 top-24 left-6 p-3 rounded-full transition-all shadow-lg ${
-            theme === 'dark' 
-              ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' 
-              : 'bg-white text-gray-800 hover:bg-gray-100'
-          }`}
-          aria-label={theme === 'light' ? 'تغییر به حالت تاریک' : 'تغییر به حالت روشن'}
-        >
-          {theme === 'light' 
-            ? <FaMoon className="text-blue-500 text-xl" /> 
-            : <FaSun className="text-yellow-500 text-xl" />
-          }
-        </button>
-
         <div className="text-center mb-12">
           <h1 className={`text-4xl md:text-5xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             به سیستم برنامه‌ریزی مدرسه خوش آمدید

@@ -1,11 +1,11 @@
 import './globals.css'
 import { Metadata } from 'next'
 import Navbar from './components/Navbar'
-import { ThemeProvider } from '@/context/ThemeContext'
 import { UserRoleProvider } from '@/context/UserRoleContext'
 import AnalyticsInitializer from '@/components/AnalyticsInitializer'
 import { ClientScheduleSyncObserver, ClientPrivacyAgreement } from './ClientComponents'
 import ClientLayout from './ClientLayout'
+import ClientThemeLayout from './ClientThemeLayout'
 import { Suspense } from 'react'
 import PageLoading from '@/components/PageLoading'
 
@@ -36,18 +36,20 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="transition-colors duration-300 ease-in-out bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-        <ThemeProvider>
-          <UserRoleProvider>
+        <UserRoleProvider>
+          <ClientThemeLayout>
             <Suspense fallback={null}>
               <PageLoading />
             </Suspense>
             <ClientPrivacyAgreement />
-            <Navbar />
+            <ClientLayout>
+              <Navbar />
+              {children}
+            </ClientLayout>
             <ClientScheduleSyncObserver />
-            <ClientLayout>{children}</ClientLayout>
             <AnalyticsInitializer />
-          </UserRoleProvider>
-        </ThemeProvider>
+          </ClientThemeLayout>
+        </UserRoleProvider>
       </body>
     </html>
   )
