@@ -16,6 +16,8 @@ import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { scheduleSyncService } from '@/services/scheduleSync';
 import { syncService } from '@/services/syncService';
+import { getScheduleOptions, type EducationLevel } from '@/app/education-levels/types/schedule-options';
+import { EducationLevelLoader } from '../../../components/EducationLevelLoader';
 
 interface Schedule {
   id: string;
@@ -73,6 +75,14 @@ const toPersianNumber = (num: number | string): string => {
 const PersonnelSchedule = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const educationLevel = searchParams?.get('level') as EducationLevel || 'vocational';
+  const scheduleOptions = getScheduleOptions(educationLevel);
+  const { grades, classOptions, fields, mainPositions, hourTypes, teachingGroups } = scheduleOptions;
+
+  const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+  const hours = ['تک ساعت اول', 'تک ساعت دوم', 'تک ساعت سوم', 'تک ساعت چهارم', 'تک ساعت پنجم', 'تک ساعت ششم', 'تک ساعت هفتم', 'تک ساعت هشتم', 'تک ساعت نهم', 'تک ساعت دهم', 'تک ساعت یازدهم', 'تک ساعت دوازدهم', 'تک ساعت سیزدهم', 'تک ساعت چهاردهم'];
+  const timeSlots = ['۸:۰۰', '۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۳:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰', '۱۹:۰۰', '۲۰:۰۰', '۲۱:۰۰'];
+
   const personnelCodeParam = searchParams?.get('code') || '';
   const fullNameParam = searchParams?.get('name') || '';
   const mainPositionParam = searchParams?.get('position') || '';
@@ -119,102 +129,11 @@ const PersonnelSchedule = () => {
   const [showCellHistoryModalOpen, setShowCellHistoryModalOpen] = useState(false);
   const [clickedHistoryButton, setClickedHistoryButton] = useState<HTMLElement | null>(null);
   const [menuPositionUpdateCounter, setMenuPositionUpdateCounter] = useState(0);
-  // اضافه کردن state برای ذخیره برنامه‌های کلاسی
   const [savedClassSchedules, setSavedClassSchedules] = useState<ClassSchedule[]>([]);
-  // اضافه کردن state برای نمایش منوی آبشاری
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [showFooter, setShowFooter] = useState(true);
-
-  const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
-  const hours = ['تک ساعت اول', 'تک ساعت دوم', 'تک ساعت سوم', 'تک ساعت چهارم', 'تک ساعت پنجم', 'تک ساعت ششم', 'تک ساعت هفتم', 'تک ساعت هشتم', 'تک ساعت نهم', 'تک ساعت دهم', 'تک ساعت یازدهم', 'تک ساعت دوازدهم', 'تک ساعت سیزدهم', 'تک ساعت چهاردهم'];
-  // اصلاح timeSlots برای هماهنگی با صفحه کلاس
-  const timeSlots = ['۸:۰۰', '۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۳:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰', '۱۹:۰۰', '۲۰:۰۰', '۲۱:۰۰'];
-
-  const grades = ['دهم', 'یازدهم', 'دوازدهم'];
-  
-  const classOptions: Record<string, string[]> = {
-    'دهم': ['الف', 'ب', 'ج', 'د'],
-    'یازدهم': ['الف', 'ب', 'ج', 'د'],
-    'دوازدهم': ['الف', 'ب', 'ج', 'د']
-  };
-
-  const fields = [
-    'الکتروتکنیک',
-    'الکترونیک',
-    'کامپیوتر',
-    'مکانیک',
-    'عمران',
-    'معماری'
-  ];
-
-  const mainPositions = [
-    'هنرآموز',
-    'دبیر',
-    'مدیر',
-    'معاون',
-    'سرپرست بخش',
-    'استادکار'
-  ];
-
-  const hourTypes = [
-    'موظف اول',
-    'موظف دوبل',
-    'غیرموظف اول',
-    'غیرموظف دوبل',
-    'موظف معاونین',
-    'موظف سرپرست بخش'
-  ];
-
-  const teachingGroups = [
-    'دروس نظری و عمومی',
-    'شايستگيهاي غير فني',
-    'تربيت بدني_دبير',
-    'استادکار',
-    'الکتروتکنيک',
-    'الکترونيک',
-    'امور باغي',
-    'اموردامي',
-    'بازرگاني واموراداري',
-    'برق ورايانه',
-    'برق',
-    'پويانمايي انميشن',
-    'تاسيسات مکانيکي',
-    'تربيت بدني_هنرآموز',
-    'تربيت كودك',
-    'تعمير ،نصب و خدمات صنعتي',
-    'توليد برنامه هاي تلوزيوني',
-    'توليد محتوي وتوسعه رسانه اي',
-    'چاپ',
-    'حسابداري بازرگاني',
-    'حسابداري',
-    'ساختمان',
-    'سينما',
-    'صنايع چوب و مبلمان',
-    'صنايع دستي',
-    'صنايع شيميايي',
-    'صنايع غذايي',
-    'صنايع فلزي',
-    'طراحي ودوخت',
-    'فتو-گرافيك',
-    'کامپيوتر',
-    'گرافيک',
-    'ماشين ابزار',
-    'ماشينهاي کشاورزي',
-    'متالوژي',
-    'مديريت خانواده',
-    'مربی بهداشت',
-    'مربی پرورشی',
-    'مشاور',
-    'معدن',
-    'معماري داخلي',
-    'مکاترونيک',
-    'مکانيک خودرو',
-    'موسيقي',
-    'نقاشي',
-    'نمايش',
-    'هتلداري ،گردشگري و مهمانداري'
-  ];
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
 
   useEffect(() => {
     if (personnelCodeParam && fullNameParam && mainPositionParam) {
@@ -1948,6 +1867,12 @@ const PersonnelSchedule = () => {
     }
   };
 
+  // تابع برای دریافت مقطع انتخاب شده
+  const handleLevelLoaded = (level: string) => {
+    setSelectedLevel(level);
+    console.log('Loaded education level:', level);
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -2996,17 +2921,20 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
           </div>
         </div>
       )}
+      <EducationLevelLoader onLevelLoaded={handleLevelLoaded} />
     </div>
   );
 };
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
-const PersonnelSchedulePage = () => {
+interface PersonnelSchedulePageProps {
+  educationLevel: EducationLevel;
+}
+
+export default function PersonnelSchedulePage() {
   return (
     <Suspense fallback={<div>در حال بارگذاری...</div>}>
       <PersonnelSchedule />
     </Suspense>
   );
-};
-
-export default PersonnelSchedulePage; 
+} 

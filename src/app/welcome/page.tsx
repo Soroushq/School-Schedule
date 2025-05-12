@@ -114,7 +114,7 @@ export default function WelcomePage() {
       color: theme === 'dark' ? 'bg-cyan-800/60' : 'bg-cyan-50',
       borderColor: theme === 'dark' ? 'border-cyan-700' : 'border-cyan-200',
       hoverColor: theme === 'dark' ? 'hover:bg-cyan-700/80' : 'hover:bg-cyan-100',
-      path: '/education-levels/elementary'
+      path: '/education-levels'
     },
     { 
       id: 'middleschool', 
@@ -124,7 +124,7 @@ export default function WelcomePage() {
       color: theme === 'dark' ? 'bg-blue-800/60' : 'bg-blue-50',
       borderColor: theme === 'dark' ? 'border-blue-700' : 'border-blue-200',
       hoverColor: theme === 'dark' ? 'hover:bg-blue-700/80' : 'hover:bg-blue-100',
-      path: '/education-levels/middleschool'
+      path: '/education-levels'
     },
     { 
       id: 'highschool', 
@@ -134,7 +134,7 @@ export default function WelcomePage() {
       color: theme === 'dark' ? 'bg-purple-800/60' : 'bg-purple-50',
       borderColor: theme === 'dark' ? 'border-purple-700' : 'border-purple-200',
       hoverColor: theme === 'dark' ? 'hover:bg-purple-700/80' : 'hover:bg-purple-100',
-      path: '/education-levels/highschool'
+      path: '/education-levels'
     },
     { 
       id: 'vocational', 
@@ -144,7 +144,7 @@ export default function WelcomePage() {
       color: theme === 'dark' ? 'bg-yellow-800/60' : 'bg-yellow-50',
       borderColor: theme === 'dark' ? 'border-yellow-700' : 'border-yellow-200',
       hoverColor: theme === 'dark' ? 'hover:bg-yellow-700/80' : 'hover:bg-yellow-100',
-      path: '/education-levels/vocational'
+      path: '/education-levels'
     }
   ];
 
