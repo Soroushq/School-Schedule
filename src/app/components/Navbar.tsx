@@ -400,7 +400,7 @@ const Navbar = () => {
             <button
               onClick={() => {
                 setUserRole('admin');
-                openModal(null);
+                setShowModal(false);
               }}
               className={`flex flex-col items-center justify-center p-4 md:p-6 
                 ${userRole === 'admin' 
@@ -421,7 +421,7 @@ const Navbar = () => {
             <button
               onClick={() => {
                 setUserRole('educator');
-                openModal(null);
+                setShowModal(false);
               }}
               className={`flex flex-col items-center justify-center p-4 md:p-6 
                 ${userRole === 'educator' 
@@ -442,7 +442,7 @@ const Navbar = () => {
             <button
               onClick={() => {
                 setUserRole('learner');
-                openModal(null);
+                setShowModal(false);
               }}
               className={`flex flex-col items-center justify-center p-4 md:p-6 
                 ${userRole === 'learner' 
