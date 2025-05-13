@@ -141,15 +141,14 @@ export const ClassSelector: React.FC<ClassSelectorProps> = ({ level, onSelect })
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {level.id === 'highSchool' ? (
-              // رشته‌های نظری
-              Object.entries(THEORETICAL_FIELDS).map(([key, fields]) => (
+              // رشته‌های نظری (اصلاح شده)
+              <>
                 <button
-                  key={key}
-                  onClick={() => handleFieldSelect(fields[0])}
+                  onClick={() => handleFieldSelect('ریاضی فیزیک')}
                   className={`p-4 rounded-lg text-center transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     theme === 'dark' ? 'focus:ring-offset-gray-800' : ''
                   } relative
-                    ${selectedField === fields[0]
+                    ${selectedField === 'ریاضی فیزیک'
                       ? theme === 'dark'
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -158,12 +157,50 @@ export const ClassSelector: React.FC<ClassSelectorProps> = ({ level, onSelect })
                         : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                     }`}
                 >
-                  {fields[0]}
-                  {selectedField === fields[0] && (
+                  ریاضی فیزیک
+                  {selectedField === 'ریاضی فیزیک' && (
                     <FaCheckCircle className="absolute top-2 left-2 text-white text-sm" />
                   )}
                 </button>
-              ))
+                <button
+                  onClick={() => handleFieldSelect('علوم تجربی')}
+                  className={`p-4 rounded-lg text-center transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    theme === 'dark' ? 'focus:ring-offset-gray-800' : ''
+                  } relative
+                    ${selectedField === 'علوم تجربی'
+                      ? theme === 'dark'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : theme === 'dark'
+                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                    }`}
+                >
+                  علوم تجربی
+                  {selectedField === 'علوم تجربی' && (
+                    <FaCheckCircle className="absolute top-2 left-2 text-white text-sm" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleFieldSelect('علوم انسانی')}
+                  className={`p-4 rounded-lg text-center transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    theme === 'dark' ? 'focus:ring-offset-gray-800' : ''
+                  } relative
+                    ${selectedField === 'علوم انسانی'
+                      ? theme === 'dark'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : theme === 'dark'
+                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                    }`}
+                >
+                  علوم انسانی
+                  {selectedField === 'علوم انسانی' && (
+                    <FaCheckCircle className="absolute top-2 left-2 text-white text-sm" />
+                  )}
+                </button>
+              </>
             ) : (
               // رشته‌های فنی و حرفه‌ای
               TECHNICAL_VOCATIONAL_FIELDS.map((field: string) => (

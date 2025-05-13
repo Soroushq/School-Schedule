@@ -14,6 +14,13 @@ import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { syncService } from '@/services/syncService';
 import { scheduleSyncService } from '@/services/scheduleSync';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { elementaryScheduleOptions } from '../../education-levels/elementary/types/schedule-options';
+import { middleSchoolScheduleOptions } from '../../education-levels/middleschool/types/schedule-options';
+import { highSchoolScheduleOptions } from '../../education-levels/highschool/types/schedule-options';
+import { vocationalScheduleOptions } from '../../education-levels/vocational/types/schedule-options';
 
 interface Schedule {
   id: string;
@@ -95,8 +102,8 @@ const SchedulePage = () => {
 };
 
 const SchedulePageContent = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const gradeParam = searchParams.get('grade') || '';
   const classParam = searchParams.get('class') || '';
   const fieldParam = searchParams.get('field') || '';
@@ -124,104 +131,58 @@ const SchedulePageContent = () => {
   const [schedule, setSchedule] = useState<Schedule[]>([]);
   const [draggedItem, setDraggedItem] = useState<Schedule | null>(null);
   const dragStartRef = useRef<{ day: string; time: string } | null>(null);
+  
+  // استیت‌های مورد نیاز
   const [savedPersonnelSchedules, setSavedPersonnelSchedules] = useState<SavedPersonnelSchedule[]>([]);
+  const [cellPersonnelSchedules, setCellPersonnelSchedules] = useState<{[key: string]: ScheduleWithFullName[]}>({});
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [classStats, setClassStats] = useState<ClassStatistics | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showCombinedPreview, setShowCombinedPreview] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
-  // اضافه کردن استیت برای نگهداری برنامه‌های پرسنلی مرتبط با هر سلول
-  const [cellPersonnelSchedules, setCellPersonnelSchedules] = useState<{[key: string]: ScheduleWithFullName[]}>({});
+  const [userRole, setUserRole] = useState<'admin' | 'teacher' | ''>('');
   
-  const grades = ['دهم', 'یازدهم', 'دوازدهم'];
+  // بر اساس مقطع انتخاب شده، تنظیمات مربوطه را بازیابی می‌کنیم
+  const getLevelOptions = useCallback(() => {
+    switch(selectedLevel) {
+      case 'elementary':
+        return elementaryScheduleOptions;
+      case 'middleSchool':
+        return middleSchoolScheduleOptions;
+      case 'highSchool':
+        return highSchoolScheduleOptions;
+      case 'technicalVocational':
+        return vocationalScheduleOptions;
+      default:
+        return vocationalScheduleOptions; // پیش‌فرض
+    }
+  }, [selectedLevel]);
   
-  const classOptions = {
-    'دهم': ['الف', 'ب', 'ج', 'د'],
-    'یازدهم': ['الف', 'ب', 'ج', 'د'],
-    'دوازدهم': ['الف', 'ب', 'ج', 'د']
-  };
-
-  const hourTypes = [
-    'موظف اول',
-    'موظف دوبل',
-    'غیرموظف اول',
-    'غیرموظف دوبل',
-    'موظف معاونین',
-    'موظف سرپرست بخش'
-  ];
-
-  const mainPositions = [
-    'هنرآموز',
-    'دبیر',
-    'مدیر',
-    'معاون',
-    'سرپرست بخش',
-    'استادکار'
-  ];
-
+  // متغیرهای مربوط به هر مقطع که از طریق تابع getLevelOptions دریافت می‌شوند
+  const levelOptions = getLevelOptions();
+  
+  // متغیرهای مربوط به هر مقطع
+  const grades = levelOptions.grades;
+  const classOptions = levelOptions.classOptions;
+  const fields = levelOptions.fields;
+  const mainPositions = levelOptions.mainPositions;
+  const hourTypes = levelOptions.hourTypes;
+  const teachingGroups = levelOptions.teachingGroups;
+  
+  // تنظیمات ثابت برای وضعیت اشتغال
   const employmentStatuses = [
     'شاغل',
     'بازنشسته',
     'خرید خدمات'
   ];
 
-  const fields = [
-    'الکتروتکنیک',
-    'الکترونیک',
-    'کامپیوتر',
-    'مکانیک',
-    'عمران',
-    'معماری'
-  ];
-
-  const teachingGroups = [
-    'دروس نظری و عمومی',
-    'شايستگيهاي غير فني',
-    'تربيت بدني_دبير',
-    'استادکار',
-    'الکتروتکنيک',
-    'الکترونيک',
-    'امور باغي',
-    'اموردامي',
-    'بازرگاني واموراداري',
-    'برق ورايانه',
-    'برق',
-    'پويانمايي انميشن',
-    'تاسيسات مکانيکي',
-    'تربيت بدني_هنرآموز',
-    'تربيت كودك',
-    'تعمير ،نصب و خدمات صنعتي',
-    'توليد برنامه هاي تلوزيوني',
-    'توليد محتوي وتوسعه رسانه اي',
-    'چاپ',
-    'حسابداري بازرگاني',
-    'حسابداري',
-    'ساختمان',
-    'سينما',
-    'صنايع چوب و مبلمان',
-    'صنايع دستي',
-    'صنايع شيميايي',
-    'صنايع غذايي',
-    'صنايع فلزي',
-    'طراحي ودوخت',
-    'فتو-گرافيك',
-    'کامپيوتر',
-    'گرافيک',
-    'ماشين ابزار',
-    'ماشينهاي کشاورزي',
-    'متالوژي',
-    'مديريت خانواده',
-    'مربی بهداشت',
-    'مربی پرورشی',
-    'مشاور',
-    'معدن',
-    'معماري داخلي',
-    'مکاترونيک',
-    'مکانيک خودرو',
-    'موسيقي',
-    'نقاشي',
-    'نمايش',
-    'هتلداري ،گردشگري و مهمانداري'
+  // وضعیت اشتغال برای همه مقاطع یکسان است
+  const employmentStatusOptions = [
+    'رسمی',
+    'پیمانی',
+    'قراردادی',
+    'خرید خدمت',
+    'حق التدریس'
   ];
 
   const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
@@ -384,22 +345,29 @@ const SchedulePageContent = () => {
     // بارگذاری برنامه‌های پرسنلی در هنگام لود اولیه صفحه
     loadSavedPersonnelSchedules();
     
-    // اگر پارامترهای کلاس در آدرس نباشند، هنگام تغییر آنها loadClassData فراخوانی می‌شود
-    if (gradeParam && classParam && fieldParam) {
-      setGrade(gradeParam);
-      setClassNumber(classParam);
-      setField(fieldParam);
-      loadClassData(gradeParam, classParam, fieldParam);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // بارگذاری مقطع انتخاب شده از localStorage
-  useEffect(() => {
+    // بارگذاری مقطع انتخاب شده از localStorage
     const savedLevel = localStorage.getItem('selectedLevel');
     if (savedLevel) {
       setSelectedLevel(savedLevel);
+    } else {
+      // اگر مقطعی انتخاب نشده باشد، به صورت پیش‌فرض technicalVocational انتخاب می‌شود
+      setSelectedLevel('technicalVocational');
     }
+    
+    // بررسی نقش کاربر (برای مثال از localStorage یا API)
+    const checkUserRole = () => {
+      // در یک پروژه واقعی این اطلاعات از سیستم احراز هویت دریافت می‌شود
+      // برای این مثال: 'admin' = مدیر، 'teacher' = معلم
+      // این بخش باید با سیستم احراز هویت واقعی جایگزین شود
+      const userRoleFromStorage = localStorage.getItem('userRole');
+      if (userRoleFromStorage) {
+        return userRoleFromStorage as 'admin' | 'teacher';
+      }
+      // برای تست، پیش‌فرض را مدیر قرار می‌دهیم
+      return 'admin';
+    };
+
+    setUserRole(checkUserRole());
     
     // بارگذاری اطلاعات کلاس انتخاب شده از localStorage
     const savedClass = localStorage.getItem('selectedClass');
@@ -690,7 +658,7 @@ const SchedulePageContent = () => {
           employmentStatus: personnelSchedule.personnel.employmentStatus || matchingSchedule.employmentStatus,
           mainPosition: matchingSchedule.mainPosition || personnelSchedule.personnel.mainPosition,
           fullName: personnelSchedule.personnel.fullName,
-          source: 'personnel'
+          source: 'personnel' as const
         };
         return scheduleWithPersonnelInfo;
       }
@@ -2386,13 +2354,16 @@ ${dayStat.personnel.map(personnelCode => {
                   showPlaceholder={true}
                 />
 
-                <Dropdown
-                  label="نوع ساعت"
-                  options={hourTypes}
-                  onSelect={setHourType}
-                  value={hourType}
-                  showPlaceholder={true}
-                />
+                {/* نوع ساعت فقط برای مدیران قابل مشاهده و تغییر است */}
+                {userRole === 'admin' && (
+                  <Dropdown
+                    label="نوع ساعت"
+                    options={hourTypes}
+                    onSelect={setHourType}
+                    value={hourType}
+                    showPlaceholder={true}
+                  />
+                )}
 
                 <Dropdown
                   label="گروه تدریس"
