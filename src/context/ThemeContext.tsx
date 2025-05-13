@@ -20,7 +20,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // تابع برای تنظیم تم و اعمال آن در سراسر برنامه
   const applyTheme = (newTheme: Theme) => {
-    // اعمال تغییر در DOM
+    if (typeof window === 'undefined') return;
+
+    // اعمال کلاس در HTML
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -30,51 +32,59 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // ذخیره در localStorage
     try {
       localStorage.setItem('theme', newTheme);
+      // ارسال رویداد سفارشی برای آگاه کردن سایر کامپوننت‌ها
+      window.dispatchEvent(new CustomEvent('themeChanged', { 
+        detail: { theme: newTheme }
+      }));
     } catch (error) {
       console.error('خطا در ذخیره تم:', error);
     }
     
-    // به‌روزرسانی state
     setTheme(newTheme);
   };
 
   // فقط در سمت کلاینت اجرا می‌شود
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     setMounted(true);
-    try {
-      // خواندن تم ذخیره شده از localStorage
-      const savedTheme = localStorage.getItem('theme') as Theme;
-      
-      // اگر تم ذخیره شده وجود داشته باشد، آن را استفاده می‌کنیم
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        applyTheme(savedTheme);
-      } 
-      // در غیر این صورت، تم پیش‌فرض روشن را استفاده می‌کنیم
-      else {
-        applyTheme('light');
-      }
-    } catch (error) {
-      console.error('خطا در خواندن یا تنظیم تم:', error);
+    
+    // تنظیم اولیه تم
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      applyTheme(savedTheme);
+    } else {
+      // اگر تم ذخیره شده نباشد، از تنظیمات سیستم استفاده می‌کنیم
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(systemPrefersDark ? 'dark' : 'light');
     }
+
+    // گوش دادن به تغییرات تم سیستم
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      const savedTheme = localStorage.getItem('theme') as Theme;
+      // فقط اگر تم سفارشی ذخیره نشده باشد، از تم سیستم پیروی می‌کنیم
+      if (!savedTheme) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    };
   }, []);
 
-  // تابع تغییر تم
   const toggleTheme = () => {
-    try {
-      const newTheme = theme === 'light' ? 'dark' : 'light';
-      applyTheme(newTheme);
-      
-      // ارسال رویداد storage برای آگاه کردن سایر کامپوننت‌ها
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'theme',
-        newValue: newTheme,
-        storageArea: localStorage
-      }));
-      
-    } catch (error) {
-      console.error('خطا در تغییر تم:', error);
-    }
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    applyTheme(newTheme);
   };
+
+  // اگر هنوز در سمت سرور هستیم یا کامپوننت mount نشده است
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
@@ -85,5 +95,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
   return context;
 } 
