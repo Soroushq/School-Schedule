@@ -2023,7 +2023,7 @@ const SchedulePageContent = () => {
             <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 text-cyan-900 text-center">جدول زمانی هفتگی</h2>
             
             {/* نمایش مشخصات کلاس انتخاب شده */}
-            {grade && classNumber && field && (
+            {grade && classNumber && (
               <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-r-4 border-blue-500">
                 <div className="flex items-center">
                   <span className="font-bold ml-2 text-blue-700">پایه:</span>
@@ -2034,11 +2034,15 @@ const SchedulePageContent = () => {
                   <span className="font-bold ml-2 text-blue-700">کلاس:</span>
                   <span className="text-blue-800">{classNumber}</span>
                 </div>
-                <div className="hidden sm:block text-gray-400 mx-2">|</div>
-                <div className="flex items-center">
-                  <span className="font-bold ml-2 text-blue-700">رشته:</span>
-                  <span className="text-blue-800">{field}</span>
-                </div>
+                {field && (
+                  <>
+                    <div className="hidden sm:block text-gray-400 mx-2">|</div>
+                    <div className="flex items-center">
+                      <span className="font-bold ml-2 text-blue-700">رشته:</span>
+                      <span className="text-blue-800">{field}</span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
             

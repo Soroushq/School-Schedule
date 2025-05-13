@@ -20,17 +20,7 @@ const ThemeToggle = () => {
     // تغییر تم
     toggleTheme();
     
-    // پس از تغییر، یک رویداد سفارشی ارسال می‌کنیم تا سایر کامپوننت‌ها از این تغییر مطلع شوند
-    setTimeout(() => {
-      // استفاده از setTimeout برای اطمینان از اینکه toggleTheme کامل شده است
-      const newTheme = theme === "light" ? "dark" : "light";
-      console.log("تم تغییر کرد به:", newTheme);
-      
-      // ارسال رویداد سفارشی
-      window.dispatchEvent(new CustomEvent('themeChanged', { 
-        detail: { theme: newTheme }
-      }));
-    }, 0);
+    console.log("تغییر تم به:", theme === "light" ? "dark" : "light");
   }, [toggleTheme, theme]);
 
   // در سمت سرور یا قبل از هیدریشن، کامپوننت خالی برمی‌گرداند

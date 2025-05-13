@@ -60,7 +60,7 @@ export default function SelectClassPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
-          <p className="mt-4 text-gray-700 dark:text-gray-300">در حال بارگذاری...</p>
+          <p className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>در حال بارگذاری...</p>
         </div>
       </div>
     );
@@ -69,7 +69,7 @@ export default function SelectClassPage() {
   // اگر هنوز مقطع انتخاب نشده است، نمایش لودینگ
   if (!selectedLevel) {
     return (
-      <div className="min-h-screen bg-blue-50 text-gray-800 dark:bg-gray-900 dark:text-white">
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-blue-50 text-gray-800'}`}>
         <EducationLevelLoader onLevelLoaded={handleLevelLoaded} />
         <div className="flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -79,12 +79,16 @@ export default function SelectClassPage() {
   }
 
   return (
-    <div className="min-h-screen pb-12 pt-20 bg-blue-50 text-gray-800 dark:bg-gray-900 dark:text-white">
+    <div className={`min-h-screen pb-12 pt-20 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-blue-50 text-gray-800'}`}>
       {/* دکمه بازگشت */}
       <div className="fixed top-20 right-4 z-10">
         <Link 
           href="/welcome" 
-          className="flex items-center p-2 rounded-full bg-white text-blue-600 hover:bg-blue-100 shadow-md transition-colors dark:bg-gray-800 dark:text-blue-400 dark:hover:bg-gray-700"
+          className={`flex items-center p-2 rounded-full ${
+            theme === 'dark' 
+              ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' 
+              : 'bg-white text-blue-600 hover:bg-blue-100'
+          } shadow-md transition-colors`}
           title="بازگشت به صفحه اصلی"
         >
           <FaArrowRight className="text-xl" />
@@ -92,23 +96,35 @@ export default function SelectClassPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4">
-        <div className="rounded-xl p-6 mb-8 text-center bg-white shadow-md border border-gray-100 dark:bg-gray-800 dark:shadow-lg dark:border-gray-700">
-          <FaCalendarAlt className="text-4xl mb-3 mx-auto text-blue-600 dark:text-blue-400" />
-          <h1 className="text-3xl font-bold mb-3 text-gray-800 dark:text-white">
+        <div className={`rounded-xl p-6 mb-8 text-center ${
+          theme === 'dark' 
+            ? 'bg-gray-800 shadow-lg border-gray-700' 
+            : 'bg-white shadow-md border border-gray-100'
+        }`}>
+          <FaCalendarAlt className={`text-4xl mb-3 mx-auto ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
+          <h1 className={`text-3xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
             انتخاب کلاس
           </h1>
-          <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
-            مقطع <span className="font-bold text-blue-600 dark:text-blue-400">{educationSystem[selectedLevel].name}</span> انتخاب شده است. لطفاً پایه و کلاس مورد نظر خود را انتخاب کنید.
+          <p className={`max-w-2xl mx-auto ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            مقطع <span className={`font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>{educationSystem[selectedLevel].name}</span> انتخاب شده است. لطفاً پایه و کلاس مورد نظر خود را انتخاب کنید.
           </p>
         </div>
 
         {/* انتخاب مقطع */}
-        <div className="rounded-xl p-6 mb-8 bg-white shadow-md border border-gray-100 dark:bg-gray-800 dark:shadow-lg dark:border-gray-700">
-          <h2 className="text-xl font-bold mb-4 text-blue-600 border-b border-gray-200 pb-2 dark:text-blue-400 dark:border-gray-700 flex items-center">
-            <span className="inline-flex items-center justify-center w-6 h-6 mr-2 bg-blue-600 text-white rounded-full text-sm dark:bg-blue-500">1</span>
+        <div className={`rounded-xl p-6 mb-8 ${
+          theme === 'dark' 
+            ? 'bg-gray-800 shadow-lg border-gray-700' 
+            : 'bg-white shadow-md border border-gray-100'
+        }`}>
+          <h2 className={`text-xl font-bold mb-4 border-b pb-2 flex items-center ${
+            theme === 'dark' 
+              ? 'text-blue-400 border-gray-700' 
+              : 'text-blue-600 border-gray-200'
+          }`}>
+            <span className={`inline-flex items-center justify-center w-6 h-6 mr-2 ${theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'} text-white rounded-full text-sm`}>1</span>
             مقطع انتخابی شما
           </h2>
-          <p className="mb-4 text-gray-600 dark:text-gray-300">در صورت تمایل می‌توانید مقطع خود را مجدداً تغییر دهید:</p>
+          <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>در صورت تمایل می‌توانید مقطع خود را مجدداً تغییر دهید:</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(educationSystem).map(([key, level]) => {
               const isSelected = selectedLevel === key;
@@ -119,10 +135,16 @@ export default function SelectClassPage() {
                     setSelectedLevel(key as keyof EducationSystem);
                     localStorage.setItem('selectedLevel', key);
                   }}
-                  className={`p-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 relative
+                  className={`p-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    theme === 'dark' ? 'focus:ring-offset-gray-800' : ''
+                  } relative
                     ${isSelected 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                      ? theme === 'dark'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : theme === 'dark'
+                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                     }`}
                 >
                   {level.name}
@@ -140,8 +162,12 @@ export default function SelectClassPage() {
         />
 
         {/* راهنمای مراحل */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100 dark:bg-gray-800 dark:border-blue-900">
-          <div className="flex items-center text-blue-700 dark:text-blue-300 font-medium">
+        <div className={`mt-8 p-4 rounded-lg border ${
+          theme === 'dark' 
+            ? 'bg-gray-800 border-blue-900' 
+            : 'bg-blue-50 border-blue-100'
+        }`}>
+          <div className={`flex items-center ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'} font-medium`}>
             <FaStepForward className="ml-2" />
             <p>با انتخاب کلاس و تأیید نهایی به مرحله بعد هدایت خواهید شد.</p>
           </div>
