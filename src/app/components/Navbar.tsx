@@ -482,8 +482,8 @@ const Navbar = () => {
                 <span className="mr-2 text-lg md:text-xl font-bold hidden md:inline-block">صفحه اصلی</span>
               </Link>
               
-              {/* منوی دسکتاپ */}
-              <div className="hidden md:flex space-x-4 space-x-reverse">
+              {/* Desktop Menu */}
+              <div className="hidden md:flex items-center space-x-4 space-x-reverse">
                 <Link
                   href="/"
                   className={`py-1 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
@@ -527,113 +527,126 @@ const Navbar = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-2 space-x-reverse">
-              {/* دکمه تغییر تم در منوی اصلی */}
+            <div className="flex items-center space-x-4 space-x-reverse">
+              {/* Theme toggle button in desktop menu */}
               <div className="hidden md:flex items-center ml-4">
                 <ThemeToggleButton />
               </div>
 
-              <button 
-                onClick={() => openModal('role')}
-                className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-md transition-all duration-200 shadow-md`}
-              >
-                <FaUserCog className="ml-1.5" />
-                <span>انتخاب نقش</span>
-                {userRole && (
-                  <span className="mr-2 text-xs bg-white text-indigo-800 px-2 py-0.5 rounded-full">
-                    {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}
-                  </span>
-                )}
-              </button>
-              
-              <button 
-                onClick={() => openModal(null)}
-                className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-800 hover:bg-blue-900'} text-white rounded-md transition-all duration-200 shadow-md`}
-              >
-                <FaHistory className="ml-1.5" />
-                <span>برنامه‌های اخیر</span>
-              </button>
-              
-              {/* دکمه منوی موبایل */}
-              <button 
-                className={`md:hidden flex items-center justify-center p-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-800 hover:bg-blue-900'} transition-colors`}
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                <FaBars className="text-xl" />
-              </button>
-            </div>
-          </div>
-          
-          {/* منوی موبایل */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden mt-3 py-2 border-t border-blue-400 dark:border-gray-600">
-              <div className="flex flex-col space-y-2">
-                <Link
-                  href="/"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
-                    pathname === "/" 
-                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
-                      : ""
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+              {/* Desktop buttons */}
+              <div className="hidden md:flex items-center space-x-4 space-x-reverse">
+                <button 
+                  onClick={() => openModal('role')}
+                  className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-md transition-all duration-200 shadow-md`}
                 >
-                  صفحه اصلی
-                </Link>
-                <Link
-                  href="/class-schedule"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
-                    pathname?.includes("/class-schedule") 
-                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
-                      : ""
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  برنامه کلاسی
-                </Link>
-                <Link
-                  href="/personnel-schedule"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
-                    pathname?.includes("/personnel-schedule") 
-                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
-                      : ""
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  برنامه پرسنلی
-                </Link>
-                <Link
-                  href="/about-me"
-                  className={`py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
-                    pathname === "/about-me" 
-                      ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
-                      : ""
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  درباره من
-                </Link>
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    openModal('role');
-                  }}
-                  className={`flex items-center py-2 px-3 rounded-md ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-700 hover:bg-indigo-800'} transition-colors duration-200 text-left`}
-                >
-                  <FaUserCog className="ml-2" />
-                  انتخاب نقش
+                  <FaUserCog className="ml-1.5" />
+                  <span>انتخاب نقش</span>
                   {userRole && (
                     <span className="mr-2 text-xs bg-white text-indigo-800 px-2 py-0.5 rounded-full">
                       {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}
                     </span>
                   )}
                 </button>
-                {/* دکمه تغییر تم در منوی موبایل */}
-                <div className="flex items-center justify-center mt-4">
-                  <ThemeToggleButton />
-                </div>
+                
+                <button 
+                  onClick={() => openModal(null)}
+                  className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-800 hover:bg-blue-900'} text-white rounded-md transition-all duration-200 shadow-md`}
+                >
+                  <FaHistory className="ml-1.5" />
+                  <span>برنامه‌های اخیر</span>
+                </button>
+              </div>
+
+              {/* Mobile buttons */}
+              <div className="md:hidden flex items-center space-x-2 space-x-reverse">
+                {/* Theme toggle button in mobile view */}
+                <ThemeToggleButton />
+                
+                {/* Role selection button with shortened text */}
+                <button 
+                  onClick={() => openModal('role')}
+                  className={`flex items-center py-1.5 px-2 ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-md transition-all duration-200 shadow-md text-sm`}
+                >
+                  <FaUserCog className="ml-1" />
+                  <span>نقش: {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}</span>
+                </button>
+                
+                {/* Mobile menu button */}
+                <button 
+                  className={`flex items-center justify-center p-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-800 hover:bg-blue-900'} transition-colors`}
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                  <FaBars className="text-xl" />
+                </button>
               </div>
             </div>
-          )}
+          </div>
+          
+          {/* Mobile menu with animation */}
+          <div 
+            className={`md:hidden overflow-hidden transition-all duration-250 ease-in-out ${
+              isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="py-2 border-t border-blue-400 dark:border-gray-600 space-y-2">
+              <Link
+                href="/"
+                className={`block py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
+                  pathname === "/" 
+                    ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
+                    : ""
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                صفحه اصلی
+              </Link>
+              <Link
+                href="/class-schedule"
+                className={`block py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
+                  pathname?.includes("/class-schedule") 
+                    ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
+                    : ""
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                برنامه کلاسی
+              </Link>
+              <Link
+                href="/personnel-schedule"
+                className={`block py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
+                  pathname?.includes("/personnel-schedule") 
+                    ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
+                    : ""
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                برنامه پرسنلی
+              </Link>
+              <Link
+                href="/about-me"
+                className={`block py-2 px-3 rounded-md hover:bg-blue-700 dark:hover:bg-gray-600 transition-colors duration-200 ${
+                  pathname === "/about-me" 
+                    ? theme === 'dark' ? "bg-gray-600" : "bg-blue-700"
+                    : ""
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                درباره من
+              </Link>
+              
+              {/* Recent schedules button moved to mobile menu */}
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openModal(null);
+                }}
+                className={`w-full flex items-center py-2 px-3 rounded-md ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-800 hover:bg-blue-900'} transition-colors duration-200 text-left`}
+              >
+                <FaHistory className="ml-2" />
+                برنامه‌های اخیر
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
