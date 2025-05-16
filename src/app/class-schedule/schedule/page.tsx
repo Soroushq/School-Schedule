@@ -21,6 +21,7 @@ import { elementaryScheduleOptions } from '../../education-levels/elementary/typ
 import { middleSchoolScheduleOptions } from '../../education-levels/middleschool/types/schedule-options';
 import { highSchoolScheduleOptions } from '../../education-levels/highschool/types/schedule-options';
 import { vocationalScheduleOptions } from '../../education-levels/vocational/types/schedule-options';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Schedule {
   id: string;
@@ -110,6 +111,7 @@ const SchedulePageContent = () => {
   
   // اضافه کردن متغیر برای نگهداری مقطع انتخاب شده
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const { theme } = useTheme();
   
   const [showClassModal, setShowClassModal] = useState(!gradeParam || !classParam || !fieldParam);
   const [grade, setGrade] = useState(gradeParam || '');
@@ -1281,6 +1283,9 @@ const SchedulePageContent = () => {
   };
 
   const renderCellContent = (day: string, time: string) => {
+    // استفاده از useTheme برای دسترسی به theme درون تابع
+    const { theme } = useTheme();
+    
     const cellSchedule = getScheduleForCell(day, time);
     const cellKey = `${day}-${time}`;
     
@@ -1294,19 +1299,19 @@ const SchedulePageContent = () => {
       if (relatedPersonnelSchedules && relatedPersonnelSchedules.length > 0) {
         // اگر برنامه‌های پرسنلی مرتبط وجود دارد، آن‌ها را با استایل متفاوت نمایش می‌دهیم
         return (
-          <div className={`${styles.relatedSchedule} w-full h-full p-1 border border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 cursor-pointer`}
+          <div className={`${styles.relatedSchedule} w-full h-full p-1 border border-dashed ${theme === 'dark' ? 'border-blue-500 bg-blue-900/30 hover:bg-blue-900/50' : 'border-blue-300 bg-blue-50 hover:bg-blue-100'} cursor-pointer`}
                onClick={() => handleTimeSelection(day, time)}>
             <div className="flex items-start justify-between">
               <div className="flex-grow">
                 {relatedPersonnelSchedules.map((ps, index) => (
                   <div key={index} className="text-xs mb-1 opacity-80">
-                    <p className="font-medium text-gray-900">{ps.fullName}</p>
-                    <p className="text-gray-700 text-xs">{ps.teachingGroup || ''}</p>
+                    <p className={`font-medium ${theme === 'dark' ? 'text-blue-300' : 'text-gray-900'}`}>{ps.fullName}</p>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'}`}>{ps.teachingGroup || ''}</p>
                   </div>
                 ))}
               </div>
               <div className="flex-shrink-0 ml-1">
-                <span className="inline-block px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                <span className={`inline-block px-1.5 py-0.5 ${theme === 'dark' ? 'bg-blue-900 text-blue-300' : 'bg-yellow-100 text-yellow-800'} text-xs rounded-full`}>
                   {relatedPersonnelSchedules.length}
                 </span>
               </div>
@@ -1317,24 +1322,24 @@ const SchedulePageContent = () => {
       
       return (
         <button 
-          className={styles.emptyCell}
+          className={`${styles.emptyCell} ${theme === 'dark' ? 'hover:bg-gray-700' : ''}`}
           onClick={() => handleTimeSelection(day, time)}
           title={`${day} ${time}${scheduleCount > 0 ? ` - ${scheduleCount} برنامه پرسنلی` : ''}`}
         >
           <span className="sr-only">انتخاب {day} {time}</span>
-          <div className="w-full h-full flex items-center justify-center">
-            <FaPlus className="text-gray-300 hover:text-lime-600" />
+          <div className={`w-full h-full flex items-center justify-center text-[10px] sm:text-sm ${theme === 'dark' ? 'text-gray-300 bg-gray-800' : 'text-gray-900 bg-gray-50'}`}>
+            <FaPlus className={`${theme === 'dark' ? 'text-gray-600 hover:text-lime-500' : 'text-gray-300 hover:text-lime-600'}`} />
           </div>
         </button>
       );
     }
     
     // رنگ پس‌زمینه بر اساس نوع ساعت
-    let bgColorClass = "bg-blue-100";
+    let bgColorClass = theme === 'dark' ? "bg-blue-900/50" : "bg-blue-100";
     if (cellSchedule.hourType === 'موظف اول' || cellSchedule.hourType === 'موظف دوبل') {
-      bgColorClass = "bg-green-100";
+      bgColorClass = theme === 'dark' ? "bg-green-900/50" : "bg-green-100";
     } else if (cellSchedule.hourType === 'غیرموظف اول' || cellSchedule.hourType === 'غیرموظف دوبل') {
-      bgColorClass = "bg-yellow-100";
+      bgColorClass = theme === 'dark' ? "bg-yellow-900/50" : "bg-yellow-100";
     }
     
     // یافتن نام پرسنل
@@ -1349,12 +1354,12 @@ const SchedulePageContent = () => {
     
     return (
       <div 
-        className={`w-full h-full p-1 text-black ${bgColorClass} rounded text-right relative`}
+        className={`w-full h-full p-1 ${theme === 'dark' ? 'text-gray-100' : 'text-black'} ${bgColorClass} rounded text-right relative`}
         draggable
         onDragStart={(e) => handleDragStart(e, cellSchedule, day, time)}
       >
         <button
-          className="absolute top-1 left-1 text-red-500 hover:text-red-700 z-10"
+          className={`absolute top-1 left-1 ${theme === 'dark' ? 'text-red-400 hover:text-red-300' : 'text-red-500 hover:text-red-700'} z-10`}
           onClick={(e) => {
             e.stopPropagation();
             if (window.confirm(`آیا از حذف این برنامه اطمینان دارید؟`)) {
@@ -1368,11 +1373,11 @@ const SchedulePageContent = () => {
         
         {/* نمایش اطلاعات سلول */}
         <div className="flex justify-between items-start">
-          <div className="font-bold text-black mb-1 text-[10px] sm:text-xs">{cellSchedule.mainPosition}</div>
+          <div className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-black'} mb-1 text-[10px] sm:text-xs`}>{cellSchedule.mainPosition}</div>
         </div>
         
         <div 
-          className="text-[10px] sm:text-xs text-indigo-700 cursor-pointer hover:text-indigo-900 hover:underline flex items-center truncate"
+          className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-indigo-300 hover:text-indigo-200' : 'text-indigo-700 hover:text-indigo-900'} cursor-pointer hover:underline flex items-center truncate`}
           onClick={(e) => {
             e.stopPropagation();
             // یافتن اطلاعات کامل پرسنل
@@ -1393,13 +1398,13 @@ const SchedulePageContent = () => {
         </div>
         
         {/* نمایش گروه تدریس با برجستگی بیشتر */}
-        <div className="text-[10px] sm:text-xs text-blue-700 mt-1 font-bold border-t border-gray-200 pt-1 truncate">
+        <div className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'} mt-1 font-bold border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'} pt-1 truncate`}>
           {cellSchedule.teachingGroup || 'بدون گروه تدریس'}
         </div>
         
-        <div className="text-[10px] sm:text-xs text-black truncate">نوع: {cellSchedule.hourType || '-'}</div>
+        <div className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-black'} truncate`}>نوع: {cellSchedule.hourType || '-'}</div>
         {cellSchedule.description && (
-          <div className="text-[10px] sm:text-xs text-black mt-1 truncate" title={cellSchedule.description}>
+          <div className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-black'} mt-1 truncate`} title={cellSchedule.description}>
             توضیحات: {cellSchedule.description}
           </div>
         )}
@@ -1407,7 +1412,7 @@ const SchedulePageContent = () => {
         {/* نشانگر منبع برنامه */}
         <div className="absolute bottom-1 right-1 hidden sm:block">
           {cellSchedule.source === 'personnel' && (
-            <span className="text-[10px] text-purple-500 font-medium border border-purple-300 rounded-md px-1 bg-purple-50">
+            <span className={`text-[10px] ${theme === 'dark' ? 'text-purple-300 border-purple-700 bg-purple-900/50' : 'text-purple-500 border-purple-300 bg-purple-50'} font-medium border rounded-md px-1`}>
               از برنامه پرسنلی
             </span>
           )}
@@ -1416,7 +1421,7 @@ const SchedulePageContent = () => {
         {/* نمایش برچسب اگر برنامه‌های پرسنلی مرتبط وجود دارد */}
         {hasRelatedSchedules && (
           <div className="absolute bottom-1 left-1">
-            <span className="inline-block px-1.5 py-0.5 bg-yellow-500 text-white text-[0.6rem] rounded-full">
+            <span className={`inline-block px-1.5 py-0.5 ${theme === 'dark' ? 'bg-yellow-900 text-yellow-300' : 'bg-yellow-500 text-white'} text-[0.6rem] rounded-full`}>
               {relatedPersonnelSchedules.length + 1}
             </span>
           </div>
@@ -1470,15 +1475,18 @@ const SchedulePageContent = () => {
 
   // تابع برای رندر کردن محتوای جدول
   const renderTableContent = () => {
+    // استفاده از useTheme برای دسترسی به theme درون تابع
+    const { theme } = useTheme();
+    
     return days.map((day, index) => (
-      <tr key={day} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-        <td className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right font-bold sticky-col">{day}</td>
+      <tr key={day} className={index % 2 === 0 ? (theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-50') : (theme === 'dark' ? 'bg-gray-900' : 'bg-white')}>
+        <td className={`border ${theme === 'dark' ? 'border-gray-700 text-cyan-400 bg-gray-800' : 'border-gray-300 text-cyan-900'} p-1 sm:p-2 text-right font-bold sticky-col`}>{day}</td>
         {timeSlots.map((time, hourIndex) => {
           const hourNumber = hourIndex + 1; // شماره تک ساعت از 1 شروع می‌شود
           return (
             <td 
               key={`${day}-${time}`} 
-              className={`border border-gray-300 p-1 h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
+              className={`border ${theme === 'dark' ? 'border-gray-700 ' : 'border-gray-300'} p-1 h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, day, time)}
             >
@@ -1906,7 +1914,7 @@ const SchedulePageContent = () => {
         <h1>برنامه کلاسی</h1>
       </header>
 
-      <main className={styles.main}>
+      <main className={`mt-4 ${theme === 'dark' ? 'text-gray-300 bg-gray-800' : '{styles.main}'}`}>
         <div className="w-full p-2 sm:p-4 flex flex-col gap-4 sm:gap-6">
           {/* افزودن دکمه ذخیره برنامه */}
           {!showClassModal && (
@@ -1987,42 +1995,42 @@ const SchedulePageContent = () => {
           )}
 
           {/* جدول زمانی هفتگی */}
-          <div className="w-full bg-white rounded-lg shadow-md p-2 sm:p-4">
-            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 text-cyan-900 text-center">جدول زمانی هفتگی</h2>
+          <div className={`w-full rounded-lg shadow-md p-2 sm:p-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+            <h2 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 text-cyan-900 text-center ${theme === 'dark' ? 'text-gray-200 bg-gray-800' : ''}`}>جدول زمانی هفتگی</h2>
             
             {/* نمایش مشخصات کلاس انتخاب شده */}
             {grade && classNumber && (
-              <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-r-4 border-blue-500">
+              <div className={`flex flex-col sm:flex-row justify-center items-center gap-2 mb-4 p-3 ${theme === 'dark' ? 'bg-gradient-to-r from-gray-800 to-gray-900' : 'bg-gradient-to-r from-blue-50 to-cyan-50'} rounded-lg ${theme === 'dark' ? 'border-r-4 border-blue-400' : 'border-r-4 border-blue-500'}`}>
                 <div className="flex items-center">
-                  <span className="font-bold ml-2 text-blue-700">پایه:</span>
-                  <span className="text-blue-800">{grade}</span>
+                  <span className={`font-bold ml-2 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-700'}`}>پایه:</span>
+                  <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-blue-800'}`}>{grade}</span>
                 </div>
-                <div className="hidden sm:block text-gray-400 mx-2">|</div>
+                <div className={`hidden sm:block ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'} mx-2`}>|</div>
                 <div className="flex items-center">
-                  <span className="font-bold ml-2 text-blue-700">کلاس:</span>
-                  <span className="text-blue-800">{classNumber}</span>
+                  <span className={`font-bold ml-2 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-700'}`}>کلاس:</span>
+                  <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-blue-800'}`}>{classNumber}</span>
                 </div>
                 {field && (
                   <>
-                    <div className="hidden sm:block text-gray-400 mx-2">|</div>
+                    <div className={`hidden sm:block ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'} mx-2`}>|</div>
                     <div className="flex items-center">
-                      <span className="font-bold ml-2 text-blue-700">رشته:</span>
-                      <span className="text-blue-800">{field}</span>
+                      <span className={`font-bold ml-2 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-700'}`}>رشته:</span>
+                      <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-blue-800'}`}>{field}</span>
                     </div>
                   </>
                 )}
               </div>
             )}
             
-            <div className="w-full overflow-x-auto pb-2 sm:pb-4 schedule-table-container">
-              <table className="w-full border-collapse border border-gray-300">
+            <div className={`w-full overflow-x-auto pb-2 sm:pb-4 schedule-table-container ${theme === 'dark' ? 'bg-gray-400' : 'bg-white'}`}>
+              <table className={`w-full border-collapse ${theme === 'dark' ? 'border border-gray-100' : 'border border-gray-300'}`}>
                 <thead>
-                  <tr className="bg-gradient-to-r from-cyan-50 to-blue-50">
-                    <th className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-right w-16 sm:w-24 sticky-col">روز / ساعت</th>
+                  <tr className={`${theme === 'dark' ? 'bg-gradient-to-r from-gray-800 to-gray-800' : 'bg-gradient-to-r from-cyan-50 to-blue-50'}`}>
+                    <th className={`${theme === 'dark' ? 'border border-gray-700 text-gray-300' : 'border border-gray-300 text-cyan-900'} p-1 sm:p-2 text-right w-16 sm:w-24 sticky-col`}>روز / ساعت</th>
                     {timeSlots.map((time, index) => (
-                      <th key={time} className="border border-gray-300 p-1 sm:p-2 text-cyan-900 text-center min-w-[100px] sm:min-w-[120px] schedule-header-cell">
+                      <th key={time} className={`${theme === 'dark' ? 'border border-gray-100 text-gray-300' : 'border border-gray-100 text-cyan-900'} p-1 sm:p-2 text-center min-w-[100px] sm:min-w-[120px] schedule-header-cell`}>
                         <div className="font-bold">تک ساعت {toPersianNumber(index + 1)}م</div>
-                        <div className="text-[0.7rem] text-gray-600">{time}</div>
+                        <div className={`text-[0.7rem] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{time}</div>
                       </th>
                     ))}
                   </tr>
@@ -2036,23 +2044,23 @@ const SchedulePageContent = () => {
 
           {/* آمار کلی برای کلاس */}
           {schedule.length > 0 && (
-            <div className="w-full mt-2 sm:mt-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200 shadow-md">
-              <h3 className="text-base md:text-lg font-bold text-blue-800 mb-2">آمار کلی کلاس {grade} {classNumber} {field}</h3>
+            <div className={`w-full mt-2 sm:mt-6 ${theme === 'dark' ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200'} rounded-lg p-3 border shadow-md`}>
+              <h3 className={`text-base md:text-lg font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-800'} mb-2`}>آمار کلی کلاس {grade} {classNumber} {field}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 mb-2 sm:mb-4">
-                <div className="bg-white p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow">
-                  <p className="text-gray-600 text-xs md:text-sm">تعداد کل ساعت‌ها</p>
-                  <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats?.totalHours}</p>
+                <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow`}>
+                  <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm`}>تعداد کل ساعت‌ها</p>
+                  <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} font-bold text-lg md:text-xl`}>{classStats?.totalHours}</p>
                 </div>
-                <div className="bg-white p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow">
-                  <p className="text-gray-600 text-xs md:text-sm">تعداد پرسنل منحصر به فرد</p>
-                  <p className="text-gray-900 font-bold text-lg md:text-xl">{classStats?.uniquePersonnel}</p>
+                <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} p-2 md:p-3 rounded-md shadow-sm hover:shadow-md transition-shadow`}>
+                  <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm`}>تعداد پرسنل منحصر به فرد</p>
+                  <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} font-bold text-lg md:text-xl`}>{classStats?.uniquePersonnel}</p>
                 </div>
                 <div 
-                  className="bg-white p-2 md:p-3 rounded-md shadow-sm cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
+                  className={`${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'} p-2 md:p-3 rounded-md shadow-sm cursor-pointer transition-colors hover:shadow-md`}
                   onClick={() => saveClassScheduleToStorage()}
                 >
-                  <p className="text-gray-600 text-xs md:text-sm">وضعیت ذخیره‌سازی</p>
-                  <p className="text-gray-900 font-bold text-sm md:text-base flex items-center">
+                  <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm`}>وضعیت ذخیره‌سازی</p>
+                  <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} font-bold text-sm md:text-base flex items-center`}>
                     {localStorage.getItem(`class_schedule_${grade}-${classNumber}-${field}`) ? 
                       <span className="flex items-center text-green-600">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
@@ -2067,7 +2075,7 @@ const SchedulePageContent = () => {
                         ذخیره نشده
                       </span>
                     }
-                    <span className="text-xs mr-2 text-cyan-700">
+                    <span className={`text-xs mr-2 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-700'}`}>
                       (کلیک برای ذخیره)
                     </span>
                   </p>
@@ -2076,21 +2084,21 @@ const SchedulePageContent = () => {
               
               {/* جزئیات برنامه روزانه */}
               <div className="mt-4">
-                <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات برنامه روزانه</h4>
-                <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                <h4 className={`text-sm md:text-base font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-800'} mb-2`}>جزئیات برنامه روزانه</h4>
+                <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-md shadow-sm overflow-hidden`}>
                   {days.map(day => {
                     const dayStat = classStats?.dayStats[day];
                     if (!dayStat) return null;
                     
                     return (
-                      <div key={day} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
-                        <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">{day}</h5>
+                      <div key={day} className={`border-b ${theme === 'dark' ? 'border-gray-700 p-2 md:p-3 hover:bg-gray-700' : 'border-gray-100 p-2 md:p-3 hover:bg-blue-50'} transition-colors`}>
+                        <h5 className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'} font-bold text-sm md:text-base mb-1`}>{day}</h5>
                         <div className="pl-3 text-xs md:text-sm">
-                          <div className="mb-1 text-gray-900">
+                          <div className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
                             <span className="font-medium">تعداد ساعت: </span>
                             <span>{dayStat.count}</span>
                           </div>
-                          <div className="mb-1 text-gray-900">
+                          <div className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
                             <span className="font-medium">پرسنل: </span>
                             <span>
                               {dayStat.personnel.map(personnelCode => {
@@ -2106,96 +2114,11 @@ const SchedulePageContent = () => {
                 </div>
               </div>
               
-              {/* جزئیات پرسنل */}
-              <div className="mt-4">
-                <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات پرسنل</h4>
-                <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                  {Object.entries(classStats?.personnelStats || {}).map(([personnelCode, stat], index) => (
-                    <div key={index} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
-                      <h5 
-                        className="text-gray-900 font-bold text-sm md:text-base mb-1 cursor-pointer hover:text-cyan-700 flex items-center"
-                        onClick={() => {
-                          const personnelInfo = savedPersonnelSchedules.find(
-                            p => p.personnel.personnelCode === personnelCode
-                          );
-                          if (personnelInfo) {
-                            navigateToPersonnelSchedule(
-                              personnelInfo.personnel.personnelCode,
-                              personnelInfo.personnel.fullName,
-                              personnelInfo.personnel.mainPosition
-                            );
-                          }
-                        }}
-                      >
-                        <span className="inline-block ml-1">👤</span>
-                        {stat.fullName} <span className="text-xs text-gray-600">({personnelCode})</span>
-                      </h5>
-                      <div className="pl-3 text-xs md:text-sm">
-                        <div className="mb-1 text-gray-900">
-                          <span className="font-medium">تعداد ساعت: </span>
-                          <span>{stat.count}</span>
-                        </div>
-                        <div className="mb-1 text-gray-900">
-                          <span className="font-medium">روزها: </span>
-                          <span>{stat.days.join('، ')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                            {/* جزئیات پرسنل */}              <div className="mt-4">                <h4 className={`text-sm md:text-base font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-800'} mb-2`}>جزئیات پرسنل</h4>                <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-md shadow-sm overflow-hidden`}>                  {Object.entries(classStats?.personnelStats || {}).map(([personnelCode, stat], index) => (                    <div key={index} className={`border-b ${theme === 'dark' ? 'border-gray-700 p-2 md:p-3 hover:bg-gray-700' : 'border-gray-100 p-2 md:p-3 hover:bg-blue-50'} transition-colors`}>                      <h5                         className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'} font-bold text-sm md:text-base mb-1 cursor-pointer ${theme === 'dark' ? 'hover:text-cyan-400' : 'hover:text-cyan-700'} flex items-center`}                        onClick={() => {                          const personnelInfo = savedPersonnelSchedules.find(                            p => p.personnel.personnelCode === personnelCode                          );                          if (personnelInfo) {                            navigateToPersonnelSchedule(                              personnelInfo.personnel.personnelCode,                              personnelInfo.personnel.fullName,                              personnelInfo.personnel.mainPosition                            );                          }                        }}                      >                        <span className="inline-block ml-1">👤</span>                        {stat.fullName} <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>({personnelCode})</span>                      </h5>                      <div className="pl-3 text-xs md:text-sm">                        <div className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>                          <span className="font-medium">تعداد ساعت: </span>                          <span>{stat.count}</span>                        </div>                        <div className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>                          <span className="font-medium">روزها: </span>                          <span>{stat.days.join('، ')}</span>                        </div>                      </div>                    </div>                  ))}                </div>              </div>
               
-              {/* جزئیات گروه‌های تدریسی */}
-              <div className="mt-4">
-                <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات گروه‌های تدریسی</h4>
-                <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                  {Object.entries(classStats?.subjectStats || {}).map(([subject, stat], index) => (
-                    <div key={index} className="border-b border-gray-100 p-2 md:p-3 hover:bg-blue-50 transition-colors">
-                      <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">
-                        {subject}
-                      </h5>
-                      <div className="pl-3 text-xs md:text-sm">
-                        <div className="mb-1 text-gray-900">
-                          <span className="font-medium">تعداد ساعت: </span>
-                          <span>{stat.count}</span>
-                        </div>
-                        <div className="mb-1 text-gray-900">
-                          <span className="font-medium">پرسنل: </span>
-                          <span>
-                            {stat.personnel.map(personnelCode => {
-                              const personnelInfo = classStats?.personnelStats[personnelCode];
-                              return personnelInfo?.fullName || `کد: ${personnelCode}`;
-                            }).join('، ')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                            {/* جزئیات گروه‌های تدریسی */}              <div className="mt-4">                <h4 className={`text-sm md:text-base font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-800'} mb-2`}>جزئیات گروه‌های تدریسی</h4>                <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-md shadow-sm overflow-hidden`}>                  {Object.entries(classStats?.subjectStats || {}).map(([subject, stat], index) => (                    <div key={index} className={`border-b ${theme === 'dark' ? 'border-gray-700 p-2 md:p-3 hover:bg-gray-700' : 'border-gray-100 p-2 md:p-3 hover:bg-blue-50'} transition-colors`}>                      <h5 className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'} font-bold text-sm md:text-base mb-1`}>                        {subject}                      </h5>                      <div className="pl-3 text-xs md:text-sm">                        <div className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>                          <span className="font-medium">تعداد ساعت: </span>                          <span>{stat.count}</span>                        </div>                        <div className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>                          <span className="font-medium">پرسنل: </span>                          <span>                            {stat.personnel.map(personnelCode => {                              const personnelInfo = classStats?.personnelStats[personnelCode];                              return personnelInfo?.fullName || `کد: ${personnelCode}`;                            }).join('، ')}                          </span>                        </div>                      </div>                    </div>                  ))}                </div>              </div>
               
-              {/* خلاصه متنی برنامه */}
-              <div className="mt-4">
-                <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">خلاصه متنی برنامه</h4>
-                <div className="bg-white rounded-md shadow-sm p-3 overflow-x-auto">
-                  <pre className="text-xs md:text-sm whitespace-pre-wrap font-[Farhang2] text-gray-900 leading-relaxed">
-                    {`کلاس: ${grade} ${classNumber} ${field}
-تعداد کل ساعت: ${classStats?.totalHours}
-تعداد پرسنل منحصر به فرد: ${classStats?.uniquePersonnel}
-
-${days.map(day => {
-  const dayStat = classStats?.dayStats[day];
-  if (!dayStat) return '';
-  
-  return `${day}:
-${dayStat.personnel.map(personnelCode => {
-  const personnelInfo = classStats?.personnelStats[personnelCode];
-  return `    ${personnelInfo?.fullName || `کد: ${personnelCode}`}`;
-}).join('\n')}`;
-}).filter(Boolean).join('\n\n')}`}
-                  </pre>
-                </div>
-              </div>
+                            {/* خلاصه متنی برنامه */}              <div className="mt-4">                <h4 className={`text-sm md:text-base font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-800'} mb-2`}>خلاصه متنی برنامه</h4>                <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-md shadow-sm p-3 overflow-x-auto`}>                  <pre className={`text-xs md:text-sm whitespace-pre-wrap font-[Farhang2] ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'} leading-relaxed`}>                    {`کلاس: ${grade} ${classNumber} ${field}تعداد کل ساعت: ${classStats?.totalHours}تعداد پرسنل منحصر به فرد: ${classStats?.uniquePersonnel}${days.map(day => {  const dayStat = classStats?.dayStats[day];  if (!dayStat) return '';    return `${day}:${dayStat.personnel.map(personnelCode => {  const personnelInfo = classStats?.personnelStats[personnelCode];  return `    ${personnelInfo?.fullName || `کد: ${personnelCode}`}`;}).join('\n')}`;}).filter(Boolean).join('\n\n')}`}                  </pre>                </div>              </div>
             </div>
           )}
         </div>
@@ -2207,20 +2130,20 @@ ${dayStat.personnel.map(personnelCode => {
           title="انتخاب زمان برنامه"
           width="95%"
           maxWidth="900px"
-          className="text-black backdrop-blur-lg"
-          overlayClassName="bg-gradient-to-br from-cyan-500/20 via-emerald-500/20 to-indigo-600/20 backdrop-blur-md"
+          className={`${theme === 'dark' ? 'text-white backdrop-blur-lg' : 'text-black backdrop-blur-lg'}`}
+          overlayClassName={`${theme === 'dark' ? 'bg-gradient-to-br from-cyan-900/20 via-emerald-900/20 to-indigo-900/20 backdrop-blur-md' : 'bg-gradient-to-br from-cyan-500/20 via-emerald-500/20 to-indigo-600/20 backdrop-blur-md'}`}
         >
           <div className="space-y-4 text-right">
-            <p className="mb-4 text-center text-sm sm:text-base">لطفاً روز و ساعت مورد نظر را انتخاب کنید</p>
+            <p className={`mb-4 text-center text-sm sm:text-base ${theme === 'dark' ? 'text-gray-300' : ''}`}>لطفاً روز و ساعت مورد نظر را انتخاب کنید</p>
             <div className={`${styles.tableWrapper} pb-4`}>
-              <table className={`${styles.scheduleTable} text-xs sm:text-sm`}>
+              <table className={`${styles.scheduleTable} text-xs sm:text-sm ${theme === 'dark' ? 'text-gray-300' : ''}`}>
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-1 sm:p-2 text-gray-900 font-bold text-right sticky right-0 bg-gray-100 z-10">روز / ساعت</th>
+                  <tr className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                    <th className={`border ${theme === 'dark' ? 'border-gray-700 text-gray-300 bg-gray-900' : 'border-gray-300 text-gray-900'} font-bold text-right sticky right-0 z-10 p-1 sm:p-2`}>روز / ساعت</th>
                     {timeSlots.map((time, index) => (
-                      <th key={time} className="border border-gray-300 p-1 sm:p-2 text-gray-900 font-bold text-center min-w-[70px] sm:min-w-[100px]">
+                      <th key={time} className={`border ${theme === 'dark' ? 'border-gray-700 text-gray-300 bg-gray-800' : 'border-gray-300 text-gray-900'} font-bold text-center min-w-[70px] sm:min-w-[100px] p-1 sm:p-2`}>
                         تک ساعت {toPersianNumber(index + 1)}م
-                        <div className="text-[0.6rem] text-gray-700">{time}</div>
+                        <div className={`text-[0.6rem] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'}`}>{time}</div>
                       </th>
                     ))}
                   </tr>
@@ -2228,15 +2151,15 @@ ${dayStat.personnel.map(personnelCode => {
                 <tbody>
                   {days.map(day => (
                     <tr key={day}>
-                      <td className="border border-gray-300 p-1 sm:p-2 text-gray-900 font-bold text-right sticky right-0 bg-gray-50 z-10">{day}</td>
+                      <td className={`border ${theme === 'dark' ? 'border-gray-700 bg-gray-800 text-gray-300' : 'border-gray-300 bg-gray-50 text-gray-900'} p-1 sm:p-2 font-bold text-right sticky right-0 z-10`}>{day}</td>
                       {timeSlots.map(time => (
                         <td
                           key={`${day}-${time}`}
-                          className="border border-gray-300 p-1 sm:p-2 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+                          className={`border ${theme === 'dark' ? 'border-gray-700 bg-gray-900 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-center hover:bg-blue-50'} p-1 sm:p-2 text-center cursor-pointer transition-colors`}
                           onClick={() => handleTimeSelection(day, time)}
                         >
-                          <button className="w-full h-full flex items-center justify-center text-[10px] sm:text-sm">
-                            <span className="p-1 rounded-full bg-blue-200 hover:bg-blue-300 transition-colors w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-gray-900">
+                          <button className={`w-full h-full flex items-center justify-center text-[10px] sm:text-sm ${theme === 'dark' ? 'text-gray-300 bg-gray-800' : 'text-gray-900 bg-gray-50'}`}>
+                            <span className={`p-1 rounded-full ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-200 hover:bg-blue-300'} transition-colors w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center ${theme === 'dark' ? 'text-blue-300' : 'text-gray-900'}`}>
                               {getScheduleForCell(day, time) ? '✓' : '+'}
                             </span>
                           </button>
@@ -2253,24 +2176,24 @@ ${dayStat.personnel.map(personnelCode => {
         {/* مودال افزودن برنامه */}
         {modalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-700/30 via-emerald-600/30 to-indigo-950/30 backdrop-blur-sm"></div>
-            <div className="bg-white rounded-lg p-6 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform shadow-xl relative text-black z-[70]">
-              <div className="flex justify-between items-center mb-4 md:mb-6 sticky top-0 bg-white z-10 py-2 border-b">
-                <h2 className="text-lg md:text-xl font-bold text-black">افزودن برنامه جدید</h2>
+            <div className={`absolute inset-0 ${theme === 'dark' ? 'bg-gradient-to-br from-cyan-900/30 via-emerald-900/30 to-indigo-950/30' : 'bg-gradient-to-br from-cyan-700/30 via-emerald-600/30 to-indigo-950/30'} backdrop-blur-sm`}></div>
+            <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-6 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto transform shadow-xl relative ${theme === 'dark' ? 'text-white' : 'text-black'} z-[70]`}>
+              <div className={`flex justify-between items-center mb-4 md:mb-6 sticky top-0 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} z-10 py-2 border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
+                <h2 className={`text-lg md:text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>افزودن برنامه جدید</h2>
                 <button 
                   onClick={() => {
                     setModalOpen(false);
                     resetForm();
                   }}
-                  className="text-red-500 hover:text-red-700 transition-colors"
+                  className={`${theme === 'dark' ? 'text-red-400 hover:text-red-300' : 'text-red-500 hover:text-red-700'} transition-colors`}
                 >
                   <FaTimes size={20} />
                 </button>
               </div>
               <div className="space-y-3 md:space-y-4 text-right">
                 {selectedCell && (
-                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-2 rounded-lg border-r-4 border-cyan-500">
-                    <p className="text-cyan-900">زمان انتخاب شده: <span className="font-bold">{selectedCell.day}</span> ساعت <span className="font-bold">{selectedCell.time}</span></p>
+                  <div className={`${theme === 'dark' ? 'bg-gradient-to-r from-blue-900/50 to-cyan-900/50 border-r-4 border-cyan-700' : 'bg-gradient-to-r from-blue-50 to-cyan-50 border-r-4 border-cyan-500'} p-2 rounded-lg`}>
+                    <p className={`${theme === 'dark' ? 'text-cyan-300' : 'text-cyan-900'}`}>زمان انتخاب شده: <span className="font-bold">{selectedCell.day}</span> ساعت <span className="font-bold">{selectedCell.time}</span></p>
                   </div>
                 )}
                     
@@ -2285,7 +2208,7 @@ ${dayStat.personnel.map(personnelCode => {
                         setPersonnelSearchQuery(e.target.value);
                         searchPersonnel(e.target.value);
                       }}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-black text-sm transition-all"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-300 text-sm transition-all"
                       placeholder="نام یا کد پرسنلی را جستجو کنید"
                     />
                     <button
@@ -2325,7 +2248,7 @@ ${dayStat.personnel.map(personnelCode => {
                     }
                   }}
                   placeholder="کد پرسنلی را وارد کنید"
-                  className="w-full text-black text-sm focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                  className={`w-full text-sm focus:ring-cyan-500 focus:border-cyan-500 transition-all ${theme === 'dark' ? 'text-gray-300 bg-gray-800' : 'text-black'}`}
                   type="text"
                 />
 
@@ -2334,7 +2257,7 @@ ${dayStat.personnel.map(personnelCode => {
                   value={personnelName}
                   onChange={(e) => setPersonnelName(e.target.value)}
                   placeholder="نام و نام خانوادگی پرسنل را وارد کنید"
-                  className="w-full text-black text-sm"
+                  className={`w-full text-sm ${theme === 'dark' ? 'text-gray-300 bg-gray-800' : 'text-black'}`}
                   type="text"
                 />
 
@@ -2374,11 +2297,15 @@ ${dayStat.personnel.map(personnelCode => {
                 />
 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">توضیحات</label>
+                  <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>توضیحات</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black text-sm"
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                      theme === 'dark' 
+                        ? 'bg-gray-800 border-gray-700 text-gray-300' 
+                        : 'border-gray-300 text-black'
+                    }`}
                     rows={2}
                     placeholder="توضیحات اضافی را وارد کنید"
                   />
@@ -2477,178 +2404,10 @@ ${dayStat.personnel.map(personnelCode => {
           backdrop-filter: blur(2px);
         }
       `}</style>
-      <style jsx global>{`
-        @media screen and (max-width: 768px) {
-          .button-text {
-            font-size: 0.8rem;
-          }
-          
-          .responsive-buttons {
-            gap: 0.5rem;
-          }
-          
-          .responsive-buttons button {
-            margin: 0.25rem;
-            padding: 0.5rem 0.75rem;
-          }
-          
-          .schedule-header-cell {
-            font-size: 0.7rem;
-            padding: 0.25rem !important;
-            min-width: 80px !important;
-          }
-          
-          .sticky-col {
-            position: sticky;
-            right: 0;
-            z-index: 2;
-            background-color: #f8f9fa;
-          }
-          
-          .schedule-table-container {
-            margin-right: -0.5rem;
-            margin-left: -0.5rem;
-            padding-right: 0.5rem;
-            padding-left: 0.5rem;
-            width: calc(100% + 1rem);
-          }
-          
-          .mobile-friendly-table {
-            font-size: 0.7rem;
-          }
-          
-          .mobile-time-cell {
-            min-width: 60px !important;
-            padding: 0.25rem !important;
-          }
-          
-          .sticky-header {
-            position: sticky;
-            right: 0;
-            z-index: 2;
-            background-color: #f8f9fa;
-          }
-          
-          .line-clamp-1 {
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;  
-            overflow: hidden;
-          }
-          
-          /* تنظیم استایل Dropdown در مودال‌ها */
-          .dropdown-container select {
-            font-size: 0.8rem !important;
-            padding: 0.5rem !important;
-          }
-          
-          .dropdown-container label {
-            font-size: 0.8rem !important;
-          }
-          
-          /* تنظیم فاصله بین موارد در مودال */
-          .space-y-3 > * + * {
-            margin-top: 0.5rem !important;
-          }
-        }
-      `}</style>
+            <style jsx global>{`        @media screen and (max-width: 768px) {          .button-text {            font-size: 0.8rem;          }                    .responsive-buttons {            gap: 0.5rem;          }                    .responsive-buttons button {            margin: 0.25rem;            padding: 0.5rem 0.75rem;          }                    .schedule-header-cell {            font-size: 0.7rem;            padding: 0.25rem !important;            min-width: 80px !important;          }                    .sticky-col {            position: sticky;            right: 0;            z-index: 2;          }                    :global(.dark) .sticky-col {            background-color: #1f2937;          }                    html:not(.dark) .sticky-col {            background-color: #f8f9fa;          }                    .schedule-table-container {            margin-right: -0.5rem;            margin-left: -0.5rem;            padding-right: 0.5rem;            padding-left: 0.5rem;            width: calc(100% + 1rem);          }                    .mobile-friendly-table {            font-size: 0.7rem;          }                    .mobile-time-cell {            min-width: 60px !important;            padding: 0.25rem !important;          }                    .sticky-header {            position: sticky;            right: 0;            z-index: 2;          }                    :global(.dark) .sticky-header {            background-color: #1f2937;          }                    html:not(.dark) .sticky-header {            background-color: #f8f9fa;          }                    .line-clamp-1 {            display: -webkit-box;            -webkit-line-clamp: 1;            -webkit-box-orient: vertical;              overflow: hidden;          }                    /* تنظیم استایل Dropdown در مودال‌ها */          .dropdown-container select {            font-size: 0.8rem !important;            padding: 0.5rem !important;          }                    .dropdown-container label {            font-size: 0.8rem !important;          }                    /* تنظیم فاصله بین موارد در مودال */          .space-y-3 > * + * {            margin-top: 0.5rem !important;          }        }      `}</style>
       <Toaster />
 
-      {/* مودال پیش‌نمایش برای خروجی اکسل */}
-      {showCombinedPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-auto p-4">
-          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-900">پیش‌نمایش خروجی اکسل</h2>
-                <button
-                  onClick={() => setShowCombinedPreview(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <FaTimes size={20} />
-                </button>
-              </div>
-              <div className="mt-2">
-                <h3 className="text-lg font-bold text-blue-800 mb-2">اطلاعات کلاس</h3>
-                <div className="flex flex-wrap gap-2">
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">پایه: {grade}</span>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">کلاس: {classNumber}</span>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">رشته: {field}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex-grow overflow-auto p-4">
-              <div className="overflow-x-auto pb-4">
-                <table className="min-w-full bg-white border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-2 text-gray-900 font-bold text-right">روز / ساعت</th>
-                      {hours.map((hour, hourIndex) => (
-                        <th key={hourIndex} className="border border-gray-300 p-2 text-gray-900 font-bold text-center">{hour}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {days.map((day, dayIndex) => (
-                      <tr key={dayIndex} className={dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                        <td className="border border-gray-300 p-2 text-gray-900 font-bold text-right">{day}</td>
-                        {timeSlots.map((time, timeIndex) => {
-                          const cellSchedule = schedule.find(item => 
-                            item.day === day && item.timeStart === time
-                          );
-                          
-                          return (
-                            <td key={timeIndex} className="border border-gray-300 p-2 text-right">
-                              {cellSchedule && (
-                                <div>
-                                  <div className="font-bold text-cyan-800">
-                                    {cellSchedule.teachingGroup}
-                                  </div>
-                                  <div className="text-sm text-gray-800">
-                                    {(() => {
-                                      let fullName = '';
-                                      const personnelData = savedPersonnelSchedules.find(
-                                        ps => ps.personnel.personnelCode === cellSchedule.personnelCode
-                                      );
-                                      
-                                      if (personnelData) {
-                                        fullName = personnelData.personnel.fullName;
-                                      }
-                                      
-                                      return fullName || cellSchedule.personnelCode;
-                                    })()}
-                                  </div>
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <div className="p-4 border-t flex justify-end gap-2">
-              <button
-                onClick={() => setShowCombinedPreview(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-              >
-                انصراف
-              </button>
-              <button
-                onClick={exportCombinedDataToExcel}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-              >
-                <FaFileExport className="ml-2" />
-                دانلود فایل اکسل
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            {/* مودال پیش‌نمایش برای خروجی اکسل */}      {showCombinedPreview && (        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-auto p-4">          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col`}>            <div className={`p-4 border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>              <div className="flex justify-between items-center">                <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>پیش‌نمایش خروجی اکسل</h2>                <button                  onClick={() => setShowCombinedPreview(false)}                  className={`${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}                >                  <FaTimes size={20} />                </button>              </div>              <div className="mt-2">                <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-800'} mb-2`}>اطلاعات کلاس</h3>                <div className="flex flex-wrap gap-2">                  <span className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-800'} px-2 py-1 rounded text-sm`}>پایه: {grade}</span>                  <span className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-800'} px-2 py-1 rounded text-sm`}>کلاس: {classNumber}</span>                  <span className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-800'} px-2 py-1 rounded text-sm`}>رشته: {field}</span>                </div>              </div>            </div>                        <div className="flex-grow overflow-auto p-4">              <div className="overflow-x-auto pb-4">                <table className={`min-w-full ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}>                  <thead>                    <tr className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>                      <th className={`border ${theme === 'dark' ? 'border-gray-700 text-gray-300' : 'border-gray-300 text-gray-900'} p-2 font-bold text-right`}>روز / ساعت</th>                      {hours.map((hour, hourIndex) => (                        <th key={hourIndex} className={`border ${theme === 'dark' ? 'border-gray-700 text-gray-300' : 'border-gray-300 text-gray-900'} p-2 font-bold text-center`}>{hour}</th>                      ))}                    </tr>                  </thead>                  <tbody>                    {days.map((day, dayIndex) => (                      <tr key={dayIndex} className={dayIndex % 2 === 0                        ? (theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50')                        : (theme === 'dark' ? 'bg-gray-900' : 'bg-white')                      }>                        <td className={`border ${theme === 'dark' ? 'border-gray-700 text-gray-300' : 'border-gray-300 text-gray-900'} p-2 font-bold text-right`}>{day}</td>                        {timeSlots.map((time, timeIndex) => {                          const cellSchedule = schedule.find(item =>                             item.day === day && item.timeStart === time                          );                                                    return (                            <td key={timeIndex} className={`border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} p-2 text-right`}>                              {cellSchedule && (                                <div>                                  <div className={`font-bold ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-800'}`}>                                    {cellSchedule.teachingGroup}                                  </div>                                  <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>                                    {(() => {                                      let fullName = '';                                      const personnelData = savedPersonnelSchedules.find(                                        ps => ps.personnel.personnelCode === cellSchedule.personnelCode                                      );                                                                            if (personnelData) {                                        fullName = personnelData.personnel.fullName;                                      }                                                                            return fullName || cellSchedule.personnelCode;                                    })()}                                  </div>                                </div>                              )}                            </td>                          );                        })}                      </tr>                    ))}                  </tbody>                </table>              </div>            </div>                        <div className={`p-4 border-t ${theme === 'dark' ? 'border-gray-700' : ''} flex justify-end gap-2`}>              <button                onClick={() => setShowCombinedPreview(false)}                className={`px-4 py-2 ${theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-300 text-gray-800 hover:bg-gray-400'} rounded`}              >                انصراف              </button>              <button                onClick={exportCombinedDataToExcel}                className={`px-4 py-2 ${theme === 'dark' ? 'bg-green-700' : 'bg-green-600'} text-white rounded ${theme === 'dark' ? 'hover:bg-green-800' : 'hover:bg-green-700'} flex items-center`}              >                <FaFileExport className="ml-2" />                دانلود فایل اکسل              </button>            </div>          </div>        </div>      )}
     </div>
   );
 };
