@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from "react";
+import { useTheme } from '@/context/ThemeContext';
 
 interface DropdownProps {
     label: string;
@@ -32,6 +33,7 @@ const Dropdown: React.FC<DropdownProps> = ({
     const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const { theme } = useTheme();
 
     const toggleDropdown = () => {
         setIsOpen((prev) => !prev);
@@ -80,16 +82,26 @@ const Dropdown: React.FC<DropdownProps> = ({
 
     return (
         <div ref={dropdownRef} className={`${className} ${width} relative inline-block text-left`}>
-            <label className="block text-xs text-gray-700 mb-2 text-right font-bold">{label}</label>
+            <label className={`block text-xs mb-2 text-right font-bold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                {label}
+            </label>
 
             <button
                 type="button"
-                className={`inline-flex justify-between items-center ${width} ${height} p-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                className={`inline-flex justify-between items-center ${width} ${height} p-2 rounded-md border shadow-sm transition-colors duration-200 ease-in-out ${
+                    theme === 'dark' 
+                        ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 focus:ring-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-indigo-500'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2`}
                 onClick={toggleDropdown}
             >
-                {selectedOption ? displayValue(selectedOption) : (showPlaceholder ? "انتخاب کنید" : displayValue(options[0]))}
+                <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>
+                    {selectedOption ? displayValue(selectedOption) : (showPlaceholder ? "انتخاب کنید" : displayValue(options[0]))}
+                </span>
                 <svg
-                    className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -100,7 +112,11 @@ const Dropdown: React.FC<DropdownProps> = ({
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                <div className={`absolute right-0 mt-2 w-full rounded-md shadow-lg ring-1 z-50 transition-all duration-200 ease-in-out ${
+                    theme === 'dark'
+                        ? 'bg-gray-800 ring-gray-700 shadow-[0_0_15px_rgba(0,0,0,0.3)]'
+                        : 'bg-white ring-black ring-opacity-5'
+                }`}>
                     <div className="p-2">
                         <input
                             ref={searchInputRef}
@@ -108,22 +124,32 @@ const Dropdown: React.FC<DropdownProps> = ({
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="جستجو..."
-                            className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            className={`w-full p-2 text-sm rounded-md transition-colors duration-200 ease-in-out ${
+                                theme === 'dark'
+                                    ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'
+                                    : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                            } focus:outline-none focus:ring-2`}
                         />
                     </div>
-                    <div className="max-h-60 overflow-y-auto">
+                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded">
                         <div className="py-1 text-right">
                             {filteredOptions.map((option, index) => (
                                 <button
                                     key={index}
-                                    className="text-gray-700 block w-full text-right px-4 py-2 text-sm hover:bg-gray-100"
+                                    className={`block w-full text-right px-4 py-2 text-sm transition-colors duration-150 ease-in-out ${
+                                        theme === 'dark'
+                                            ? 'text-gray-200 hover:bg-gray-700'
+                                            : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
                                     onClick={() => handleSelect(option)}
                                 >
                                     {displayValue(option)}
                                 </button>
                             ))}
                             {filteredOptions.length === 0 && (
-                                <div className="text-gray-500 text-center py-2 text-sm">
+                                <div className={`text-center py-2 text-sm ${
+                                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                                }`}>
                                     نتیجه‌ای یافت نشد
                                 </div>
                             )}

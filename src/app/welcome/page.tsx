@@ -200,9 +200,12 @@ export default function WelcomePage() {
               key={level.id}
               href={level.path}
               className={`
-                block overflow-hidden rounded-xl border transition-all duration-500 ease-in-out transform hover:-translate-y-1.5 
+                block overflow-hidden rounded-xl border
+                transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
+                hover:-translate-y-2 hover:scale-[1.03]
+                hover:shadow-xl hover:shadow-black/10
                 ${level.color} ${level.borderColor} ${level.hoverColor} 
-                ${theme === 'dark' ? 'text-white' : 'text-gray-800'}
+                ${theme === 'dark' ? 'text-white shadow-black/20' : 'text-gray-800'}
                 ${theme === 'dark' ? 'dark-card' : ''}
                 ${styles.parallaxItem} ${styles.levelCardAnimation}
               `}
@@ -210,6 +213,7 @@ export default function WelcomePage() {
                 '--mouse-x': '50%',
                 '--mouse-y': '50%',
                 position: 'relative',
+                transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
               } as React.CSSProperties}
               ref={(el) => {
                 cardRefs.current[index] = el;
@@ -241,11 +245,11 @@ export default function WelcomePage() {
             </div>
             
             <div className="flex space-x-4 space-x-reverse">
-              <Link href="/access-control" className="flex items-center p-2 px-4 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+              <Link href="/access-control" className="flex items-center p-2 mx-2 px-4 rounded-lg bg-white/10 hover:bg-white/20 hover:scale-[1.09] transition-all">
                 <FaShieldAlt className="ml-2 text-lg" />
                 <span>نمایش دسترسی</span>
               </Link>
-              <Link href="/about-app" className="flex items-center p-2 px-4 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+              <Link href="/about-app" className="flex items-center p-2 px-4 rounded-lg bg-white/10 hover:bg-white/20 hover:scale-[1.09] transition-all">
                 <FaInfoCircle className="ml-2 text-lg" />
                 <span>درباره برنامه</span>
               </Link>

@@ -124,7 +124,7 @@
 /* تنظیمات حالت تاریک - اضافه شده */
 .dark {
   --background: #0a0a0a;
-  --foreground: #ededed;
+  --foreground: #edededc5;
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
@@ -225,6 +225,11 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #f8f9fa;
   color: #000000;
   font-weight: bold;
+}
+
+[data-theme='dark'] .schedule-header {
+  background-color: #1f2937;
+  color: #ffffff;
 }
 
 .schedule-time {
@@ -383,7 +388,7 @@ h1, h2, h3, h4, h5, h6 {
   
   /* بهینه‌سازی فاصله‌ها */
   .container {
-    padding: 0.5rem !important;
+    padding: 0.5rem;
   }
   
   /* بهبود اسکرول افقی برای جداول */

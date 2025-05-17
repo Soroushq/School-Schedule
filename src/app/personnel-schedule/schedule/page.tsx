@@ -10,7 +10,8 @@ import Input from '../../../components/Input/input';
 import SubmitButton from '../../../components/SubmitButton/submitbutton';
 import styles from '../personnel-schedule.module.css';
 import {
-  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye, FaFileDownload, FaFilePdf
+  FaDownload, FaPlus, FaSearch, FaSave, FaTimes, FaExclamationTriangle, FaInfoCircle, FaHistory, FaCalendarAlt, FaFileExport, FaTrash, FaSchool, FaEye, FaFileDownload, FaFilePdf,
+  FaTrashAlt
 } from "react-icons/fa";
 import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -1884,70 +1885,58 @@ const PersonnelSchedule = () => {
           برنامه ریزی پرسنلی {selectedPersonnel ? `- ${selectedPersonnel.fullName}` : ''}
         </h1>
         <div className={styles.headerButtons}>
+          {/* دکمه جستجوی پرسنل - فقط برای مدیر */}
           <button
             onClick={() => setShowPersonnelModal(true)}
-            className={`${styles.actionButton} ${theme === 'dark' ? 'bg-blue-700 hover:bg-blue-800' : ''}`}
+            className={`${styles.actionButton} ${theme === 'dark' ? 'bg-blue-700 hover:bg-blue-800' : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'}`}
           >
             <FaSearch className="inline ml-1" /> جستجوی پرسنل
           </button>
 
-          <button 
-            onClick={saveScheduleToLocalStorage}
-            className={`${theme === 'dark' ? ' hover:bg-blue-800 rounded-lg px-3 bg-cyan-600' : 'hover:bg-blue-100 text-gray-600 rounded-lg px-3 bg-blue-300' }`}
-            disabled={!selectedPersonnel || schedule.length === 0}
+          {/* دکمه ذخیره برنامه */}
+          {selectedPersonnel && (
+            <button 
+              onClick={saveScheduleToLocalStorage}
+              className={`${styles.actionButton} ${theme === 'dark' ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'}`}
+              disabled={schedule.length === 0}
+            >
+              <FaSave className="inline ml-1" /> ذخیره برنامه
+            </button>
+          )}
+
+          {/* دکمه حذف تاریخچه */}
+          <button
+            onClick={() => {
+              if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام تاریخچه برنامه‌ها را حذف کنید؟')) {
+                // حذف تمام تاریخچه از localStorage
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.startsWith('personnel_schedule_')) {
+                    localStorage.removeItem(key);
+                  }
+                }
+                // پاک کردن برنامه‌های جدول
+                setSchedule([]);
+                loadAllSavedSchedules();
+                toast.success('تمام تاریخچه برنامه‌ها با موفقیت حذف شد.');
+              }
+            }}
+            className={`${styles.actionButton} ${theme === 'dark' ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800' : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'}`}
           >
-            <FaSave className="inline ml-1" /> ذخیره برنامه
+            <FaTrashAlt className="inline ml-1" /> حذف تاریخچه
           </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className={`${styles.actionButton} ${theme === 'dark' ? 'bg-blue-700 hover:bg-blue-800' : ''}`}
-              disabled={!selectedPersonnel || schedule.length === 0}
-            >
-              <FaFileExport className="inline ml-1" /> خروجی
-            </button>
-            
-            {showExportMenu && schedule.length > 0 && (
-              <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                <div className="py-1" role="menu" aria-orientation="vertical">
-                  <button
-                    onClick={() => {
-                      setShowExportMenu(false);
-                      exportToExcel();
-                    }}
-                    className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-                    role="menuitem"
-                  >
-                    <FaFileExport className="ml-2" />
-                    خروجی اکسل
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowExportMenu(false);
-                      exportToJson();
-                    }}
-                    className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-                    role="menuitem"
-                  >
-                    <FaFileDownload className="ml-2" />
-                    خروجی JSON
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowExportMenu(false);
-                      exportToPdf();
-                    }}
-                    className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-                    role="menuitem"
-                  >
-                    <FaFilePdf className="ml-2" />
-                    خروجی PDF
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* دکمه خروج */}
+          <button
+            onClick={() => {
+              if (window.confirm('آیا مطمئن هستید که می‌خواهید از برنامه خارج شوید؟')) {
+                window.location.href = '/';
+              }
+            }}
+            className={`${styles.actionButton} ${theme === 'dark' ? 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'}`}
+          >
+            خروج
+          </button>
         </div>
       </header>
 
@@ -1973,7 +1962,7 @@ const PersonnelSchedule = () => {
                   />
                   <button
                     onClick={handleSearchPersonnel}
-                    className={styles.actionButton}
+                    className={`${styles.actionButton} my-2`}
                     disabled={!personnelCode.trim()}
                   >
                     <FaSearch className="ml-1 inline-block" />
@@ -2018,40 +2007,6 @@ const PersonnelSchedule = () => {
                   <span className="inline-block">افزودن پرسنل جدید</span>
                 </button>
               </div>
-
-              {/* دکمه‌های عملیات سیستمی */}
-              <div className="flex flex-wrap gap-2 mt-4 border-t pt-4 border-gray-200">
-                <p className="w-full text-sm text-black mb-2">عملیات سیستمی:</p>
-                <button
-                  onClick={() => {
-                    if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام تاریخچه برنامه‌ها را حذف کنید؟')) {
-                      // حذف تمام تاریخچه از localStorage
-                      for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        if (key && key.startsWith('personnel_schedule_')) {
-                          localStorage.removeItem(key);
-                        }
-                      }
-                      loadAllSavedSchedules();
-                      toast.success('تمام تاریخچه برنامه‌ها با موفقیت حذف شد.');
-                    }
-                  }}
-                  className="py-1.5 px-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs md:text-sm font-medium rounded hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                >
-                  <FaTimes className="ml-1 inline-block" />
-                  <span className="inline-block">حذف تاریخچه</span>
-                </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm('آیا مطمئن هستید که می‌خواهید از برنامه خارج شوید؟')) {
-                      window.location.href = '/';
-                    }
-                  }}
-                  className="py-1.5 px-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-xs md:text-sm font-medium rounded hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                >
-                  <span className="inline-block">خروج</span>
-                </button>
-              </div>
             </div>
           </div>
         ) : (
@@ -2059,8 +2014,9 @@ const PersonnelSchedule = () => {
             <div className="mb-4 md:mb-8">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
                 <div>
-                  <h2 className="text-base md:text-lg lg:text-xl font-bold text-gray-900">برنامه پرسنلی: {selectedPersonnel.fullName}</h2>
-                  <p className="text-xs md:text-sm text-black mt-1">کد پرسنلی: {selectedPersonnel.personnelCode} | سمت: {selectedPersonnel.mainPosition}</p>
+
+                  <h2 className={`text-base md:text-lg lg:text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>برنامه پرسنلی: {selectedPersonnel.fullName}</h2>
+                  <p className={`text-xs md:text-sm text-black mt-1 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>کد پرسنلی: {selectedPersonnel.personnelCode} | سمت: {selectedPersonnel.mainPosition}</p>
                 </div>
                 <div className="mt-3 md:mt-0">
                   <button
@@ -2075,7 +2031,8 @@ const PersonnelSchedule = () => {
                 </div>
               </div>
 
-              <div className={`${styles.actionButtonsContainer} flex-wrap mb-4 ${theme === 'dark' ? 'bg-gray-800' : ''}`}>
+              <div className={`${styles.actionButtonsContainer}  max-w-md flex-wrap mb-4 ${theme === 'dark' ? 'bg-gray-800' : ''}`}>
+                {/* دکمه افزودن برنامه جدید */}
                 <button
                   onClick={() => setTimeSelectionModalOpen(true)}
                   className="py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm md:text-base font-medium rounded hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
@@ -2083,6 +2040,8 @@ const PersonnelSchedule = () => {
                   <FaPlus className="ml-1 inline-block" />
                   <span className="inline-block">افزودن برنامه جدید</span>
                 </button>
+
+                {/* دکمه ذخیره برنامه */}
                 <button
                   onClick={saveScheduleToLocalStorage}
                   className="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm md:text-base font-medium rounded hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
@@ -2099,19 +2058,19 @@ const PersonnelSchedule = () => {
                     className="py-2 px-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm md:text-base font-medium rounded hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
                     disabled={schedule.length === 0}
                   >
-                    <FaFileDownload className="ml-1 inline-block" />
+                    <FaFileExport className="ml-1 inline-block" />
                     <span className="inline-block">خروجی گرفتن</span>
                   </button>
                   
                   {showExportMenu && schedule.length > 0 && (
-                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div className={`absolute left-0 mt-2 w-48 rounded-md shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ring-1 ring-black ring-opacity-5 z-50`}>
                       <div className="py-1" role="menu" aria-orientation="vertical">
                         <button
                           onClick={() => {
                             setShowExportMenu(false);
                             exportToExcel();
                           }}
-                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                          className={`flex items-center w-full text-right px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} transition-colors duration-200`}
                           role="menuitem"
                         >
                           <FaFileExport className="ml-2" />
@@ -2122,7 +2081,7 @@ const PersonnelSchedule = () => {
                             setShowExportMenu(false);
                             exportToJson();
                           }}
-                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                          className={`flex items-center w-full text-right px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} transition-colors duration-200`}
                           role="menuitem"
                         >
                           <FaFileDownload className="ml-2" />
@@ -2133,7 +2092,7 @@ const PersonnelSchedule = () => {
                             setShowExportMenu(false);
                             exportToPdf();
                           }}
-                          className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                          className={`flex items-center w-full text-right px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} transition-colors duration-200`}
                           role="menuitem"
                         >
                           <FaFilePdf className="ml-2" />
@@ -2143,16 +2102,35 @@ const PersonnelSchedule = () => {
                     </div>
                   )}
                 </div>
-                
+
+                {/* دکمه مشاهده برنامه‌های کلاسی */}
                 {savedClassSchedules.length > 0 && (
                   <button
-                    onClick={() => window.open('/class-schedule', '_blank')}
-                    className={`${styles.actionButton} bg-cyan-600 text-white hover:bg-cyan-700 flex items-center`}
+                    onClick={() => {
+                      const newWindow = window.open('/class-schedule', '_blank');
+                      if (newWindow) newWindow.focus();
+                    }}
+                    className="py-2 px-4 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white text-sm md:text-base font-medium rounded hover:from-cyan-600 hover:to-cyan-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
                   >
                     <FaCalendarAlt className="ml-1 inline-block" />
                     <span className="inline-block">مشاهده برنامه‌های کلاسی</span>
                   </button>
                 )}
+
+                {/* دکمه پاک کردن جدول */}
+                <button
+                  onClick={() => {
+                    if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام برنامه‌های جدول را پاک کنید؟')) {
+                      setSchedule([]);
+                      toast.success('تمام برنامه‌های جدول با موفقیت پاک شدند.');
+                    }
+                  }}
+                  className={`py-2 px-4 text-white text-sm md:text-base font-medium rounded transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center ${theme === 'dark' ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800' : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'}`}
+                  disabled={schedule.length === 0}
+                >
+                  <FaTrash className="ml-1 inline-block" />
+                  <span className="inline-block">پاک کردن جدول</span>
+                </button>
               </div>
 
               {schedule.length > 0 && (
@@ -2284,33 +2262,32 @@ const PersonnelSchedule = () => {
             </div>
 
             {schedule.length > 0 && (
-              <div className="mt-6 bg-blue-50 rounded-md p-3 border border-blue-200">
-                <h3 className="text-base md:text-lg font-bold text-blue-800 mb-2">آمار کلی</h3>
+              <div className={`mt-6 rounded-md p-3 border ${theme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                <h3 className={`text-base md:text-lg font-bold mb-2 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-800'}`}>آمار کلی</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-white p-2 md:p-3 rounded-md shadow-sm">
-                    <p className="text-gray-900 text-xs md:text-sm">تعداد کل ساعت‌ها</p>
-                    <p className="text-gray-900 font-bold text-lg md:text-xl">{calculateTotalHours()}</p>
+                  <div className={`p-2 md:p-3 rounded-md shadow-sm ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+                    <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>تعداد کل ساعت‌ها</p>
+                    <p className={`font-bold text-lg md:text-xl ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{calculateTotalHours()}</p>
                   </div>
-                  <div className="bg-white p-2 md:p-3 rounded-md shadow-sm">
-                    <p className="text-gray-900 text-xs md:text-sm">تعداد کلاس‌های منحصر به فرد</p>
-                    <p className="text-gray-900 font-bold text-lg md:text-xl">
+                  <div className={`p-2 md:p-3 rounded-md shadow-sm ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+                    <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>تعداد کلاس‌های منحصر به فرد</p>
+                    <p className={`font-bold text-lg md:text-xl ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                       {new Set(schedule.map(item => `${item.grade}-${item.classNumber}-${item.field}`)).size}
                     </p>
                   </div>
                   <div 
-                    className="bg-white p-2 md:p-3 rounded-md shadow-sm cursor-pointer hover:bg-blue-50"
+                    className={`p-2 md:p-3 rounded-md shadow-sm cursor-pointer ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}
                     onClick={() => {
                       if (savedClassSchedules.length > 0) {
-                        // نمایش لیست کلاس‌های مرتبط در یک مودال
-                        // برای سادگی، از تابع navigate استفاده می‌کنیم تا به صفحه لیست کلاس‌ها منتقل شویم
-                        window.open('/class-schedule', '_blank');
+                        const newWindow = window.open('/class-schedule', '_blank');
+                        if (newWindow) newWindow.focus();
                       }
                     }}
                   >
-                    <p className="text-gray-900 text-xs md:text-sm">کلاس‌های با برنامه</p>
-                    <p className="text-gray-900 font-bold text-lg md:text-xl flex items-center">
+                    <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>کلاس‌های با برنامه</p>
+                    <p className={`font-bold text-lg md:text-xl flex items-center ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                       {savedClassSchedules.length}
-                      <span className="text-xs mr-2 text-cyan-700">
+                      <span className={`text-xs mr-2 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-700'}`}>
                         (مشاهده همه)
                       </span>
                     </p>
@@ -2318,20 +2295,19 @@ const PersonnelSchedule = () => {
                 </div>
                 
                 <div className="mt-4">
-                  <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات برنامه روزانه</h4>
-                  <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                  <h4 className={`text-sm md:text-base font-bold mb-2 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-800'}`}>جزئیات برنامه روزانه</h4>
+                  <div className={`rounded-md shadow-sm overflow-hidden ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
                     {days.map(day => {
                       const daySummary = getDayHoursSummary(day);
                       if (!daySummary || daySummary.length === 0) return null;
                       
                       return (
-                        <div key={day} className="border-b border-gray-100 p-2 md:p-3">
-                          <h5 className="text-gray-900 font-bold text-sm md:text-base mb-1">{day}</h5>
-                          <div className="pl-3 text-xs md:text-sm">
+                        <div key={day} className={`p-3 border-b last:border-b-0 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                          <h5 className={`text-sm font-bold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>{day}</h5>
+                          <div className="space-y-2">
                             {daySummary.map((item, index) => (
-                              <div key={index} className="mb-1 text-gray-900">
-                                <span className="font-medium">{item.className}: </span>
-                                <span>{item.hours}</span>
+                              <div key={index} className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'}`}>
+                                <span className="font-bold">{item.className}:</span> {item.hours}
                               </div>
                             ))}
                           </div>
@@ -2342,8 +2318,8 @@ const PersonnelSchedule = () => {
                 </div>
                 
                 <div className="mt-4">
-                  <h4 className="text-sm md:text-base font-bold text-blue-800 mb-2">جزئیات کلاس‌ها</h4>
-                  <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                  <h4 className={`text-sm md:text-base font-bold mb-2 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-800'}`}>جزئیات کلاس‌ها</h4>
+                  <div className={`rounded-md shadow-sm overflow-hidden ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
                     {Object.entries(getScheduleByClass()).map(([classKey, classSchedules], index) => {
                       const [grade, classNumber, field] = classKey.split('-');
                       
@@ -2356,14 +2332,14 @@ const PersonnelSchedule = () => {
                       });
                       
                       return (
-                        <div key={index} className="border-b border-gray-100 p-2 md:p-3">
+                        <div key={index} className={`p-2 md:p-3 ${theme === 'dark' ? 'border-b border-gray-700' : 'border-b border-gray-100'}`}>
                           <h5 
-                            className="text-gray-900 font-bold text-sm md:text-base mb-1 cursor-pointer hover:text-cyan-700 flex items-center"
+                            className={`font-bold text-sm md:text-base mb-1 cursor-pointer flex items-center ${theme === 'dark' ? 'text-gray-100 hover:text-cyan-400' : 'text-gray-900 hover:text-cyan-700'}`}
                             onClick={() => navigateToClassSchedule(grade, classNumber, field)}
                           >
                             <FaSchool className="ml-1" />
                             {grade} {classNumber} {field}
-                            <span className="text-xs text-cyan-600 mr-2 flex items-center">
+                            <span className={`text-xs mr-2 flex items-center ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`}>
                               <FaEye className="ml-1" />
                               (مشاهده برنامه کلاسی)
                             </span>
@@ -2375,8 +2351,8 @@ const PersonnelSchedule = () => {
                               });
                               
                               return (
-                                <div key={idx} className="mb-1 text-gray-900">
-                                  <span className="font-medium">{day}: </span>
+                                <div key={idx} className={`mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
+                                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-100' : ''}`}>{day}: </span>
                                   <span>{formatHourNumbers(hourIndices)}</span>
                                 </div>
                               );
@@ -2391,11 +2367,11 @@ const PersonnelSchedule = () => {
             )}
             
             {/* خلاصه متنی برنامه - همیشه نمایش داده می‌شود */}
-            <div className="mt-6 bg-green-50 border border-green-200 rounded-md p-3 md:p-4">
-              <h3 className="text-base md:text-lg font-bold text-green-800 mb-3">خلاصه متنی برنامه</h3>
+            <div className={`mt-6 border rounded-md p-3 md:p-4 ${theme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'}`}>
+              <h3 className={`text-base md:text-lg font-bold mb-3 ${theme === 'dark' ? 'text-green-300' : 'text-green-800'}`}>خلاصه متنی برنامه</h3>
               {schedule.length > 0 ? (
-                <div className="bg-white rounded-md p-3 overflow-x-auto shadow-sm">
-                  <pre className="text-xs md:text-sm whitespace-pre-wrap font-[Farhang2] text-gray-900 leading-relaxed">
+                <div className={`rounded-md p-3 overflow-x-auto shadow-sm ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+                  <pre className={`text-xs md:text-sm whitespace-pre-wrap font-[Farhang2] leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
                     {`نام پرسنل: ${selectedPersonnel?.fullName}
 کد پرسنلی: ${selectedPersonnel?.personnelCode}
 سمت: ${selectedPersonnel?.mainPosition}
@@ -2421,8 +2397,8 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                   </pre>
                 </div>
               ) : (
-                <div className="bg-white rounded-md p-3 text-center shadow-sm">
-                  <p className="text-black">هنوز برنامه‌ای ثبت نشده است</p>
+                <div className={`rounded-md p-3 text-center shadow-sm ${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-black'}`}>
+                  <p>هنوز برنامه‌ای ثبت نشده است</p>
                 </div>
               )}
             </div>
@@ -2433,22 +2409,22 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
       {showConflictWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md z-10 relative">
+          <div className={`rounded-lg p-6 w-full max-w-md z-10 relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-center mb-4 text-red-600">
               <FaExclamationTriangle className="text-4xl" />
             </div>
-            <h2 className="text-xl font-bold text-center mb-4">هشدار تداخل برنامه</h2>
+            <h2 className={`text-xl font-bold text-center mb-4 ${theme === 'dark' ? 'text-white' : ''}`}>هشدار تداخل برنامه</h2>
             <div className="max-h-96 overflow-y-auto">
-              <p className="text-black mb-4">برنامه‌های زیر با برنامه‌های پرسنل دیگر تداخل دارند:</p>
+              <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>برنامه‌های زیر با برنامه‌های پرسنل دیگر تداخل دارند:</p>
               <ul className="space-y-3">
                 {conflicts.map((conflict, index) => (
-                  <li key={index} className="border border-red-200 rounded-md p-3 bg-red-50">
-                    <p className="font-bold text-black">{conflict.day} - {hours[timeSlots.indexOf(conflict.time)]}</p>
-                    <p className="text-black">کلاس: {conflict.grade} {conflict.classNumber} - {conflict.field}</p>
-                    <p className="text-black">پرسنل های دارای تداخل:</p>
+                  <li key={index} className={`border rounded-md p-3 ${theme === 'dark' ? 'border-red-700 bg-red-900/30' : 'border-red-200 bg-red-50'}`}>
+                    <p className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{conflict.day} - {hours[timeSlots.indexOf(conflict.time)]}</p>
+                    <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>کلاس: {conflict.grade} {conflict.classNumber} - {conflict.field}</p>
+                    <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>پرسنل های دارای تداخل:</p>
                     <ul className="list-disc mr-6 mt-1">
                       {conflict.personnelNames.map((name, idx) => (
-                        <li key={idx} className="text-red-700">{name}</li>
+                        <li key={idx} className={`${theme === 'dark' ? 'text-red-400' : 'text-red-700'}`}>{name}</li>
                       ))}
                     </ul>
                   </li>
@@ -2469,100 +2445,100 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
 
       {modalOpen && (
         <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <h2 className="text-xl font-bold mb-4 text-black">افزودن برنامه جدید</h2>
+          <div className={`${styles.modalContent} ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : ''}`}>
+            <h2 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>افزودن برنامه جدید</h2>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>پایه تحصیلی:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>پایه تحصیلی:</label>
               <select 
-                className={styles.formSelect}
+                className={`${styles.formSelect} ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                 value={grade} 
                 onChange={(e) => setGrade(e.target.value)}
               >
-                <option value="" className="text-black">انتخاب کنید</option>
+                <option value="" className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>انتخاب کنید</option>
                 {grades.map(g => (
-                  <option key={g} value={g} className="text-black">{g}</option>
+                  <option key={g} value={g} className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>{g}</option>
                 ))}
               </select>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>کلاس:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>کلاس:</label>
               <select 
-                className={styles.formSelect}
+                className={`${styles.formSelect} ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                 value={classNumber} 
                 onChange={(e) => setClassNumber(e.target.value)} 
                 disabled={!grade}
               >
-                <option value="" className="text-black">انتخاب کنید</option>
+                <option value="" className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>انتخاب کنید</option>
                 {grade && classOptions[grade as keyof typeof classOptions]?.map(c => (
-                  <option key={c} value={c} className="text-black">{c}</option>
+                  <option key={c} value={c} className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>{c}</option>
                 ))}
               </select>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>رشته:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>رشته:</label>
               <select 
-                className={styles.formSelect}
+                className={`${styles.formSelect} ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                 value={field} 
                 onChange={(e) => setField(e.target.value)}
               >
-                <option value="" className="text-black">انتخاب کنید</option>
+                <option value="" className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>انتخاب کنید</option>
                 {fields.map(f => (
-                  <option key={f} value={f} className="text-black">{f}</option>
+                  <option key={f} value={f} className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>{f}</option>
                 ))}
               </select>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>سمت:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>سمت:</label>
               <select 
-                className={styles.formSelect}
+                className={`${styles.formSelect} ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                 value={mainPosition} 
                 onChange={(e) => setMainPosition(e.target.value)}
               >
-                <option value="" className="text-black">انتخاب کنید</option>
+                <option value="" className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>انتخاب کنید</option>
                 {mainPositions.map(p => (
-                  <option key={p} value={p} className="text-black">{p}</option>
+                  <option key={p} value={p} className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>{p}</option>
                 ))}
               </select>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>نوع ساعت:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>نوع ساعت:</label>
               <select 
-                className={styles.formSelect}
+                className={`${styles.formSelect} ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                 value={hourType} 
                 onChange={(e) => setHourType(e.target.value)}
               >
-                <option value="" className="text-black">انتخاب کنید</option>
+                <option value="" className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>انتخاب کنید</option>
                 {hourTypes.map(h => (
-                  <option key={h} value={h} className="text-black">{h}</option>
+                  <option key={h} value={h} className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>{h}</option>
                 ))}
               </select>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>گروه آموزشی:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>گروه آموزشی:</label>
               <select 
-                className={styles.formSelect}
+                className={`${styles.formSelect} ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                 value={teachingGroup} 
                 onChange={(e) => setTeachingGroup(e.target.value)}
               >
-                <option value="" className="text-black">انتخاب کنید</option>
+                <option value="" className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>انتخاب کنید</option>
                 {teachingGroups.map(t => (
-                  <option key={t} value={t} className="text-black">{t}</option>
+                  <option key={t} value={t} className={theme === 'dark' ? 'text-white bg-gray-700' : 'text-black'}>{t}</option>
                 ))}
               </select>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel + " text-black"}>توضیحات:</label>
+              <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>توضیحات:</label>
               <textarea 
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full p-2 border border-gray-300 rounded text-black"
+                className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300 text-black'}`}
               ></textarea>
             </div>
 
@@ -2575,7 +2551,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
                 ثبت
               </button>
               <button 
-                className="py-2 px-4 bg-gray-200 text-gray-800 font-medium rounded"
+                className={`py-2 px-4 font-medium rounded ${theme === 'dark' ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800'}`}
                 onClick={() => {
                   setModalOpen(false);
                   resetForm();
@@ -2654,43 +2630,43 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
       {showAddPersonnelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-in-out">
           <div className="absolute inset-0 bg-gradient-to-br opacity-55 from-gray-700 via-gray-800 to-gray-900 backdrop-blur-[2px]"></div>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative">
+          <div className={`${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-lg p-6 w-full max-w-md transform transition-all duration-500 ease-in-out shadow-xl relative`}>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 text-center">تکمیل اطلاعات</h2>
-              <p className="text-center text-black mt-2">لطفاً اطلاعات خود را تکمیل کنید</p>
+              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-center`}>تکمیل اطلاعات</h2>
+              <p className={`text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} mt-2`}>لطفاً اطلاعات خود را تکمیل کنید</p>
             </div>
             <div className={styles.scrollableContent}>
               <div className="space-y-6 text-right">
                 {addPersonnelError && (
-                  <p className="text-red-600 p-2 bg-red-50 rounded">{addPersonnelError}</p>
+                  <p className={`text-red-600 p-2 ${theme === 'dark' ? 'bg-red-900/20' : 'bg-red-50'} rounded`}>{addPersonnelError}</p>
                 )}
                 
                 <div className="space-y-2">
-                  <label htmlFor="newPersonnelCode" className="block text-gray-800 font-medium">کد پرسنلی:</label>
+                  <label htmlFor="newPersonnelCode" className={`block font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>کد پرسنلی:</label>
                   <input
                     id="newPersonnelCode"
                     type="text"
                     value={newPersonnel.personnelCode || personnelCode}
                     disabled
-                    className="w-full p-2 border border-gray-300 rounded text-black bg-gray-100"
+                    className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-gray-100 border-gray-300 text-gray-800'}`}
                   />
-                  <p className="text-xs text-black">کد پرسنلی قابل تغییر نیست</p>
+                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>کد پرسنلی قابل تغییر نیست</p>
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="newFullName" className="block text-gray-800 font-medium">نام و نام خانوادگی:</label>
+                  <label htmlFor="newFullName" className={`block font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>نام و نام خانوادگی:</label>
                   <input
                     id="newFullName"
                     type="text"
                     value={newPersonnel.fullName}
                     onChange={(e) => setNewPersonnel({...newPersonnel, fullName: e.target.value})}
                     placeholder="نام و نام خانوادگی خود را وارد کنید"
-                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 text-gray-800'}`}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="newMainPosition" className="block text-gray-800 font-medium">سمت شغلی:</label>
+                  <label htmlFor="newMainPosition" className={`block font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>سمت شغلی:</label>
                   <select
                     id="newMainPosition"
                     value={newPersonnel.mainPosition}
@@ -2828,7 +2804,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
 
       {showCellHistoryMenu && selectedCellForHistory && (
         <div 
-          className={`${styles.cellHistoryMenu} cell-history-container`}
+          className={`${styles.cellHistoryMenu} cell-history-container ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
           style={{
             position: 'fixed',
             top: `${menuPosition.top}px`,
@@ -2836,9 +2812,8 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             padding: '12px',
             zIndex: 1000,
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            backgroundColor: 'white',
             borderRadius: '6px',
-            border: '1px solid #e5e7eb',
+            border: '1px solid',
             width: '250px',
             maxWidth: '90vw',
             maxHeight: '80vh',
@@ -2847,47 +2822,51 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
         >
           {/* اضافه کردن فلش برای نشان دادن ارتباط با آیکون */}
           <div 
-            className="absolute w-3 h-3 bg-white transform rotate-45 border"
+            className={`absolute w-3 h-3 transform rotate-45 border ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
             style={{
               top: menuPosition.position === 'center' ? '-6px' : (menuPosition.position === 'left' ? '10px' : 'auto'),
               left: menuPosition.position === 'center' ? '50%' : (menuPosition.position === 'right' ? '-6px' : 'auto'),
               right: menuPosition.position === 'left' ? '-6px' : 'auto',
               marginLeft: menuPosition.position === 'center' ? '-6px' : '0',
-              borderColor: menuPosition.position === 'center' ? '#e5e7eb transparent transparent #e5e7eb' : 
-                                  (menuPosition.position === 'right' ? 'transparent #e5e7eb #e5e7eb transparent' : 
-                                                                    'transparent transparent #e5e7eb #e5e7eb'),
+              borderColor: theme === 'dark' ? 
+                (menuPosition.position === 'center' ? '#374151 transparent transparent #374151' : 
+                  (menuPosition.position === 'right' ? 'transparent #374151 #374151 transparent' : 
+                    'transparent transparent #374151 #374151')) :
+                (menuPosition.position === 'center' ? '#e5e7eb transparent transparent #e5e7eb' : 
+                  (menuPosition.position === 'right' ? 'transparent #e5e7eb #e5e7eb transparent' : 
+                    'transparent transparent #e5e7eb #e5e7eb')),
               zIndex: 1
             }}
           ></div>
           <div className="relative z-10 max-h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center mb-2 sticky top-0 bg-white pb-2 border-b">
-              <h3 className="font-bold text-black text-sm md:text-base">تاریخچه برنامه‌ها</h3>
+            <div className={`flex justify-between items-center mb-2 sticky top-0 pb-2 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <h3 className={`font-bold text-sm md:text-base ${theme === 'dark' ? 'text-white' : 'text-black'}`}>تاریخچه برنامه‌ها</h3>
               <button 
                 onClick={() => setShowCellHistoryMenu(false)}
-                className="text-gray-600 hover:text-gray-900 p-1"
+                className={`p-1 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
               >
                 <FaTimes />
               </button>
             </div>
             
-            <div className="text-xs md:text-sm text-black mb-2 pb-2">
-              <span className="font-medium text-black">روز: </span>{selectedCellForHistory.day}، 
-              <span className="font-medium text-black mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
+            <div className={`text-xs md:text-sm mb-2 pb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>
+              <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>روز: </span>{selectedCellForHistory.day}، 
+              <span className={`font-medium mr-1 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
             </div>
             
-            <div className="divide-y divide-gray-200 overflow-y-auto flex-grow">
+            <div className={`divide-y overflow-y-auto flex-grow ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
               {getAllSavedSchedulesForCell(selectedCellForHistory.day, selectedCellForHistory.time).slice(0, 3).map((item, index) => (
-                <div key={index} className="py-2 text-black hover:bg-gray-50 px-1 rounded">
-                  <p className="font-bold text-black text-xs md:text-sm">{item.personnel?.fullName || 'نامشخص'}</p>
-                  <p className="text-xs md:text-sm text-black">{item.grade} {item.classNumber} - {item.field}</p>
-                  <p className="text-xs text-black">{item.mainPosition} - {item.hourType}</p>
-                  {item.description && <p className="text-xs text-black">{item.description}</p>}
+                <div key={index} className={`py-2 px-1 rounded ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-black hover:bg-gray-50'}`}>
+                  <p className={`font-bold text-xs md:text-sm ${theme === 'dark' ? 'text-gray-100' : 'text-black'}`}>{item.personnel?.fullName || 'نامشخص'}</p>
+                  <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>{item.grade} {item.classNumber} - {item.field}</p>
+                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-black'}`}>{item.mainPosition} - {item.hourType}</p>
+                  {item.description && <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-black'}`}>{item.description}</p>}
                 </div>
               ))}
             </div>
             
             {getAllSavedSchedulesForCell(selectedCellForHistory.day, selectedCellForHistory.time).length > 3 && (
-              <div className="mt-2 pt-2 border-t border-gray-200">
+              <div className={`mt-2 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button 
                   onClick={() => {
                     setShowCellHistoryMenu(false);
@@ -2906,31 +2885,31 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
       {showCellHistoryModalOpen && selectedCellForHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-gray-900 opacity-50"></div>
-          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-lg z-10 m-4 md:m-0">
+          <div className={`rounded-lg p-4 md:p-6 w-full max-w-lg z-10 m-4 md:m-0 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-bold text-gray-900">تاریخچه کامل برنامه‌ها</h2>
+              <h2 className={`text-lg md:text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>تاریخچه کامل برنامه‌ها</h2>
               <button 
                 onClick={() => setShowCellHistoryModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className={`${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 <FaTimes />
               </button>
             </div>
             
-            <div className="text-sm md:text-base text-black mb-3 bg-gray-50 p-2 rounded">
-              <span className="font-bold text-black">روز: </span>{selectedCellForHistory.day}، 
-              <span className="font-bold text-black mr-1">ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
+            <div className={`text-sm md:text-base mb-3 p-2 rounded ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-black'}`}>
+              <span className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-black'}`}>روز: </span>{selectedCellForHistory.day}، 
+              <span className={`font-bold mr-1 ${theme === 'dark' ? 'text-gray-100' : 'text-black'}`}>ساعت: </span>{hours[timeSlots.indexOf(selectedCellForHistory.time)]}
             </div>
             
-            <div className="max-h-[60vh] overflow-y-auto bg-gray-50 rounded p-2">
-              <div className="divide-y divide-gray-200">
+            <div className={`max-h-[60vh] overflow-y-auto rounded p-2 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <div className={`divide-y ${theme === 'dark' ? 'divide-gray-600' : 'divide-gray-200'}`}>
                 {getAllSavedSchedulesForCell(selectedCellForHistory.day, selectedCellForHistory.time).map((item, index) => (
-                  <div key={index} className="py-3 text-black bg-white mb-2 p-3 rounded shadow-sm">
-                    <p className="font-bold text-black text-sm md:text-base">{item.personnel?.fullName || 'نامشخص'}</p>
-                    <p className="text-sm md:text-base text-black">{item.grade} {item.classNumber} - {item.field}</p>
-                    <p className="text-sm text-black">{item.mainPosition} - {item.hourType}</p>
-                    {item.description && <p className="text-sm text-black mt-1">{item.description}</p>}
-                    <p className="text-xs text-black mt-2">تاریخ نامشخص</p>
+                  <div key={index} className={`py-3 mb-2 p-3 rounded shadow-sm ${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-black'}`}>
+                    <p className={`font-bold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-black'}`}>{item.personnel?.fullName || 'نامشخص'}</p>
+                    <p className={`text-sm md:text-base ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>{item.grade} {item.classNumber} - {item.field}</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-black'}`}>{item.mainPosition} - {item.hourType}</p>
+                    {item.description && <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-black'}`}>{item.description}</p>}
+                    <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-500' : 'text-black'}`}>تاریخ نامشخص</p>
                   </div>
                 ))}
               </div>
@@ -2939,7 +2918,7 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
             <div className="mt-4 flex justify-end">
               <button 
                 onClick={() => setShowCellHistoryModalOpen(false)}
-                className="py-2 px-4 bg-gray-200 text-gray-800 font-medium rounded hover:bg-gray-300 transition-colors"
+                className={`py-2 px-4 font-medium rounded ${theme === 'dark' ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
               >
                 بستن
               </button>

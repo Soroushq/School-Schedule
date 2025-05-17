@@ -6,6 +6,12 @@
   background-color: #f7f7f7;
   padding-top: 1rem;
   font-family: 'Farhang2', 'Vazirmatn', sans-serif;
+  transition: background-color 0.3s ease;
+}
+
+:global(.dark) .container {
+  background-color: #111827;
+  color: #e5e7eb;
 }
 
 @media (max-width: 480px) {
@@ -114,10 +120,11 @@
   padding: 2rem;
   font-family: 'Farhang2', 'Vazirmatn', sans-serif;
   overflow-x: auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 :global(.dark) .main {
-  background-color: #1e293b;
+  background-color: #1f2937;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   color: #e2e8f0;
 }

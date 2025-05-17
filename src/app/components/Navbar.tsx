@@ -527,9 +527,9 @@ const Navbar = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4 space-x-reverse">
+            <div className="flex items-center space-x-reverse">
               {/* Theme toggle button in desktop menu */}
-              <div className="hidden md:flex items-center ml-4">
+              <div className="hidden md:flex items-center">
                 <ThemeToggleButton />
               </div>
 
@@ -550,7 +550,7 @@ const Navbar = () => {
                 
                 <button 
                   onClick={() => openModal(null)}
-                  className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-800 hover:bg-blue-900'} text-white rounded-md transition-all duration-200 shadow-md`}
+                  className={`flex items-center py-1.5 px-3 ${theme === 'dark' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-800 hover:bg-blue-900'} text-white rounded-md transition-all duration-200 mx-2 shadow-md`}
                 >
                   <FaHistory className="ml-1.5" />
                   <span>برنامه‌های اخیر</span>
@@ -573,7 +573,7 @@ const Navbar = () => {
                 
                 {/* Mobile menu button */}
                 <button 
-                  className={`flex items-center justify-center p-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-800 hover:bg-blue-900'} transition-colors`}
+                  className={`flex items-center justify-center p-2 mx-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-800 hover:bg-blue-900'} transition-colors`}
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 >
                   <FaBars className="text-xl" />

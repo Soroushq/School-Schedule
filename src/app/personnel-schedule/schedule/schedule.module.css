@@ -47,23 +47,32 @@
 .scheduleTable th {
   background-color: #f3f4f6;
   font-weight: 600;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+:global(.dark) .scheduleTable th {
+  background-color: #374151;
+  color: #e5e7eb;
 }
 
 .scheduleCell {
   min-height: 6rem;
   position: relative;
+  background-color: white;
+  transition: background-color 0.3s ease;
 }
 
-@media (max-width: 768px) {
-  .scheduleCell {
-    min-height: 4rem;
-  }
+:global(.dark) .scheduleCell {
+  background-color: #1f2937;
+  border-color: #374151;
 }
 
-@media (max-width: 480px) {
-  .scheduleCell {
-    min-height: 3.5rem;
-  }
+.scheduleCell:hover {
+  background-color: #f3f4f6;
+}
+
+:global(.dark) .scheduleCell:hover {
+  background-color: #374151;
 }
 
 .timeSelectionGrid {
@@ -170,6 +179,13 @@
   width: 200px;
   max-height: 70vh;
   overflow-y: auto;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+:global(.dark) .cellHistoryMenu {
+  background-color: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 768px) {
@@ -195,6 +211,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: background-color 0.3s ease;
+}
+
+:global(.dark) .cellHistoryMenuItem {
+  color: #e5e7eb;
 }
 
 @media (max-width: 768px) {
@@ -206,6 +227,10 @@
 
 .cellHistoryMenuItem:hover {
   background-color: #f3f4f6;
+}
+
+:global(.dark) .cellHistoryMenuItem:hover {
+  background-color: #374151;
 }
 
 /* منوی جستجوی پرسنل */
@@ -372,4 +397,13 @@
 .modalContent input,
 .modalContent textarea {
   color: #000;
+}
+
+.scheduleTable td {
+  border: 1px solid #e5e7eb;
+  transition: border-color 0.3s ease;
+}
+
+:global(.dark) .scheduleTable td {
+  border-color: #374151;
 } 
