@@ -21,6 +21,7 @@ export default function WelcomePage() {
   // رفرنس برای هاله نور ماوس و کارت‌ها
   const mouseLightRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   // مدیریت تم در سمت کلاینت
   useEffect(() => {
@@ -59,6 +60,27 @@ export default function WelcomePage() {
       } else if (mouseLightRef.current) {
         mouseLightRef.current.style.opacity = '0';
       }
+      
+      // افکت پارالاکس برای کارت‌ها
+      if (typeof window !== 'undefined') {
+        cardRefs.current.forEach(card => {
+          if (!card) return;
+          
+          const rect = card.getBoundingClientRect();
+          const cardX = rect.left + rect.width / 2;
+          const cardY = rect.top + rect.height / 2;
+          
+          const deltaX = (x - cardX) / 30;
+          const deltaY = (y - cardY) / 30;
+          
+          // محدود کردن چرخش به 5 درجه
+          const rotateY = Math.min(Math.max(-deltaX, -5), 5);
+          const rotateX = Math.min(Math.max(deltaY, -5), 5);
+          
+          card.style.setProperty('--rotate-y', `${rotateY}deg`);
+          card.style.setProperty('--rotate-x', `${-rotateX}deg`);
+        });
+      }
     };
     
     // افکت درخشش روی کارت‌ها
@@ -83,17 +105,21 @@ export default function WelcomePage() {
       });
     };
     
-    window.addEventListener('mousemove', handleMouseMove);
-    if (cardsRef.current) {
-      cardsRef.current.addEventListener('mousemove', handleCardMouseMove);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('mousemove', handleMouseMove);
+      if (cardsRef.current) {
+        cardsRef.current.addEventListener('mousemove', handleCardMouseMove);
+      }
+      
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        if (cardsRef.current) {
+          cardsRef.current.removeEventListener('mousemove', handleCardMouseMove);
+        }
+      };
     }
     
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (cardsRef.current) {
-        cardsRef.current.removeEventListener('mousemove', handleCardMouseMove);
-      }
-    };
+    return undefined;
   }, [mounted, theme]);
 
   // اگر کامپوننت هنوز به صورت کامل لود نشده است، نمایش یک اسپینر
@@ -155,7 +181,7 @@ export default function WelcomePage() {
       
       {/* محتوای اصلی */}
       <div className="container mx-auto px-4 py-10 relative z-10">
-        <div className="text-center mb-12">
+        <div className={`text-center mb-12 ${styles.fadeIn}`}>
           <h1 className={`text-4xl md:text-5xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             به سیستم برنامه‌ریزی مدرسه خوش آمدید
           </h1>
@@ -169,23 +195,27 @@ export default function WelcomePage() {
         </h2>
         
         <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {educationLevels.map((level) => (
+          {educationLevels.map((level, index) => (
             <Link 
               key={level.id}
               href={level.path}
               className={`
-                block overflow-hidden rounded-xl border transition-all duration-300 transform hover:-translate-y-2 
+                block overflow-hidden rounded-xl border transition-all duration-500 ease-in-out transform hover:-translate-y-1.5 
                 ${level.color} ${level.borderColor} ${level.hoverColor} 
                 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}
                 ${theme === 'dark' ? 'dark-card' : ''}
+                ${styles.parallaxItem} ${styles.levelCardAnimation}
               `}
-              style={theme === 'dark' ? {
+              style={{
                 '--mouse-x': '50%',
                 '--mouse-y': '50%',
                 position: 'relative',
-              } as React.CSSProperties : {}}
+              } as React.CSSProperties}
+              ref={(el) => {
+                cardRefs.current[index] = el;
+              }}
             >
-              <div className="p-6 text-center">
+              <div className={`p-6 text-center ${styles.parallaxContent}`}>
                 <div className="flex justify-center mb-4">
                   {level.icon}
                 </div>

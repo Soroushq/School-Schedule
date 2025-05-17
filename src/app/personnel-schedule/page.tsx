@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useUserRole } from '@/context/UserRoleContext';
+import { useTheme } from '@/context/ThemeContext';
 import styles from './personnel-schedule.module.css';
 import { FaLock, FaUserCog } from 'react-icons/fa';
 import PageLoading from '@/components/PageLoading';
@@ -10,6 +11,7 @@ import Script from 'next/script';
 
 const PersonnelSchedulePage = () => {
   const { userRole, hasAccess } = useUserRole();
+  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -69,19 +71,19 @@ const PersonnelSchedulePage = () => {
           {`window.location.href = '/personnel-schedule/schedule';`}
         </Script>
       )}
-      <div className={styles.container}>
-        <header className={styles.header}>
+      <div className={`${styles.container} ${theme === 'dark' ? 'bg-gray-900 text-white' : ''}`}>
+        <header className={`${styles.header} ${theme === 'dark' ? styles.headerDark : ''}`}>
           <Link href="/welcome" className={styles.backButton}>
             بازگشت
           </Link>
-          <h1 className="text-cyan-700">
+          <h1 className={`${theme === 'dark' ? 'text-cyan-300' : 'text-cyan-700'}`}>
             برنامه‌ریزی پرسنل
           </h1>
         </header>
 
-        <main className={styles.main}>
+        <main className={`${styles.main} ${theme === 'dark' ? 'bg-gray-800 text-white' : ''}`}>
           <div className="w-full flex justify-center items-center h-64">
-            <p className="text-center text-lg">در حال انتقال به صفحه برنامه‌ریزی...</p>
+            <p className={`text-center text-lg ${theme === 'dark' ? 'text-gray-300' : ''}`}>در حال انتقال به صفحه برنامه‌ریزی...</p>
           </div>
         </main>
       </div>

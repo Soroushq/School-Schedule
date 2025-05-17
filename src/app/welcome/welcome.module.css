@@ -110,7 +110,7 @@
   padding: 2rem;
   border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
   text-align: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   position: relative;
@@ -192,15 +192,17 @@
 
 .levelCard:hover {
   transform: translateY(-10px);
+  transition-duration: 0.6s;
 }
 
 .levelIcon {
   margin-bottom: 1.5rem;
-  transition: transform 0.3s ease;
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
 .levelCard:hover .levelIcon {
   transform: scale(1.1);
+  transition-duration: 0.6s;
 }
 
 .levelTitle {
@@ -292,4 +294,83 @@
   .levelTitle {
     font-size: 1.3rem;
   }
+}
+
+/* افکت پارالاکس برای کارت‌ها */
+.parallaxItem {
+  transform-style: preserve-3d;
+  transform: perspective(1000px);
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.parallaxItem:hover {
+  transform: perspective(1000px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+}
+
+.parallaxItem .parallaxContent {
+  transform: translateZ(20px);
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* انیمیشن ورود کارت‌ها */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -50px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.levelCardAnimation {
+  animation-name: fadeInDown;
+  animation-duration: 0.8s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* تاخیر انیمیشن برای هر کارت */
+.levelCardAnimation:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.levelCardAnimation:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.levelCardAnimation:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.levelCardAnimation:nth-child(4) {
+  animation-delay: 0.7s;
+}
+
+/* افکت فید برای کارت‌ها */
+.fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* زمان بندی پارالاکس */
+.parallaxSlow {
+  transition: transform 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.parallaxMedium {
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.parallaxFast {
+  transition: transform 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
 } 

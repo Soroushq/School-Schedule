@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, Suspense, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useTheme } from '@/context/ThemeContext';
 import Modal from '../../../components/Modal/modal';
 import Dropdown from '../../../components/Dropdown/dropdown';
 import Input from '../../../components/Input/input';
@@ -75,6 +76,7 @@ const toPersianNumber = (num: number | string): string => {
 const PersonnelSchedule = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { theme } = useTheme();
   const educationLevel = searchParams?.get('level') as EducationLevel || 'vocational';
   const scheduleOptions = getScheduleOptions(educationLevel);
   const { grades, classOptions, fields, mainPositions, hourTypes, teachingGroups } = scheduleOptions;
@@ -1869,48 +1871,92 @@ const PersonnelSchedule = () => {
 
   // تابع برای دریافت مقطع انتخاب شده
   const handleLevelLoaded = (level: string) => {
-    setSelectedLevel(level);
     console.log('Loaded education level:', level);
   };
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
+    <div className={`${styles.container} ${theme === 'dark' ? 'bg-gray-900 text-white' : ''}`}>
+      <header className={`${styles.header} ${theme === 'dark' ? styles.headerDark : ''}`}>
+        <Link href="/welcome" className={styles.backButton}>
+          بازگشت
+        </Link>
+        <h1 className={`${theme === 'dark' ? 'text-cyan-300' : 'text-cyan-900'}`}>
+          برنامه ریزی پرسنلی {selectedPersonnel ? `- ${selectedPersonnel.fullName}` : ''}
+        </h1>
         <div className={styles.headerButtons}>
-          <button onClick={() => router.back()} className={styles.backButton}>
-            بازگشت
-          </button>
           <button
-            onClick={() => {
-              if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام برنامه‌ها را حذف کنید؟')) {
-                // حذف تمام برنامه‌ها از localStorage
-                for (let i = 0; i < localStorage.length; i++) {
-                  const key = localStorage.key(i);
-                  if (key && (key.startsWith('personnel_schedule_') || key.startsWith('class_schedule_'))) {
-                    localStorage.removeItem(key);
-                  }
-                }
-                // بارگذاری مجدد برنامه‌ها
-                loadAllSavedSchedules();
-                setSchedule([]);
-                toast.success('تمام برنامه‌ها با موفقیت حذف شدند.');
-              }
-            }}
-            className={styles.deleteButton}
+            onClick={() => setShowPersonnelModal(true)}
+            className={`${styles.actionButton} ${theme === 'dark' ? 'bg-blue-700 hover:bg-blue-800' : ''}`}
           >
-            <FaTrash className="ml-1" />
-            حذف همه برنامه‌ها
+            <FaSearch className="inline ml-1" /> جستجوی پرسنل
           </button>
+
+          <button 
+            onClick={saveScheduleToLocalStorage}
+            className={`${theme === 'dark' ? ' hover:bg-blue-800 rounded-lg px-3 bg-cyan-600' : 'hover:bg-blue-100 text-gray-600 rounded-lg px-3 bg-blue-300' }`}
+            disabled={!selectedPersonnel || schedule.length === 0}
+          >
+            <FaSave className="inline ml-1" /> ذخیره برنامه
+          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className={`${styles.actionButton} ${theme === 'dark' ? 'bg-blue-700 hover:bg-blue-800' : ''}`}
+              disabled={!selectedPersonnel || schedule.length === 0}
+            >
+              <FaFileExport className="inline ml-1" /> خروجی
+            </button>
+            
+            {showExportMenu && schedule.length > 0 && (
+              <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                <div className="py-1" role="menu" aria-orientation="vertical">
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      exportToExcel();
+                    }}
+                    className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                    role="menuitem"
+                  >
+                    <FaFileExport className="ml-2" />
+                    خروجی اکسل
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      exportToJson();
+                    }}
+                    className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                    role="menuitem"
+                  >
+                    <FaFileDownload className="ml-2" />
+                    خروجی JSON
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      exportToPdf();
+                    }}
+                    className="flex items-center w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                    role="menuitem"
+                  >
+                    <FaFilePdf className="ml-2" />
+                    خروجی PDF
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <h1>برنامه پرسنلی</h1>
       </header>
 
-      <main className={styles.main}>
+      <main className={`${styles.main} ${theme === 'dark' ? 'bg-gray-800 text-white' : ''}`}>
         {!selectedPersonnel ? (
           <div className="flex flex-col items-center justify-center py-4 md:py-8">
             <div className="w-full max-w-md">
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>کد پرسنلی:</label>
+                <label className={`${styles.formLabel} ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>کد پرسنلی:</label>
                 <div className={styles.searchContainer}>
                   <input
                     type="text"
@@ -1923,7 +1969,7 @@ const PersonnelSchedule = () => {
                       }
                     }}
                     placeholder="کد پرسنلی را وارد کنید"
-                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' : 'border-gray-300 text-black'}`}
                   />
                   <button
                     onClick={handleSearchPersonnel}
@@ -2029,7 +2075,7 @@ const PersonnelSchedule = () => {
                 </div>
               </div>
 
-              <div className={`${styles.actionButtonsContainer} flex-wrap mb-4`}>
+              <div className={`${styles.actionButtonsContainer} flex-wrap mb-4 ${theme === 'dark' ? 'bg-gray-800' : ''}`}>
                 <button
                   onClick={() => setTimeSelectionModalOpen(true)}
                   className="py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm md:text-base font-medium rounded hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center"
@@ -2808,8 +2854,8 @@ ${Object.entries(groupedByClass).map(([className, schedules]) => {
               right: menuPosition.position === 'left' ? '-6px' : 'auto',
               marginLeft: menuPosition.position === 'center' ? '-6px' : '0',
               borderColor: menuPosition.position === 'center' ? '#e5e7eb transparent transparent #e5e7eb' : 
-                          (menuPosition.position === 'right' ? 'transparent #e5e7eb #e5e7eb transparent' : 
-                                                            'transparent transparent #e5e7eb #e5e7eb'),
+                                  (menuPosition.position === 'right' ? 'transparent #e5e7eb #e5e7eb transparent' : 
+                                                                    'transparent transparent #e5e7eb #e5e7eb'),
               zIndex: 1
             }}
           ></div>
@@ -2932,8 +2978,17 @@ interface PersonnelSchedulePageProps {
 }
 
 export default function PersonnelSchedulePage() {
+  const { theme } = useTheme();
+  
   return (
-    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+    <Suspense fallback={
+      <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-blue-50'}`}>
+        <div className="text-center">
+          <div className={`inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid ${theme === 'dark' ? 'border-blue-400 border-r-transparent' : 'border-blue-600 border-r-transparent'} align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]`}></div>
+          <p className={`mt-4 text-xl ${theme === 'dark' ? 'text-gray-300' : 'text-blue-800'}`}>در حال بارگذاری...</p>
+        </div>
+      </div>
+    }>
       <PersonnelSchedule />
     </Suspense>
   );
