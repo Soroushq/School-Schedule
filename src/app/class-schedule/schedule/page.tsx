@@ -1377,7 +1377,7 @@ const SchedulePageContent = () => {
         </div>
         
         <div 
-          className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-indigo-300 hover:text-indigo-200' : 'text-indigo-700 hover:text-indigo-900'} cursor-pointer hover:underline flex items-center truncate`}
+          className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-indigo-100 hover:text-indigo-200' : 'text-indigo-700 hover:text-indigo-900'} cursor-pointer hover:underline flex items-center truncate`}
           onClick={(e) => {
             e.stopPropagation();
             // یافتن اطلاعات کامل پرسنل
@@ -1394,11 +1394,11 @@ const SchedulePageContent = () => {
           }}
         >
           <span className="inline-block ml-1">👤</span>
-          {personnelName || `کد: ${cellSchedule.personnelCode}`}
+          {userRole === 'admin' ? (personnelName || `کد: ${cellSchedule.personnelCode}`) : personnelName}
         </div>
         
         {/* نمایش گروه تدریس با برجستگی بیشتر */}
-        <div className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'} mt-1 font-bold border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'} pt-1 truncate`}>
+        <div className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-blue-100' : 'text-blue-700'} mt-1 font-bold border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'} pt-1 truncate`}>
           {cellSchedule.teachingGroup || 'بدون گروه تدریس'}
         </div>
         
@@ -1410,7 +1410,7 @@ const SchedulePageContent = () => {
         )}
         
         {/* نشانگر منبع برنامه */}
-        <div className="absolute bottom-1 right-1 hidden sm:block">
+        <div className="relative top-0 right-0 hidden sm:block">
           {cellSchedule.source === 'personnel' && (
             <span className={`text-[10px] ${theme === 'dark' ? 'text-purple-300 border-purple-700 bg-purple-900/50' : 'text-purple-500 border-purple-300 bg-purple-50'} font-medium border rounded-md px-1`}>
               از برنامه پرسنلی
@@ -1479,14 +1479,14 @@ const SchedulePageContent = () => {
     const { theme } = useTheme();
     
     return days.map((day, index) => (
-      <tr key={day} className={index % 2 === 0 ? (theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-50') : (theme === 'dark' ? 'bg-gray-900' : 'bg-white')}>
-        <td className={`border ${theme === 'dark' ? 'border-gray-700 text-cyan-400 bg-gray-800' : 'border-gray-300 text-cyan-900'} p-1 sm:p-2 text-right font-bold sticky-col`}>{day}</td>
+      <tr key={day} className={index % 2 === 0 ? (theme === 'dark' ? 'bg-gray-500 ' : 'bg-gray-50') : (theme === 'dark' ? 'bg-gray-500' : 'bg-white')}>
+        <td className={`border ${theme === 'dark' ? 'border-gray-300 text-cyan-400 bg-gray-800' : 'border-gray-300 text-cyan-900'} p-1 sm:p-2 text-right font-bold sticky-col`}>{day}</td>
         {timeSlots.map((time, hourIndex) => {
           const hourNumber = hourIndex + 1; // شماره تک ساعت از 1 شروع می‌شود
           return (
             <td 
               key={`${day}-${time}`} 
-              className={`border ${theme === 'dark' ? 'border-gray-700 ' : 'border-gray-300'} p-1 h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
+              className={`border ${theme === 'dark' ? 'border-gray-100 ' : 'border-gray-500'}  h-16 sm:h-24 align-top schedule-cell min-w-[100px] sm:min-w-[120px]`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, day, time)}
             >
