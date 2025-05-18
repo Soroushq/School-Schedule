@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars, FaUserCog, FaSun, FaMoon } from "react-icons/fa";
+import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars, FaUserCog, FaSun, FaMoon, FaSignInAlt, FaSignOutAlt } from "react-icons/fa";
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/context/UserRoleContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useSession, signOut } from 'next-auth/react';
 
 interface SavedSchedule {
   personnel: {
@@ -63,6 +64,7 @@ const Navbar = () => {
   const { userRole, setUserRole } = useUserRole();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     setMounted(true);
@@ -527,7 +529,37 @@ const Navbar = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4 space-x-reverse">
+            <div className="flex items-center space-x-3 space-x-reverse">
+              {/* افزودن دکمه ورود/ثبت‌نام یا خروج */}
+              {status === 'loading' ? (
+                <div className="w-5 h-5 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
+              ) : session ? (
+                <div className="flex items-center space-x-2 space-x-reverse mr-2">
+                  <span className="hidden md:inline-block text-sm">
+                    {session?.user?.name}
+                  </span>
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/welcome' })}
+                    className={`flex items-center space-x-1 space-x-reverse py-1.5 px-3 rounded-md 
+                      ${theme === 'dark' ? 'bg-red-900 hover:bg-red-800' : 'bg-red-700 hover:bg-red-800'} 
+                      text-white transition-colors`}
+                  >
+                    <FaSignOutAlt />
+                    <span className="hidden md:inline-block text-sm">خروج</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/auth/signin"
+                  className={`flex items-center space-x-1 space-x-reverse py-1.5 px-3 rounded-md 
+                    ${theme === 'dark' ? 'bg-green-800 hover:bg-green-700' : 'bg-green-700 hover:bg-green-800'} 
+                    text-white transition-colors`}
+                >
+                  <FaSignInAlt />
+                  <span className="text-sm md:inline-block">ورود</span>
+                </Link>
+              )}
+
               {/* Theme toggle button in desktop menu */}
               <div className="hidden md:flex items-center ml-4">
                 <ThemeToggleButton />
@@ -645,6 +677,40 @@ const Navbar = () => {
                 <FaHistory className="ml-2" />
                 برنامه‌های اخیر
               </button>
+              
+              {/* دکمه ثبت‌نام در منوی موبایل */}
+              {!session && (
+                <Link
+                  href="/auth/signup"
+                  className={`w-full flex items-center py-2 px-3 rounded-md ${theme === 'dark' ? 'bg-green-900 hover:bg-green-800' : 'bg-green-700 hover:bg-green-600'} transition-colors duration-200 text-left`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FaUserAlt className="ml-2" />
+                  ثبت‌نام
+                </Link>
+              )}
+              
+              {/* اطلاعات کاربر در منوی موبایل */}
+              {session && (
+                <div className="border-t border-blue-400 dark:border-gray-600 pt-2 mt-2">
+                  <div className="px-3 py-2">
+                    <div className="flex items-center mb-2">
+                      <FaUserAlt className="ml-2 text-gray-300" />
+                      <span>{session?.user?.name}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        signOut({ callbackUrl: '/welcome' });
+                      }}
+                      className={`w-full flex items-center py-2 px-3 rounded-md ${theme === 'dark' ? 'bg-red-900 hover:bg-red-800' : 'bg-red-700 hover:bg-red-600'} transition-colors duration-200 text-left`}
+                    >
+                      <FaSignOutAlt className="ml-2" />
+                      خروج از حساب کاربری
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

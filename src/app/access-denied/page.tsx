@@ -1,99 +1,60 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { FaLock, FaHome, FaArrowLeft } from 'react-icons/fa';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function AccessDenied() {
-  const [countdown, setCountdown] = useState(15);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    // تشخیص دستگاه موبایل
-    if (typeof window !== 'undefined') {
-      setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-    }
-
-    // کاهش تایمر شمارش معکوس
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // اضافه کردن تایمر برای بستن صفحه بعد از 15 ثانیه
-    const timer = setTimeout(() => {
-      try {
-        window.close();
-      } catch (e) {
-        console.log('نمی‌توان صفحه را به صورت خودکار بست');
-      }
-    }, 15000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    };
-  }, []);
-
-  // تابع بستن دستی صفحه (مخصوص موبایل)
-  const handleCloseManually = () => {
-    window.close();
-  };
+  const router = useRouter();
+  const { theme } = useTheme();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          className="h-16 w-16 text-red-600 mx-auto mb-4" 
-          fill="none" 
-          viewBox="0 0 24 24" 
-          stroke="currentColor"
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={2} 
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
-          />
-        </svg>
-        
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          دسترسی ممنوع است
-        </h1>
-        
-        <p className="text-gray-700 dark:text-gray-300 mb-6">
-          شما توافق‌نامه استفاده از برنامه‌ساز مدرسه را نپذیرفته‌اید. برای استفاده از این برنامه، باید توافق‌نامه را بپذیرید.
-        </p>
-        
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          این صفحه به طور خودکار بعد از <span className="font-bold text-red-500">{countdown}</span> ثانیه بسته خواهد شد.
-        </p>
-        
-        {isMobile && (
-          <div className="mb-6 text-sm text-gray-600">
-            <p className="bg-yellow-50 border border-yellow-200 p-2 rounded-md">
-              برخی مرورگرهای موبایل اجازه بستن خودکار صفحه را نمی‌دهند. در صورت عدم بسته شدن خودکار، می‌توانید از دکمه زیر استفاده کنید.
-            </p>
-            <button 
-              onClick={handleCloseManually}
-              className="mt-3 w-full py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-            >
-              بستن صفحه
-            </button>
+    <div className={`min-h-screen flex items-center justify-center p-5 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className={`max-w-md w-full text-center space-y-8 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} p-8 rounded-lg shadow-lg`}>
+        <div>
+          <div className="flex justify-center">
+            <div className={`p-4 rounded-full ${theme === 'dark' ? 'bg-red-900/30' : 'bg-red-100'}`}>
+              <FaLock className={`text-5xl ${theme === 'dark' ? 'text-red-500' : 'text-red-600'}`} />
+            </div>
           </div>
-        )}
+          <h2 className="mt-6 text-center text-3xl font-bold">
+            دسترسی محدود شده
+          </h2>
+          <p className={`mt-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            متأسفانه شما اجازه دسترسی به این صفحه را ندارید.
+          </p>
+          <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            برای دسترسی به این بخش، نیاز به سطح دسترسی بالاتری دارید.
+          </p>
+        </div>
         
-        <Link 
-          href="/"
-          className="inline-block px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          بازگشت به صفحه اصلی و پذیرش توافق‌نامه
-        </Link>
+        <div className="flex flex-col md:flex-row gap-4">
+          <button
+            onClick={() => router.back()}
+            className={`
+              flex items-center justify-center gap-2 py-2 px-4 rounded-md 
+              ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'} 
+              transition-colors flex-1
+            `}
+          >
+            <FaArrowLeft />
+            <span>بازگشت</span>
+          </button>
+          
+          <Link
+            href="/welcome"
+            className={`
+              flex items-center justify-center gap-2 py-2 px-4 rounded-md 
+              ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} 
+              transition-colors flex-1
+            `}
+          >
+            <FaHome />
+            <span>صفحه اصلی</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
