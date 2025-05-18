@@ -200,8 +200,9 @@ export default function WelcomePage() {
               key={level.id}
               href={level.path}
               className={`
-                block overflow-hidden rounded-xl border
+                block rounded-xl border
                 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
+                transform
                 hover:-translate-y-2 hover:scale-[1.03]
                 hover:shadow-xl hover:shadow-black/10
                 ${level.color} ${level.borderColor} ${level.hoverColor} 

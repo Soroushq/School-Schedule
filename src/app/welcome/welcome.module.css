@@ -297,7 +297,7 @@
 }
 
 /* افکت پارالاکس برای کارت‌ها */
-.parallaxItem {
+/* .parallaxItem {
   transform-style: preserve-3d;
   transform: perspective(1000px);
   transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
@@ -310,7 +310,7 @@
 .parallaxItem .parallaxContent {
   transform: translateZ(20px);
   transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
-}
+} */
 
 /* انیمیشن ورود کارت‌ها */
 @keyframes fadeInDown {
