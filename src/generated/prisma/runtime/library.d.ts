@@ -2749,7 +2749,11 @@ declare type QueryEngineProtocol = 'graphql' | 'json';
 
 declare type QueryEngineRequest = {
     query: string;
+<<<<<<< Updated upstream
     variables: object;
+=======
+    variables: Object;
+>>>>>>> Stashed changes
 };
 
 declare type QueryEngineResultData<T> = {

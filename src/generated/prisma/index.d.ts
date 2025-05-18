@@ -454,7 +454,11 @@ export namespace Prisma {
   ? False
   : T extends Uint8Array
   ? False
+<<<<<<< Updated upstream
   : T extends bigint
+=======
+  : T extends BigInt
+>>>>>>> Stashed changes
   ? False
   : T extends object
   ? True

@@ -37,10 +37,16 @@ export class AnalyticsService {
     return AnalyticsService.instance;
   }
 
-  // متدهای غیرفعال شده
-  public trackPageView(pageName: string): void {}
-  public trackEvent(eventName: string, eventData?: Record<string, any>): void {}
+  // ثبت بازدید از صفحه (غیرفعال)
+  public trackPageView(_pageName: string): void {
+    // در حال حاضر غیرفعال است
+  }
+
+  // ثبت رویداد خاص (غیرفعال)
+  public trackEvent(_eventName: string, _eventData: any): void {
+    // در حال حاضر غیرفعال است
+  }
 }
 
-// صادر کردن نمونه از پیش ساخته شده
+// صادر کردن نمونه منحصر به فرد از سرویس برای استفاده در برنامه
 export const analyticsService = AnalyticsService.getInstance(); 

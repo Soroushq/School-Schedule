@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+<<<<<<< Updated upstream
+=======
+import type { NextRequest } from "next/server";
+>>>>>>> Stashed changes
 import { withAuth } from "next-auth/middleware";
 
 // این میدلور از NextAuth.js استفاده می‌کند و به صورت خودکار جلسات را بررسی می‌کند

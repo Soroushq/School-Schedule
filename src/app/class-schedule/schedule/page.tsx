@@ -1214,12 +1214,12 @@ const SchedulePageContent = () => {
 
     // پاک کردن مجموعه‌های hourKeys از آبجکت نهایی برای سریالایز کردن
     Object.values(stats.personnelStats).forEach(stat => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       delete (stat as any).hourKeys;
     });
     
     Object.values(stats.subjectStats).forEach(stat => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       delete (stat as any).hourKeys;
     });
 

@@ -536,7 +536,11 @@ const Navbar = () => {
               ) : session ? (
                 <div className="flex items-center space-x-2 space-x-reverse mr-2">
                   <span className="hidden md:inline-block text-sm">
+<<<<<<< Updated upstream
                     {session?.user?.name}
+=======
+                    {session.user?.name}
+>>>>>>> Stashed changes
                   </span>
                   <button
                     onClick={() => signOut({ callbackUrl: '/welcome' })}
@@ -696,7 +700,11 @@ const Navbar = () => {
                   <div className="px-3 py-2">
                     <div className="flex items-center mb-2">
                       <FaUserAlt className="ml-2 text-gray-300" />
+<<<<<<< Updated upstream
                       <span>{session?.user?.name}</span>
+=======
+                      <span>{session.user?.name}</span>
+>>>>>>> Stashed changes
                     </div>
                     <button
                       onClick={() => {

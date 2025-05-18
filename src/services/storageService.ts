@@ -217,7 +217,7 @@ export class StorageService {
       const hasUserAgreement = localStorage.getItem('userAgreementAccepted') === 'true';
       const hasPrivacyAgreement = localStorage.getItem('privacy_agreement_accepted') === 'true';
       return hasUserAgreement && hasPrivacyAgreement;
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   }
