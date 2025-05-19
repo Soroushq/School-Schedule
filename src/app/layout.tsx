@@ -8,6 +8,7 @@ import ClientLayout from './ClientLayout'
 import ClientThemeLayout from './ClientThemeLayout'
 import { Suspense } from 'react'
 import PageLoading from '@/components/PageLoading'
+import { AuthProvider } from '@/context/AuthContext'
 
 export const metadata: Metadata = {
   title: 'سیستم برنامه‌ریزی مدرسه',
@@ -38,16 +39,18 @@ export default function RootLayout({
       <body className="transition-colors duration-300 ease-in-out bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
         <UserRoleProvider>
           <ClientThemeLayout>
-            <Suspense fallback={null}>
-              <PageLoading />
-            </Suspense>
-            <ClientPrivacyAgreement />
-            <ClientLayout>
-              <Navbar />
-              {children}
-            </ClientLayout>
-            <ClientScheduleSyncObserver />
-            <AnalyticsInitializer />
+            <AuthProvider>
+              <Suspense fallback={null}>
+                <PageLoading />
+              </Suspense>
+              <ClientPrivacyAgreement />
+              <ClientLayout>
+                <Navbar />
+                {children}
+              </ClientLayout>
+              <ClientScheduleSyncObserver />
+              <AnalyticsInitializer />
+            </AuthProvider>
           </ClientThemeLayout>
         </UserRoleProvider>
       </body>

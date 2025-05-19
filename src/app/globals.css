@@ -721,3 +721,50 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
+
+/* استایل‌های مربوط به صفحه ثبت‌نام */
+.auth-bg {
+  position: relative;
+  background: linear-gradient(-45deg, #3b82f6, #1e40af, #0f172a, #1e3a8a);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+}
+
+.dark .auth-bg {
+  background: linear-gradient(-45deg, #1e3a8a, #0f172a, #1e40af, #0f172a);
+}
+
+.auth-info-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-info-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);
+  z-index: -1;
+}
+
+.dark .auth-info-bg::before {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(17, 24, 39, 0.4) 100%);
+}
+
+@keyframes authPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+}

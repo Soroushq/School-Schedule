@@ -6,6 +6,7 @@ import { FaHome, FaHistory, FaUserAlt, FaSchool, FaTimes, FaInfoCircle, FaBars, 
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/context/UserRoleContext';
 import { useTheme } from '@/context/ThemeContext';
+import AuthButton from '@/components/Auth/AuthButton';
 
 interface SavedSchedule {
   personnel: {
@@ -430,7 +431,7 @@ const Navbar = () => {
                 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg`}
             >
               <FaUserAlt className="text-3xl mb-2" />
-              <span className="text-lg font-bold">آموزشگر</span>
+              <span className="text-lg font-bold">معلم</span>
               <p className="text-xs mt-2 text-gray-100">دسترسی به برنامه‌های آموزشی</p>
               {userRole === 'educator' && (
                 <div className="mt-2 bg-white text-blue-700 px-2 py-1 rounded-full text-xs font-bold">
@@ -533,6 +534,11 @@ const Navbar = () => {
                 <ThemeToggleButton />
               </div>
 
+              {/* Authentication Component */}
+              <div className="hidden md:flex mr-4">
+                <AuthButton />
+              </div>
+
               {/* Desktop buttons */}
               <div className="hidden md:flex items-center space-x-4 space-x-reverse">
                 <button 
@@ -543,7 +549,7 @@ const Navbar = () => {
                   <span>انتخاب نقش</span>
                   {userRole && (
                     <span className="mr-2 text-xs bg-white text-indigo-800 px-2 py-0.5 rounded-full">
-                      {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}
+                      {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'معلم' : 'دانش‌آموز'}
                     </span>
                   )}
                 </button>
@@ -562,13 +568,18 @@ const Navbar = () => {
                 {/* Theme toggle button in mobile view */}
                 <ThemeToggleButton />
                 
+                {/* Auth button in mobile view - only icon */}
+                <div className="md:hidden">
+                  <AuthButton />
+                </div>
+                
                 {/* Role selection button with shortened text */}
                 <button 
                   onClick={() => openModal('role')}
                   className={`flex items-center py-1.5 px-2 ${theme === 'dark' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-md transition-all duration-200 shadow-md text-sm`}
                 >
                   <FaUserCog className="ml-1" />
-                  <span>نقش: {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'آموزشگر' : 'دانش‌آموز'}</span>
+                  <span>نقش: {userRole === 'admin' ? 'مدیر' : userRole === 'educator' ? 'معلم' : 'دانش‌آموز'}</span>
                 </button>
                 
                 {/* Mobile menu button */}

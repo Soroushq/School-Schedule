@@ -1,0 +1,79 @@
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.authBg {
+  position: relative;
+  background: linear-gradient(-45deg, #3b82f6, #1e40af, #0f172a, #1e3a8a);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+}
+
+.authBg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/photos/auth-pattern.svg') repeat;
+  opacity: 0.05;
+  z-index: 0;
+}
+
+.authInfoBg {
+  position: relative;
+  overflow: hidden;
+}
+
+.authInfoBg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);
+  z-index: -1;
+}
+
+.authInfoBg::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0) 70%);
+  animation: pulse 8s ease-in-out infinite;
+  z-index: -2;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+}
+
+.darkAuthBg {
+  background: linear-gradient(-45deg, #1e3a8a, #0f172a, #1e40af, #0f172a);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+} 
