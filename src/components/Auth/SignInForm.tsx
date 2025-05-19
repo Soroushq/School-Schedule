@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Input from '../Input/input';
 import { useTheme } from '@/context/ThemeContext';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+import Captcha from './Captcha';
 
 interface SignInFormProps {
   onSubmit: (email: string, password: string) => void;
@@ -23,11 +24,28 @@ const SignInForm: React.FC<SignInFormProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const { theme } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // بررسی کپچا
+    if (!captchaToken) {
+      setCaptchaError('لطفاً کپچا را تأیید کنید');
+      return;
+    }
+    
+    setCaptchaError(null);
     onSubmit(email, password);
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+    if (token) {
+      setCaptchaError(null);
+    }
   };
 
   return (
@@ -52,7 +70,7 @@ const SignInForm: React.FC<SignInFormProps> = ({
         />
         <button
           type="button"
-          className={`absolute left-2 top-9 text-xl ${
+          className={`absolute left-2 top-8 text-xl ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
           }`}
           onClick={() => setShowPassword(!showPassword)}
@@ -61,11 +79,17 @@ const SignInForm: React.FC<SignInFormProps> = ({
         </button>
       </div>
 
+      {/* کپچا */}
+      <Captcha onChange={handleCaptchaChange} />
+      {captchaError && (
+        <div className="text-red-500 text-sm text-center">{captchaError}</div>
+      )}
+
       {error && (
         <div className="text-red-500 text-sm pt-1">{error}</div>
       )}
 
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center text-center justify-center pt-2">
         {onForgotPassword && (
           <button
             type="button"

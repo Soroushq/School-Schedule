@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Input from '../Input/input';
 import { useTheme } from '@/context/ThemeContext';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+import Captcha from './Captcha';
 
 interface SignUpFormProps {
   onSubmit: (name: string, email: string, password: string) => void;
@@ -24,6 +25,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const { theme } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,8 +37,22 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       return;
     }
     
+    // بررسی کپچا
+    if (!captchaToken) {
+      setCaptchaError('لطفاً کپچا را تأیید کنید');
+      return;
+    }
+    
     setPasswordError('');
+    setCaptchaError(null);
     onSubmit(name, email, password);
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+    if (token) {
+      setCaptchaError(null);
+    }
   };
 
   return (
@@ -86,6 +103,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         placeholder="رمز عبور را مجدداً وارد کنید"
         required
       />
+
+      {/* کپچا */}
+      <Captcha onChange={handleCaptchaChange} />
+      {captchaError && (
+        <div className="text-red-500 text-sm text-center">{captchaError}</div>
+      )}
 
       {passwordError && (
         <div className="text-red-500 text-sm pt-1">{passwordError}</div>
