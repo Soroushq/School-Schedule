@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
+import { hybridStorageService } from './hybridStorageService';
 
 // تعریف اینترفیس‌ها برای استفاده در کل برنامه
 export interface Personnel {
@@ -51,38 +52,14 @@ export interface SavedClassSchedule {
 // سرویس هماهنگی برنامه‌های کلاسی و پرسنلی
 class ScheduleSyncService {
   // بارگذاری تمام برنامه‌های پرسنلی ذخیره شده
-  getAllPersonnelSchedules(): SavedPersonnelSchedule[] {
+  async getAllPersonnelSchedules(): Promise<SavedPersonnelSchedule[]> {
     try {
       // بررسی اینکه آیا در محیط مرورگر هستیم
       if (typeof window === 'undefined') {
         return [];
       }
 
-      const schedules: SavedPersonnelSchedule[] = [];
-      const allKeys = storageService.getAllKeys();
-      
-      for (const key of allKeys) {
-        if (key && key.startsWith('personnel_schedule_')) {
-          const savedData = storageService.getItem(key);
-          
-          if (savedData) {
-            try {
-              const parsedData = JSON.parse(savedData);
-              schedules.push(parsedData);
-            } catch (e) {
-              console.error('خطا در تجزیه داده‌های ذخیره شده پرسنلی:', e);
-            }
-          }
-        }
-      }
-      
-      // مرتب‌سازی نتایج بر اساس نام و برنامه‌های دارای فیلد fullName و personnelCode
-      return schedules.sort((a, b) => {
-        if (a.personnel.fullName && b.personnel.fullName) {
-          return a.personnel.fullName.localeCompare(b.personnel.fullName);
-        }
-        return 0;
-      });
+      return await hybridStorageService.getAllPersonnelSchedules();
     } catch (error) {
       console.error('خطا در بارگیری برنامه‌های پرسنلی:', error);
       return [];
@@ -90,32 +67,14 @@ class ScheduleSyncService {
   }
 
   // بارگذاری تمام برنامه‌های کلاسی ذخیره شده
-  getAllClassSchedules(): SavedClassSchedule[] {
+  async getAllClassSchedules(): Promise<SavedClassSchedule[]> {
     try {
       // بررسی اینکه آیا در محیط مرورگر هستیم
       if (typeof window === 'undefined') {
         return [];
       }
 
-      const schedules: SavedClassSchedule[] = [];
-      const allKeys = storageService.getAllKeys();
-      
-      for (const key of allKeys) {
-        if (key && key.startsWith('class_schedule_')) {
-          const savedData = storageService.getItem(key);
-          
-          if (savedData) {
-            try {
-              const parsedData = JSON.parse(savedData);
-              schedules.push(parsedData);
-            } catch (e) {
-              console.error('خطا در تجزیه داده‌های ذخیره شده کلاسی:', e);
-            }
-          }
-        }
-      }
-      
-      return schedules;
+      return await hybridStorageService.getAllClassSchedules();
     } catch (error) {
       console.error('خطا در بارگیری برنامه‌های کلاسی:', error);
       return [];
@@ -123,20 +82,21 @@ class ScheduleSyncService {
   }
 
   // بارگذاری برنامه پرسنلی با ID مشخص
-  getPersonnelScheduleById(personnelId: string): SavedPersonnelSchedule | null {
+  async getPersonnelScheduleById(personnelId: string): Promise<SavedPersonnelSchedule | null> {
     try {
       // بررسی اینکه آیا در محیط مرورگر هستیم
       if (typeof window === 'undefined') {
         return null;
       }
 
+      // در حال حاضر hybridStorageService این متد را ندارد، پس از localStorage استفاده می‌کنیم
       const key = `personnel_schedule_${personnelId}`;
       const savedData = storageService.getItem(key);
       
       if (savedData) {
         const parsedData = JSON.parse(savedData);
         // اطمینان از یکپارچگی داده‌ها با برنامه‌های کلاسی
-        parsedData.schedules = this.enrichPersonnelSchedules(parsedData.schedules, parsedData.personnel);
+        parsedData.schedules = await this.enrichPersonnelSchedules(parsedData.schedules, parsedData.personnel);
         return parsedData;
       }
       
@@ -148,7 +108,7 @@ class ScheduleSyncService {
   }
 
   // غنی‌سازی برنامه‌های پرسنلی با اطلاعات مشابه از برنامه‌های کلاسی
-  private enrichPersonnelSchedules(schedules: Schedule[], personnel: Personnel): Schedule[] {
+  private async enrichPersonnelSchedules(schedules: Schedule[], personnel: Personnel): Promise<Schedule[]> {
     try {
       // بررسی اینکه آیا در محیط مرورگر هستیم
       if (typeof window === 'undefined') {
@@ -159,7 +119,7 @@ class ScheduleSyncService {
       const uniqueSchedules = new Map<string, Schedule>();
       
       // ابتدا همه برنامه‌های کلاسی مرتبط را بیابیم
-      const classSchedules = this.getAllClassSchedules();
+      const classSchedules = await this.getAllClassSchedules();
       const allClassSchedules: Schedule[] = [];
       
       classSchedules.forEach(cs => {
@@ -201,22 +161,15 @@ class ScheduleSyncService {
     }
   }
 
-  // بارگذاری برنامه کلاسی با اطلاعات مشخص
-  getClassSchedule(grade: string, classNumber: string, field: string): SavedClassSchedule | null {
+  // بارگذاری برنامه کلاسی با مشخصات کلاس
+  async getClassSchedule(grade: string, classNumber: string, field: string): Promise<SavedClassSchedule | null> {
     try {
       // بررسی اینکه آیا در محیط مرورگر هستیم
       if (typeof window === 'undefined') {
         return null;
       }
 
-      const key = `class_schedule_${grade}-${classNumber}-${field}`;
-      const savedData = storageService.getItem(key);
-      
-      if (savedData) {
-        return JSON.parse(savedData);
-      }
-      
-      return null;
+      return await hybridStorageService.getClassSchedule(grade, classNumber, field);
     } catch (error) {
       console.error('خطا در بارگیری برنامه کلاسی:', error);
       return null;
@@ -224,19 +177,23 @@ class ScheduleSyncService {
   }
 
   // ذخیره برنامه پرسنلی و بروزرسانی برنامه‌های کلاسی مرتبط
-  savePersonnelSchedule(personnelSchedule: SavedPersonnelSchedule): void {
+  async savePersonnelSchedule(personnelSchedule: SavedPersonnelSchedule): Promise<void> {
     try {
       // ذخیره برنامه پرسنلی
-      const key = `personnel_schedule_${personnelSchedule.personnel.id}`;
-      storageService.setItem(key, JSON.stringify({
-        ...personnelSchedule,
-        timestamp: Date.now()
-      }));
+      await hybridStorageService.savePersonnelSchedule(
+        personnelSchedule.personnel, 
+        personnelSchedule.schedules
+      );
 
       // بروزرسانی برنامه‌های کلاسی مرتبط
-      personnelSchedule.schedules.forEach(schedule => {
+      for (const schedule of personnelSchedule.schedules) {
         if (schedule.grade && schedule.classNumber && schedule.field) {
-          const classSchedule = this.getClassSchedule(schedule.grade, schedule.classNumber, schedule.field);
+          // جستجوی برنامه کلاسی مربوطه
+          const classSchedule = await this.getClassSchedule(
+            schedule.grade, 
+            schedule.classNumber, 
+            schedule.field
+          );
           
           if (classSchedule) {
             // حذف برنامه مربوط به این پرسنل از برنامه کلاسی (اگر وجود داشته باشد)
@@ -259,178 +216,150 @@ class ScheduleSyncService {
             updatedSchedules.push(newSchedule);
             
             // ذخیره برنامه کلاسی بروزرسانی شده
-            this.saveClassScheduleWithoutSync({
-              ...classSchedule,
-              schedules: updatedSchedules,
-              timestamp: Date.now()
-            });
+            await hybridStorageService.saveClassSchedule(
+              schedule.grade,
+              schedule.classNumber,
+              schedule.field,
+              updatedSchedules
+            );
           } else {
             // ایجاد برنامه کلاسی جدید
-            const newClassSchedule: SavedClassSchedule = {
-              id: uuidv4(),
-              grade: schedule.grade,
-              classNumber: schedule.classNumber,
-              field: schedule.field,
-              schedules: [{
-                ...schedule,
-                id: schedule.id,
-                personnelCode: personnelSchedule.personnel.personnelCode,
-                fullName: personnelSchedule.personnel.fullName,
-                mainPosition: personnelSchedule.personnel.mainPosition,
-                employmentStatus: personnelSchedule.personnel.employmentStatus,
-                personnelScheduleId: personnelSchedule.personnel.id,
-                source: 'personnel'
-              }],
-              timestamp: Date.now()
+            const newSchedule: Schedule = {
+              ...schedule,
+              id: schedule.id,
+              personnelCode: personnelSchedule.personnel.personnelCode,
+              fullName: personnelSchedule.personnel.fullName,
+              mainPosition: personnelSchedule.personnel.mainPosition,
+              employmentStatus: personnelSchedule.personnel.employmentStatus,
+              personnelScheduleId: personnelSchedule.personnel.id,
+              source: 'personnel'
             };
             
             // ذخیره برنامه کلاسی جدید
-            this.saveClassScheduleWithoutSync(newClassSchedule);
+            await hybridStorageService.saveClassSchedule(
+              schedule.grade,
+              schedule.classNumber,
+              schedule.field,
+              [newSchedule]
+            );
           }
         }
-      });
+      }
     } catch (error) {
       console.error('خطا در ذخیره برنامه پرسنلی:', error);
     }
   }
 
   // ذخیره برنامه کلاسی و بروزرسانی برنامه‌های پرسنلی مرتبط
-  saveClassSchedule(classSchedule: SavedClassSchedule): void {
+  async saveClassSchedule(classSchedule: SavedClassSchedule): Promise<void> {
     try {
       // ذخیره برنامه کلاسی
-      this.saveClassScheduleWithoutSync({
-        ...classSchedule,
-        timestamp: Date.now()
-      });
+      await hybridStorageService.saveClassSchedule(
+        classSchedule.grade,
+        classSchedule.classNumber,
+        classSchedule.field,
+        classSchedule.schedules
+      );
 
       // بروزرسانی برنامه‌های پرسنلی مرتبط
-      classSchedule.schedules.forEach(schedule => {
+      for (const schedule of classSchedule.schedules) {
         if (schedule.personnelCode) {
           // جستجوی پرسنل مربوطه
-          const personnelSchedules = this.getAllPersonnelSchedules();
-          const matchingPersonnel = personnelSchedules.find(ps => 
-            ps.personnel.personnelCode === schedule.personnelCode
-          );
+          const personnel = await hybridStorageService.getPersonnelByCode(schedule.personnelCode);
           
-          if (matchingPersonnel) {
-            // حذف برنامه قبلی از همین روز و ساعت
-            const updatedSchedules = matchingPersonnel.schedules.filter(s => 
-              !(s.day === schedule.day && s.timeStart === schedule.timeStart && s.timeEnd === schedule.timeEnd)
-            );
+          if (personnel) {
+            const personnelSchedule = await hybridStorageService.getPersonnelSchedulesByCode(schedule.personnelCode);
             
-            // اضافه کردن برنامه جدید
-            const newSchedule: Schedule = {
-              ...schedule,
-              id: schedule.id,
-              personnelId: matchingPersonnel.personnel.id,
-              classScheduleId: classSchedule.id,
-              source: 'class'
-            };
-            
-            updatedSchedules.push(newSchedule);
-            
-            // ذخیره برنامه پرسنلی بروزرسانی شده
-            this.savePersonnelScheduleWithoutSync({
-              ...matchingPersonnel,
-              schedules: updatedSchedules,
-              timestamp: Date.now()
-            });
+            if (personnelSchedule) {
+              // حذف برنامه قبلی از همین روز و ساعت
+              const updatedSchedules = personnelSchedule.schedules.filter(s => 
+                !(s.day === schedule.day && s.timeStart === schedule.timeStart && s.timeEnd === schedule.timeEnd)
+              );
+              
+              // اضافه کردن برنامه جدید
+              const newSchedule: Schedule = {
+                ...schedule,
+                id: schedule.id,
+                personnelId: personnel.id,
+                classScheduleId: classSchedule.id,
+                source: 'class'
+              };
+              
+              updatedSchedules.push(newSchedule);
+              
+              // ذخیره برنامه پرسنلی بروزرسانی شده
+              await hybridStorageService.savePersonnelSchedule(personnel, updatedSchedules);
+            }
           } else {
             // ایجاد پرسنل جدید
-            const newPersonnelId = uuidv4();
             const newPersonnel: Personnel = {
-              id: newPersonnelId,
+              id: uuidv4(),
               personnelCode: schedule.personnelCode,
               fullName: schedule.fullName || '',
               mainPosition: schedule.mainPosition || '',
               employmentStatus: schedule.employmentStatus || ''
             };
             
+            // ایجاد پرسنل در سیستم
+            await hybridStorageService.createPersonnel(newPersonnel);
+            
             // ایجاد برنامه پرسنلی جدید
-            const newPersonnelSchedule: SavedPersonnelSchedule = {
-              personnel: newPersonnel,
-              schedules: [{
-                ...schedule,
-                id: schedule.id,
-                personnelId: newPersonnelId,
-                classScheduleId: classSchedule.id,
-                source: 'class'
-              }],
-              timestamp: Date.now()
+            const newSchedule: Schedule = {
+              ...schedule,
+              id: schedule.id,
+              personnelId: newPersonnel.id,
+              classScheduleId: classSchedule.id,
+              source: 'class'
             };
             
             // ذخیره برنامه پرسنلی جدید
-            this.savePersonnelScheduleWithoutSync(newPersonnelSchedule);
+            await hybridStorageService.savePersonnelSchedule(newPersonnel, [newSchedule]);
           }
         }
-      });
-    } catch (error) {
-      console.error('خطا در ذخیره برنامه کلاسی:', error);
-    }
-  }
-
-  // ذخیره برنامه پرسنلی بدون همگام‌سازی با برنامه‌های کلاسی
-  private savePersonnelScheduleWithoutSync(personnelSchedule: SavedPersonnelSchedule): void {
-    try {
-      const key = `personnel_schedule_${personnelSchedule.personnel.id}`;
-      storageService.setItem(key, JSON.stringify({
-        ...personnelSchedule,
-        timestamp: Date.now()
-      }));
-    } catch (error) {
-      console.error('خطا در ذخیره برنامه پرسنلی:', error);
-    }
-  }
-
-  // ذخیره برنامه کلاسی بدون همگام‌سازی با برنامه‌های پرسنلی
-  private saveClassScheduleWithoutSync(classSchedule: SavedClassSchedule): void {
-    try {
-      const key = `class_schedule_${classSchedule.grade}-${classSchedule.classNumber}-${classSchedule.field}`;
-      storageService.setItem(key, JSON.stringify({
-        ...classSchedule,
-        timestamp: Date.now()
-      }));
+      }
     } catch (error) {
       console.error('خطا در ذخیره برنامه کلاسی:', error);
     }
   }
 
   // حذف برنامه از هر دو طرف (کلاسی و پرسنلی)
-  deleteScheduleFromBoth(schedule: Schedule): void {
+  async deleteScheduleFromBoth(schedule: Schedule): Promise<void> {
     try {
       // حذف از برنامه کلاسی
       if (schedule.grade && schedule.classNumber && schedule.field) {
-        const classSchedule = this.getClassSchedule(schedule.grade, schedule.classNumber, schedule.field);
+        const classSchedule = await this.getClassSchedule(schedule.grade, schedule.classNumber, schedule.field);
         
         if (classSchedule) {
-          classSchedule.schedules = classSchedule.schedules.filter(s => s.id !== schedule.id);
-          this.saveClassScheduleWithoutSync(classSchedule);
+          const updatedSchedules = classSchedule.schedules.filter(s => s.id !== schedule.id);
+          await hybridStorageService.saveClassSchedule(
+            schedule.grade,
+            schedule.classNumber,
+            schedule.field,
+            updatedSchedules
+          );
         }
       }
       
       // حذف از برنامه پرسنلی
-      if (schedule.personnelId) {
-        const personnelSchedule = this.getPersonnelScheduleById(schedule.personnelId);
+      if (schedule.personnelCode) {
+        const personnelSchedule = await hybridStorageService.getPersonnelSchedulesByCode(schedule.personnelCode);
         
         if (personnelSchedule) {
-          personnelSchedule.schedules = personnelSchedule.schedules.filter(s => s.id !== schedule.id);
-          this.savePersonnelScheduleWithoutSync(personnelSchedule);
+          const updatedSchedules = personnelSchedule.schedules.filter(s => s.id !== schedule.id);
+          await hybridStorageService.savePersonnelSchedule(personnelSchedule.personnel, updatedSchedules);
         }
-      } else {
-        // جستجو در تمام برنامه‌های پرسنلی
-        const personnelSchedules = this.getAllPersonnelSchedules();
-        
-        personnelSchedules.forEach(ps => {
-          const hasSchedule = ps.schedules.some(s => s.id === schedule.id);
-          
-          if (hasSchedule) {
-            ps.schedules = ps.schedules.filter(s => s.id !== schedule.id);
-            this.savePersonnelScheduleWithoutSync(ps);
-          }
-        });
       }
     } catch (error) {
       console.error('خطا در حذف برنامه از هر دو طرف:', error);
+    }
+  }
+
+  // پاک کردن تمام برنامه‌ها
+  async clearAllSchedules(): Promise<void> {
+    try {
+      await hybridStorageService.clearAllSchedules();
+    } catch (error) {
+      console.error('خطا در پاک کردن تمام برنامه‌ها:', error);
     }
   }
 }

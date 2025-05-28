@@ -9,6 +9,7 @@ import ClientThemeLayout from './ClientThemeLayout'
 import { Suspense } from 'react'
 import PageLoading from '@/components/PageLoading'
 import { AuthProvider } from '@/context/AuthContext'
+import ApiToggle from '@/components/ApiToggle'
 
 export const metadata: Metadata = {
   title: 'سیستم برنامه‌ریزی مدرسه',
@@ -50,6 +51,7 @@ export default function RootLayout({
               </ClientLayout>
               <ClientScheduleSyncObserver />
               <AnalyticsInitializer />
+              <ApiToggle />
             </AuthProvider>
           </ClientThemeLayout>
         </UserRoleProvider>

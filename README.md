@@ -1,36 +1,172 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# سیستم مدیریت برنامه مدرسه
 
-## Getting Started
+یک سیستم کامل برای مدیریت برنامه‌های زمانی مدرسه با پشتیبانی از هر دو حالت localStorage و backend API.
 
-First, run the development server:
+## ویژگی‌ها
+
+### Frontend (Next.js)
+- 🎯 مدیریت برنامه‌های پرسنلی و کلاسی
+- 🔄 همگام‌سازی خودکار بین برنامه‌ها
+- 🌙 پشتیبانی از حالت تاریک/روشن
+- 📱 طراحی ریسپانسیو
+- 🔒 مدیریت دسترسی و نقش‌ها
+- 💾 ذخیره‌سازی محلی با localStorage
+- 🌐 پشتیبانی از backend API
+- 🔄 تغییر آنی بین localStorage و API
+
+### Backend (Flask)
+- 🗄️ پایگاه داده SQLite
+- 🔌 API RESTful کامل
+- 🔐 مدیریت امن داده‌ها
+- 🌐 پشتیبانی از CORS
+- 📊 مدیریت روابط بین جداول
+
+## نصب و راه‌اندازی
+
+### پیش‌نیازها
+- Node.js 18+ 
+- Python 3.8+
+- npm یا yarn
+
+### Frontend
 
 ```bash
+# نصب dependencies
+npm install
+
+# اجرای محیط توسعه
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend روی `http://localhost:3000` اجرا خواهد شد.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Backend
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# رفتن به پوشه backend
+cd backend
 
-## Learn More
+# نصب dependencies
+pip install -r requirements.txt
 
-To learn more about Next.js, take a look at the following resources:
+# اجرای سرور
+python app.py
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Backend روی `http://localhost:5000` اجرا خواهد شد.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## تنظیمات
 
-## Deploy on Vercel
+### متغیرهای محیطی
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+فایل `.env.local` در ریشه پروژه ایجاد کنید:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+# تنظیمات API
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_USE_API=false
+
+# تنظیمات توسعه
+NEXT_PUBLIC_ENV=development
+```
+
+### تغییر بین localStorage و API
+
+در رابط کاربری، در گوشه پایین سمت چپ، کلید تغییر حالت وجود دارد که می‌توانید بین localStorage و API تغییر دهید.
+
+## ساختار پروژه
+
+```
+├── src/
+│   ├── app/                    # صفحات Next.js
+│   ├── components/             # کامپوننت‌های React
+│   ├── services/              # سرویس‌های داده
+│   │   ├── storageService.ts  # مدیریت localStorage
+│   │   ├── apiService.ts      # ارتباط با API
+│   │   ├── hybridStorageService.ts # سرویس ترکیبی
+│   │   └── scheduleSync.ts    # همگام‌سازی برنامه‌ها
+│   ├── types/                 # تعریف انواع TypeScript
+│   └── data/                  # داده‌های استاتیک
+├── backend/
+│   ├── app.py                 # سرور Flask اصلی
+│   ├── config.py              # تنظیمات
+│   └── requirements.txt       # dependencies Python
+└── public/                    # فایل‌های استاتیک
+```
+
+## API Endpoints
+
+### پرسنل
+- `GET /api/personnel` - دریافت تمام پرسنل
+- `POST /api/personnel` - ایجاد پرسنل جدید
+- `GET /api/personnel/{id}` - دریافت پرسنل با ID
+- `PUT /api/personnel/{id}` - به‌روزرسانی پرسنل
+
+### برنامه‌های پرسنلی
+- `GET /api/personnel/{id}/schedules` - دریافت برنامه‌های پرسنل
+- `POST /api/personnel/{id}/schedules` - ذخیره برنامه‌های پرسنل
+
+### برنامه‌های کلاسی
+- `GET /api/class-schedules` - دریافت تمام برنامه‌های کلاسی
+- `GET /api/class-schedules/{grade}/{class}/{field}` - دریافت برنامه کلاس خاص
+- `POST /api/class-schedules/{grade}/{class}/{field}` - ذخیره برنامه کلاسی
+
+## ویژگی‌های کلیدی
+
+### سیستم ترکیبی ذخیره‌سازی
+- **localStorage**: ذخیره‌سازی محلی در مرورگر
+- **API Backend**: ذخیره‌سازی در پایگاه داده سرور
+- **تغییر آنی**: امکان تغییر بین دو حالت بدون از دست دادن داده‌ها
+- **Fallback**: در صورت عدم دسترسی به API، خودکار به localStorage برمی‌گردد
+
+### همگام‌سازی داده‌ها
+- همگام‌سازی خودکار بین برنامه‌های پرسنلی و کلاسی
+- به‌روزرسانی فوری تغییرات در تمام بخش‌ها
+- حفظ یکپارچگی داده‌ها
+
+### امنیت و حریم خصوصی
+- مدیریت توافق‌نامه حریم خصوصی
+- کنترل دسترسی به localStorage
+- اعتبارسنجی داده‌ها در backend
+
+## توسعه
+
+### اضافه کردن API جدید
+
+1. در `backend/app.py` endpoint جدید اضافه کنید
+2. در `src/services/apiService.ts` متد مربوطه را اضافه کنید
+3. در `src/services/hybridStorageService.ts` منطق ترکیبی را پیاده‌سازی کنید
+
+### اضافه کردن کامپوننت جدید
+
+1. کامپوننت را در `src/components/` ایجاد کنید
+2. از `hybridStorageService` برای دسترسی به داده‌ها استفاده کنید
+3. تست کنید که در هر دو حالت localStorage و API کار می‌کند
+
+## مشکلات رایج
+
+### خطای CORS
+اگر با خطای CORS مواجه شدید، مطمئن شوید که:
+- Backend در حال اجرا است
+- آدرس frontend در تنظیمات CORS backend اضافه شده
+
+### مشکل در ذخیره‌سازی
+- بررسی کنید که توافق‌نامه حریم خصوصی پذیرفته شده
+- در Developer Tools مرورگر، وضعیت localStorage را بررسی کنید
+
+### عدم اتصال به API
+- مطمئن شوید که backend روی پورت 5000 اجرا می‌شود
+- از کامپوننت ApiToggle برای بررسی وضعیت اتصال استفاده کنید
+
+## مشارکت
+
+برای مشارکت در پروژه:
+
+1. Fork کنید
+2. Branch جدید ایجاد کنید
+3. تغییرات را commit کنید
+4. Pull Request ارسال کنید
+
+## لایسنس
+
+این پروژه تحت لایسنس MIT منتشر شده است.
